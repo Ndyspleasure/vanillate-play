@@ -11,6 +11,14 @@
 - Hand-made SVG art set; English + Bahasa Indonesia.
 - PWA (installable, offline shell, cached tracking assets), SEO meta + share preview, Vercel config, CI.
 
+## ✅ Version 1.0.1 — camera & controls reliability
+
+- Camera/tracking lifecycle with explicit states; camera stream and pose model reused across rematches and game changes (no refresh, no re-download, no duplicate streams or loops); self-healing tracking loop and pose worker.
+- Model preloading on game pages, parallel camera + model start-up, loading checklist; CPU delegate on software-WebGL devices.
+- Smoother skeletons (prediction + render-rate easing, outlier limiting).
+- Single-fire left/right zones with hysteresis, position-based lanes, more reliable jumps, forgiving calibration.
+- Pre-game tutorial with live move practice; raise-a-hand start/rematch with confirmation hold.
+
 ## Version 1.1 — polish & reach
 
 - Tune gesture thresholds with real-world play sessions (punch/kick detection across camera angles).

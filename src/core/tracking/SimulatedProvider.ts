@@ -27,6 +27,8 @@ const W_TORSO = 0.5; // meters
 export class SimBody {
   /** Torso length in view units (fraction of frame height). */
   torso = 0.25;
+  /** Floor line in view space (moves down as a player walks towards a chest-height camera). */
+  ground = 0.93;
   baseX: number;
   x: number;
   /** -1, 0, 1 lateral zone (stepped left / centered / stepped right). */
@@ -103,7 +105,7 @@ export class SimBody {
     const T = this.torso;
     const k = W_TORSO / T; // view → meters
     const view: Landmark[] = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, v: 0.98 }));
-    const groundY = 0.93;
+    const groundY = this.ground;
     const thigh = 0.9 * T;
     const shin = 0.9 * T;
     const hipHalf = 0.28 * T;

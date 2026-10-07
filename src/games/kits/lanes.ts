@@ -71,8 +71,12 @@ export class Runner {
 
   /** Apply player motion events. */
   control(inp: PlayerInput): void {
-    if (inp.any('MOVE_LEFT', 'LEAN_LEFT', 'STEP_LEFT', 'DODGE_LEFT')) this.lane = clamp(this.lane - 1, 0, LANES - 1);
-    if (inp.any('MOVE_RIGHT', 'LEAN_RIGHT', 'STEP_RIGHT', 'DODGE_RIGHT')) this.lane = clamp(this.lane + 1, 0, LANES - 1);
+    if (inp.state.calibrated) {
+      // Tracked body: the lane follows where the player stands (left / centre / right), so moving
+      // left always means the left lane and one movement can never shift two lanes.
+      this.lane = 1 + inp.state.zone;
+    } else if (inp.any('MOVE_LEFT', 'LEAN_LEFT', 'STEP_LEFT', 'DODGE_LEFT')) this.lane = clamp(this.lane - 1, 0, LANES - 1);
+    else if (inp.any('MOVE_RIGHT', 'LEAN_RIGHT', 'STEP_RIGHT', 'DODGE_RIGHT')) this.lane = clamp(this.lane + 1, 0, LANES - 1);
     if (inp.has('JUMP') && this.jumpT < 0) this.jumpT = 0;
     if ((inp.any('SQUAT', 'DUCK') || inp.state.squatting) && this.slideT < 0 && this.jumpT < 0) this.slideT = 0;
     this.energy = inp.state.energy;

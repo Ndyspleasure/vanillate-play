@@ -16,6 +16,9 @@ export interface BodyCalibration {
 
 export type BodyIssue = 'too-close' | 'too-far' | 'feet-hidden' | 'head-hidden' | 'hips-hidden' | 'moving' | 'arms-up';
 
+/** Wrist height above the shoulder line (torso units) that counts as "arms up" during setup. */
+const ARMS_UP = 0.3;
+
 /** How long a player must stand naturally before the baseline locks in. */
 export const CALIBRATION_MS = 800;
 
@@ -28,7 +31,7 @@ export function bodyIssues(f: BodyFrame, energy: number): BodyIssue[] {
   if (!f.hipsVisible) issues.push('hips-hidden');
   else if (!f.anklesVisible) issues.push('feet-hidden');
   if (energy > 0.9) issues.push('moving');
-  if (f.lWr.y < f.shC.y - f.torso * 0.2 || f.rWr.y < f.shC.y - f.torso * 0.2) issues.push('arms-up');
+  if ((f.lWristVisible && f.lWr.y < f.shC.y - f.torso * ARMS_UP) || (f.rWristVisible && f.rWr.y < f.shC.y - f.torso * ARMS_UP)) issues.push('arms-up');
   return issues;
 }
 
@@ -54,7 +57,10 @@ export class CalibrationTracker {
   }
 
   private isNeutral(f: BodyFrame, energy: number): boolean {
-    const handsDown = f.lWr.y > f.shC.y - f.torso * 0.1 && f.rWr.y > f.shC.y - f.torso * 0.1;
+    // The baseline doesn't depend on the arms, so only clearly raised hands (well above the
+    // shoulders) block calibration. Hands outside the frame (common when close) count as down.
+    const down = (wr: { y: number }, visible: boolean) => !visible || wr.y > f.shC.y - f.torso * ARMS_UP;
+    const handsDown = down(f.lWr, f.lWristVisible) && down(f.rWr, f.rWristVisible);
     const upright = Math.abs(f.shC.x - f.hipC.x) < f.torso * 0.18;
     return energy < 0.45 && handsDown && upright && f.quality > 0.55;
   }
@@ -124,7 +130,9 @@ export class CalibrationTracker {
     }
     this.scaleDriftMs = 0;
     const a = smoothFactor(dtSec, 3.5);
-    c.centerX += (f.center.x - c.centerX) * a;
+    // Only re-centre while the player stands near their spot: someone waiting in the left or right
+    // zone must not drag the baseline along (that made later left/right moves stop registering).
+    if (Math.abs(f.center.x - c.centerX) < c.torso * 0.2) c.centerX += (f.center.x - c.centerX) * a;
     c.shoulderY += (f.shC.y - c.shoulderY) * a;
     c.hipY += (f.hipC.y - c.hipY) * a;
     c.noseY += (f.nose.y - c.noseY) * a;

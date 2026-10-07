@@ -14,7 +14,7 @@ Vanillate Motion runs entirely in the browser. Body tracking uses on-device AI (
 - **36 games** across For Two, Versus, Couple/Co-op, Party (3–4 players), Solo, Sports & Arcade and viral Challenges (full list below).
 - **Duo-first motion engine** — stable Player 1–4 identities, automatic calibration, semantic motion events (jump, squat, lean, step, dodge, punch, block, hands-up, kick, flap, freeze…), pose matching.
 - **Camera stays local** — MediaPipe WASM + model are self-hosted; no third-party requests during play.
-- **Fast path to fun** — Landing → choose game → camera check → automatic player detection & calibration → raise both hands to start → result → hands-up rematch.
+- **Fast path to fun** — Landing → choose game → camera check (camera, motion engine and body tracking load in parallel, with progress) → automatic player detection & calibration → quick "how to play" practice that checks off each move → raise a hand to start → result → raise a hand to play again (same camera and model, no refresh).
 - **Keyboard / touch fallback** — every game is playable without a camera (simulated bodies flow through the real motion engine).
 - **Shareable results** — locally generated result cards (optional camera photo, vertical stories format), Web Share / download / copy text.
 - **Hand-made SVG art set** — logo, 36 game icons and all in-game sprites are vector art, identical on every device.

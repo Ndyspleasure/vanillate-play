@@ -2,6 +2,7 @@ import { track } from '../../analytics';
 import { app } from '../../app/context';
 import { artEl } from '../../art/sprites';
 import type { RouteMatch, Screen } from '../../app/router';
+import { cameraSupport } from '../../core/camera/CameraManager';
 import type { ModeId } from '../../engine/types';
 import { gameById, playersForMode } from '../../games/catalog';
 import { stats } from '../../storage/stats';
@@ -14,10 +15,10 @@ export function detailScreen(m: RouteMatch): Screen {
   const meta = gameById(m.params.id);
   if (!meta) return notFoundScreen();
   track('game_opened', { game: meta.id });
-  // Warm the motion model cache while the player reads the rules (only on game pages, not the landing page).
-  if (!document.querySelector('link[data-model-prefetch]')) {
-    document.head.appendChild(h('link', { rel: 'prefetch', href: '/models/pose_landmarker_lite.task', dataset: { modelPrefetch: '1' } }));
-  }
+  // Load and warm up the motion engine while the player reads the rules (only on game pages, not the
+  // landing page), so tracking is ready the moment the camera turns on.
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (!cameraSupport() && !conn?.saveData) app.session.preload().catch(() => undefined);
   const text = loc(meta.text);
   let mode: ModeId = (m.query.get('mode') as ModeId) ?? meta.defaultMode;
   if (!meta.modes.includes(mode)) mode = meta.defaultMode;
