@@ -42,6 +42,42 @@ async function fetchWithProgress(url: string, onProgress: (loaded: number, total
   return out.buffer;
 }
 
+/** Approximate download sizes, used until the server reports Content-Length. */
+const MODEL_BYTES = 5_800_000;
+const WASM_BYTES = 11_800_000;
+
+type Progress = (loaded: number, total: number) => void;
+
+/**
+ * Tracking assets are downloaded at most once per page visit: the model bytes stay in memory so a
+ * worker restart (or a second provider) never downloads them again. The service worker additionally
+ * keeps both files in Cache Storage across visits.
+ */
+const downloads = new Map<string, { promise: Promise<ArrayBuffer>; listeners: Set<Progress>; last: [number, number] }>();
+
+function download(url: string, onProgress: Progress, required = true): Promise<ArrayBuffer | null> {
+  let entry = downloads.get(url);
+  if (!entry) {
+    const listeners = new Set<Progress>();
+    const created = {
+      listeners,
+      last: [0, 0] as [number, number],
+      promise: fetchWithProgress(url, (l, t) => {
+        created.last = [l, t];
+        for (const fn of listeners) fn(l, t);
+      }),
+    };
+    entry = created;
+    downloads.set(url, entry);
+    created.promise.catch(() => downloads.delete(url));
+  }
+  const e = entry;
+  e.listeners.add(onProgress);
+  if (e.last[0]) onProgress(e.last[0], e.last[1]);
+  const p = e.promise.finally(() => e.listeners.delete(onProgress));
+  return required ? p : p.catch(() => null);
+}
+
 function unpack(image: Float32Array, world: Float32Array, count: number): DetectedPose[] {
   const poses: DetectedPose[] = [];
   for (let p = 0; p < count; p++) {
@@ -58,20 +94,43 @@ function unpack(image: Float32Array, world: Float32Array, count: number): Detect
 }
 
 /**
+ * No answer from the worker for this long = it hung (or crashed silently): rebuild it. Generous on
+ * purpose — slow devices legitimately take a few hundred ms per frame.
+ */
+const HANG_MS = 5000;
+/** Consecutive failed inferences after which the inference backend is rebuilt. */
+const MAX_FAILURES = 5;
+/** Give up rebuilding after this many restarts (the device can't run the model reliably). */
+const MAX_RECOVERIES = 3;
+
+/**
  * Camera pose provider backed by MediaPipe Pose Landmarker. Prefers a module Web Worker with the GPU
  * delegate, and falls back to main-thread inference and/or CPU when the browser can't do that.
+ *
+ * The provider is long-lived: it is created once per visit and survives camera restarts, rematches
+ * and game changes. A worker that hangs or crashes is rebuilt automatically from the cached model.
  */
 export class MediaPipeProvider implements PoseProvider {
   readonly kind = 'camera' as const;
   private worker: Worker | null = null;
   private main: PoseLandmarker | null = null;
+  private model: ArrayBuffer | null = null;
   private busy = false;
   private pending: ((r: WorkerResult | null) => void) | null = null;
   private numPoses = 2;
   private lastT = 0;
   private inputWidth = INPUT_WIDTH.balanced;
   private canResize = true;
+  private failures = 0;
+  private recoveries = 0;
+  private recovering: Promise<void> | null = null;
+  private disposed = false;
   backend = '';
+  ready = false;
+  /** Called when the provider rebuilds its worker after a failure (for diagnostics/UI). */
+  onRecover: (() => void) | null = null;
+  /** Called when the provider gave up: pose tracking can't run reliably on this device. */
+  onFatal: (() => void) | null = null;
 
   setQuality(q: InputQuality): void {
     this.inputWidth = INPUT_WIDTH[q];
@@ -83,7 +142,7 @@ export class MediaPipeProvider implements PoseProvider {
     report({ phase: 'loading', message: 'Downloading motion model', progress: 0 });
 
     // The model (~5.7 MB) is fetched here so we can show progress; the WASM runtime is warmed in parallel.
-    const sizes = { model: [0, 5_800_000], wasm: [0, 11_800_000] };
+    const sizes = { model: [0, MODEL_BYTES], wasm: [0, WASM_BYTES] };
     const update = () => {
       const loaded = sizes.model[0] + sizes.wasm[0];
       const total = sizes.model[1] + sizes.wasm[1];
@@ -92,31 +151,37 @@ export class MediaPipeProvider implements PoseProvider {
     const useWorker = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && 'createImageBitmap' in window;
     const wasmFile = useWorker ? 'vision_wasm_module_internal.wasm' : 'vision_wasm_internal.wasm';
     const [model] = await Promise.all([
-      fetchWithProgress(MODEL_URL, (l, t) => {
+      download(MODEL_URL, (l, t) => {
         sizes.model = [l, t || sizes.model[1]];
         update();
-      }),
-      fetchWithProgress(`${WASM_BASE}/${wasmFile}`, (l, t) => {
-        sizes.wasm = [l, t || sizes.wasm[1]];
-        update();
-      }).catch(() => null),
+      }) as Promise<ArrayBuffer>,
+      download(
+        `${WASM_BASE}/${wasmFile}`,
+        (l, t) => {
+          sizes.wasm = [l, t || sizes.wasm[1]];
+          update();
+        },
+        false,
+      ),
     ]);
+    this.model = model;
 
     report({ phase: 'loading', message: 'Starting motion engine', progress: 0.97 });
     if (useWorker) {
       try {
         const delegate = await this.initWorker(model, numPoses);
         this.backend = `${delegate} · worker`;
+        this.ready = true;
         report({ phase: 'ready', backend: this.backend, progress: 1 });
         return;
       } catch (err) {
         console.warn('[tracking] worker init failed, falling back to main thread', err);
-        this.worker?.terminate();
-        this.worker = null;
+        this.killWorker();
       }
     }
     const delegate = await this.initMain(model, numPoses);
     this.backend = `${delegate} · main`;
+    this.ready = true;
     report({ phase: 'ready', backend: this.backend, progress: 1 });
   }
 
@@ -134,6 +199,13 @@ export class MediaPipeProvider implements PoseProvider {
         if (msg.type === 'ready') {
           clearTimeout(timer);
           worker.onmessage = (e: MessageEvent<WorkerResponse>) => this.onWorkerMessage(e.data);
+          // A crash after start-up must not leave a detection waiting forever.
+          worker.onerror = (e) => {
+            e.preventDefault();
+            console.warn('[tracking] worker crashed', e.message);
+            this.settle(null);
+            void this.recover();
+          };
           resolve(msg.delegate);
         } else if (msg.type === 'error') {
           clearTimeout(timer);
@@ -143,21 +215,25 @@ export class MediaPipeProvider implements PoseProvider {
       worker.postMessage({
         type: 'init',
         wasmBase: new URL(WASM_BASE, location.href).href,
-        model,
+        model: model.slice(0),
         numPoses,
         preferGpu: true,
       });
     });
   }
 
+  private settle(r: WorkerResult | null): void {
+    const fn = this.pending;
+    this.pending = null;
+    fn?.(r);
+  }
+
   private onWorkerMessage(msg: WorkerResponse): void {
     if (msg.type === 'result') {
-      this.pending?.(msg);
-      this.pending = null;
+      this.settle(msg);
     } else if (msg.type === 'error') {
       console.warn('[tracking] worker error', msg.message);
-      this.pending?.(null);
-      this.pending = null;
+      this.settle(null);
     }
   }
 
@@ -175,12 +251,80 @@ export class MediaPipeProvider implements PoseProvider {
           minPosePresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
         });
+        try {
+          // Warm-up inference so the first real frame isn't slowed by shader compilation.
+          const c = document.createElement('canvas');
+          c.width = c.height = 256;
+          this.main.detectForVideo(c, this.nextT(1));
+        } catch {
+          /* best effort */
+        }
         return delegate;
       } catch (err) {
         lastErr = err;
       }
     }
     throw lastErr instanceof Error ? lastErr : new Error('Could not start pose tracking');
+  }
+
+  /** Rebuild the inference backend from the cached model (after a hang or crash). */
+  private recover(): Promise<void> {
+    if (this.recovering || this.disposed || !this.model) return this.recovering ?? Promise.resolve();
+    if (++this.recoveries > MAX_RECOVERIES) {
+      this.ready = false;
+      this.killWorker();
+      this.onFatal?.();
+      return Promise.resolve();
+    }
+    const model = this.model;
+    this.recovering = (async () => {
+      console.warn('[tracking] restarting pose engine');
+      this.onRecover?.();
+      const hadWorker = !!this.worker;
+      this.killWorker();
+      try {
+        if (hadWorker) {
+          const delegate = await this.initWorker(model, this.numPoses);
+          this.backend = `${delegate} · worker`;
+        } else {
+          this.main?.close();
+          this.main = null;
+          const delegate = await this.initMain(model, this.numPoses);
+          this.backend = `${delegate} · main`;
+        }
+        if (this.disposed) this.killWorker();
+      } catch (err) {
+        console.warn('[tracking] recovery failed', err);
+        this.killWorker();
+        if (!this.main) {
+          try {
+            this.backend = `${await this.initMain(model, this.numPoses)} · main`;
+          } catch {
+            this.ready = false;
+          }
+        }
+      } finally {
+        this.failures = 0;
+        this.recovering = null;
+      }
+    })();
+    return this.recovering;
+  }
+
+  private killWorker(): void {
+    const worker = this.worker;
+    this.worker = null;
+    this.settle(null);
+    if (worker) {
+      worker.onmessage = null;
+      worker.onerror = null;
+      worker.terminate();
+    }
+  }
+
+  private nextT(now: number): number {
+    this.lastT = now > this.lastT ? now : this.lastT + 1;
+    return this.lastT;
   }
 
   setNumPoses(n: number): void {
@@ -190,13 +334,22 @@ export class MediaPipeProvider implements PoseProvider {
     void this.main?.setOptions({ numPoses: n });
   }
 
+  private noteResult(ok: boolean): void {
+    if (ok) {
+      this.failures = 0;
+      return;
+    }
+    if (this.recovering) return;
+    if (++this.failures >= MAX_FAILURES) void this.recover();
+  }
+
   async detect(video: HTMLVideoElement | null, now: number): Promise<PoseFrame | null> {
-    if (!video || this.busy || video.readyState < 2 || video.videoWidth === 0) return null;
+    if (!video || this.busy || this.recovering || video.readyState < 2 || video.videoWidth === 0) return null;
     this.busy = true;
     try {
-      const t = now > this.lastT ? now : this.lastT + 1;
-      this.lastT = t;
+      const t = this.nextT(now);
       if (this.worker) {
+        const worker = this.worker;
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         const w = Math.min(this.inputWidth, vw);
@@ -210,10 +363,27 @@ export class MediaPipeProvider implements PoseProvider {
           this.canResize = false;
           bitmap = await createImageBitmap(video);
         }
+        if (worker !== this.worker) {
+          bitmap.close();
+          return null;
+        }
         const result = await new Promise<WorkerResult | null>((resolve) => {
-          this.pending = resolve;
-          this.worker!.postMessage({ type: 'frame', bitmap, t }, [bitmap]);
+          const timer = setTimeout(() => {
+            if (this.pending !== done) return;
+            this.pending = null;
+            resolve(null);
+            console.warn('[tracking] pose worker stopped answering');
+            void this.recover();
+          }, HANG_MS);
+          const done = (r: WorkerResult | null) => {
+            clearTimeout(timer);
+            resolve(r);
+          };
+          this.settle(null);
+          this.pending = done;
+          worker.postMessage({ type: 'frame', bitmap, t }, [bitmap]);
         });
+        this.noteResult(!!result);
         if (!result) return null;
         return {
           t,
@@ -229,6 +399,7 @@ export class MediaPipeProvider implements PoseProvider {
         const ms = performance.now() - start;
         const image = packLandmarks(res.landmarks);
         const world = packLandmarks(res.worldLandmarks);
+        this.noteResult(true);
         return {
           t,
           width: video.videoWidth,
@@ -238,17 +409,22 @@ export class MediaPipeProvider implements PoseProvider {
         };
       }
       return null;
+    } catch (err) {
+      this.noteResult(false);
+      throw err;
     } finally {
       this.busy = false;
     }
   }
 
   dispose(): void {
-    this.pending?.(null);
-    this.pending = null;
+    this.disposed = true;
+    this.ready = false;
+    this.settle(null);
     const worker = this.worker;
     this.worker = null;
     if (worker) {
+      worker.onerror = null;
       worker.postMessage({ type: 'close' });
       setTimeout(() => worker.terminate(), 500);
     }

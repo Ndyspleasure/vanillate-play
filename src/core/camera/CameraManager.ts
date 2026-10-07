@@ -20,6 +20,13 @@ export class CameraError extends Error {
   }
 }
 
+/** Thrown when a start is superseded by `stop()` (e.g. the player switched to keyboard mode). */
+export class CameraStartCancelled extends Error {
+  constructor() {
+    super('Camera start was cancelled');
+  }
+}
+
 export function cameraSupport(): CameraErrorCode | null {
   if (typeof window === 'undefined') return 'unsupported';
   if (!window.isSecureContext) return 'insecure';
@@ -51,6 +58,11 @@ export class CameraManager {
   private videoEl: HTMLVideoElement | null = null;
   private stream: MediaStream | null = null;
   private probe: HTMLCanvasElement | null = null;
+  private starting: Promise<void> | null = null;
+  private endedTrack: MediaStreamTrack | null = null;
+  private resumeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Incremented by stop(): a getUserMedia call that resolves afterwards is discarded. */
+  private gen = 0;
   deviceId: string | null = null;
   onEnded: (() => void) | null = null;
 
@@ -64,6 +76,10 @@ export class CameraManager {
       v.setAttribute('playsinline', '');
       v.setAttribute('aria-hidden', 'true');
       v.className = 'camera-video';
+      // Browsers pause a <video> whenever it is detached from the document (e.g. while the app
+      // moves it between screens). A paused camera never produces new frames, which used to freeze
+      // tracking until a page refresh — so resume automatically while the stream is live.
+      v.addEventListener('pause', () => this.scheduleResume());
       this.videoEl = v;
     }
     return this.videoEl;
@@ -73,16 +89,35 @@ export class CameraManager {
     return !!this.stream && this.stream.getVideoTracks().some((t) => t.readyState === 'live');
   }
 
+  /** True when the live stream is attached and frames are flowing into the video element. */
+  get playing(): boolean {
+    return this.active && !!this.videoEl && !this.videoEl.paused && this.videoEl.readyState >= 2;
+  }
+
   get aspect(): number {
     if (!this.videoEl) return 16 / 9;
     return this.video.videoWidth && this.video.videoHeight ? this.video.videoWidth / this.video.videoHeight : 16 / 9;
   }
 
-  async start(deviceId?: string | null): Promise<void> {
+  /**
+   * Start the camera. Idempotent: a live stream is reused (never a second getUserMedia stream) and
+   * concurrent calls share one request.
+   */
+  start(deviceId?: string | null): Promise<void> {
+    if (this.starting) return this.starting;
+    if (this.active && (!deviceId || deviceId === this.deviceId)) return this.ensurePlaying();
+    this.starting = this.open(deviceId).finally(() => {
+      this.starting = null;
+    });
+    return this.starting;
+  }
+
+  private async open(deviceId?: string | null): Promise<void> {
     const unsupported = cameraSupport();
     if (unsupported === 'insecure') throw new CameraError('insecure', 'Camera needs a secure (https) connection.');
     if (unsupported) throw new CameraError('unsupported', 'This browser cannot access a camera.');
     this.stop();
+    const gen = this.gen;
     const base: MediaTrackConstraints = {
       width: { ideal: 1280 },
       height: { ideal: 720 },
@@ -94,25 +129,31 @@ export class CameraManager {
       { video: true, audio: false },
     ];
     let lastErr: CameraError | null = null;
+    let stream: MediaStream | null = null;
     for (const c of attempts) {
       try {
-        this.stream = await navigator.mediaDevices.getUserMedia(c);
+        stream = await navigator.mediaDevices.getUserMedia(c);
         break;
       } catch (err) {
         lastErr = mapError(err);
         if (lastErr.code === 'denied' || lastErr.code === 'not-found') throw lastErr;
       }
     }
-    if (!this.stream) throw lastErr ?? new CameraError('unknown', 'Could not start the camera.');
-    const track = this.stream.getVideoTracks()[0];
-    this.deviceId = track?.getSettings().deviceId ?? null;
-    track?.addEventListener('ended', () => this.onEnded?.());
-    this.video.srcObject = this.stream;
-    try {
-      await this.video.play();
-    } catch {
-      /* autoplay restrictions: muted inline video normally plays; the loop retries later */
+    if (!stream) throw lastErr ?? new CameraError('unknown', 'Could not start the camera.');
+    if (gen !== this.gen) {
+      // stop() was called while the permission prompt was open: don't leave a camera running.
+      stream.getTracks().forEach((t) => t.stop());
+      throw new CameraStartCancelled();
     }
+    this.stream = stream;
+    const track = stream.getVideoTracks()[0] ?? null;
+    this.deviceId = track?.getSettings().deviceId ?? null;
+    if (track) {
+      track.addEventListener('ended', this.handleEnded);
+      this.endedTrack = track;
+    }
+    this.video.srcObject = stream;
+    await this.ensurePlaying();
     await new Promise<void>((resolve) => {
       if (this.video.readyState >= 2) return resolve();
       const done = () => resolve();
@@ -121,10 +162,45 @@ export class CameraManager {
     });
   }
 
+  private handleEnded = (): void => {
+    if (this.stream) this.onEnded?.();
+  };
+
+  private scheduleResume(): void {
+    if (this.resumeTimer || !this.active) return;
+    // Wait a tick: a video that is only being moved between containers is re-attached synchronously.
+    this.resumeTimer = setTimeout(() => {
+      this.resumeTimer = null;
+      void this.ensurePlaying();
+    }, 0);
+  }
+
+  /** Make sure the live stream is attached to the video element and playing. Safe to call often. */
+  async ensurePlaying(): Promise<void> {
+    if (!this.stream || !this.active) return;
+    const v = this.video;
+    if (v.srcObject !== this.stream) v.srcObject = this.stream;
+    if (!v.paused) return;
+    try {
+      await v.play();
+    } catch {
+      /* autoplay restrictions: muted inline video normally plays; the tracking loop retries */
+    }
+  }
+
   stop(): void {
-    this.stream?.getTracks().forEach((t) => t.stop());
+    this.gen++;
+    if (this.resumeTimer) clearTimeout(this.resumeTimer);
+    this.resumeTimer = null;
+    this.endedTrack?.removeEventListener('ended', this.handleEnded);
+    this.endedTrack = null;
+    const stream = this.stream;
     this.stream = null;
-    if (this.videoEl) this.videoEl.srcObject = null;
+    stream?.getTracks().forEach((t) => t.stop());
+    if (this.videoEl) {
+      this.videoEl.pause();
+      this.videoEl.srcObject = null;
+    }
   }
 
   async listDevices(): Promise<MediaDeviceInfo[]> {
