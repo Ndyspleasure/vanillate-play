@@ -1,12 +1,6 @@
-// PLACEHOLDER — replaced by the real implementation.
-import { soloResult } from '../../engine/hud';
 import type { GameFactory } from '../../engine/types';
+import { createTargets } from '../target-battle';
 
-const factory: GameFactory = (ctx) => ({
-  view: { camera: 'dim', skeleton: true },
-  update() {
-    if (ctx.time > 2) ctx.end(soloResult(ctx, 0));
-  },
-  render() {},
-});
+/** Motion Target Practice (GAMES.md 6.24): timed, accuracy, speed or endless solo modes. */
+const factory: GameFactory = (ctx) => createTargets(ctx, (ctx.options.variant as 'timed' | 'accuracy' | 'speed' | 'endless') ?? 'timed');
 export default factory;

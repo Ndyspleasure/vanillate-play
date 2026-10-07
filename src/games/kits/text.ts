@@ -171,3 +171,6 @@ export function tx(ctx: { lang: 'en' | 'id' }, key: TxKey, vars?: Record<string,
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   return s;
 }
+
+/** Inline bilingual string for game-specific text. */
+export const L = (ctx: { lang: 'en' | 'id' }, en: string, id: string): string => (ctx.lang === 'id' ? id : en);
