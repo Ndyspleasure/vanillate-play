@@ -276,6 +276,14 @@ const factory: GameFactory = (ctx) => {
           emoji(g, '🥊', p.x, p.y, 70, 1, '#ffb020');
         }
       }
+      // Gloves on the players' hands
+      for (let i = 0; i < (solo ? 1 : 2); i++) {
+        const inp = ctx.input(i);
+        if (inp.health === 'lost') continue;
+        const gs = Math.max(44, inp.torsoPx * 0.42);
+        emoji(g, '🥊', inp.leftHand.x, inp.leftHand.y, gs, 1, ctx.players[i].color);
+        emoji(g, '🥊', inp.rightHand.x, inp.rightHand.y, gs, 1, ctx.players[i].color);
+      }
       // Gloves in flight
       for (const gl of gloves) {
         const u = easeInCubic(clamp(gl.t, 0, 1));
