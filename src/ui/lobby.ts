@@ -1,5 +1,6 @@
 import type { BodyIssue } from '../core/calibration/Calibration';
-import { clamp } from '../core/math';
+import { GestureHold } from '../core/motion/gesture';
+import type { PracticeTracker } from '../core/motion/practice';
 import type { MotionSession } from '../core/session/MotionSession';
 import { SIM_ASPECT } from '../core/tracking/SimulatedProvider';
 import { C, PLAYER_COLORS, circle, panel, playerTag, progressRing, skeleton, text } from '../engine/draw';
@@ -14,14 +15,29 @@ export interface LobbyStatus {
   lowLight: boolean;
   extra: number;
   startProgress: number;
+  /** Start gesture is waiting for raised hands to come down first. */
+  startArmed: boolean;
   fullBody: boolean;
 }
 
-const HOLD_TO_START = 1.2;
+/**
+ * detect: players step in and calibrate · practice: tutorial moves are checked off ·
+ * ready: raise a hand (or press Start) to begin.
+ */
+export type LobbyPhase = 'detect' | 'practice' | 'ready';
+
+/** Seconds everyone must keep a hand raised to start. */
+export const HOLD_TO_START = 1.0;
+
+interface Pop {
+  player: number;
+  text: string;
+  t: number;
+}
 
 /**
- * Lobby overlay on the live camera: per-player zones, skeletons, calibration progress rings and
- * the "raise both hands to start" gesture.
+ * Lobby overlay on the live camera: per-player zones, skeletons, calibration progress rings, the
+ * practice (tutorial) check-offs and the "raise a hand to start" gesture.
  */
 export class LobbyView {
   readonly canvas: HTMLCanvasElement;
@@ -31,11 +47,17 @@ export class LobbyView {
   private raf = 0;
   private dpr = 1;
   private ro: ResizeObserver;
-  private holdT = 0;
+  private hold = new GestureHold(HOLD_TO_START, 0.3, true);
   private last = performance.now();
+  private pops: Pop[] = [];
+  phase: LobbyPhase = 'detect';
+  practice: PracticeTracker | null = null;
+  /** Labels for practice steps (pop-up text on completion). */
+  practiceLabels: string[] = [];
   status: LobbyStatus;
   onStatus: ((s: LobbyStatus) => void) | null = null;
   onGestureStart: (() => void) | null = null;
+  onPractice: ((player: number, step: number) => void) | null = null;
   gestures = true;
   names: string[] = [];
   lang: 'en' | 'id' = 'en';
@@ -70,6 +92,14 @@ export class LobbyView {
     this.mapper.set(w, h, this.session.mode === 'camera' ? this.session.camera.aspect : SIM_ASPECT);
   }
 
+  setPhase(phase: LobbyPhase): void {
+    if (phase === this.phase) return;
+    this.phase = phase;
+    // Entering "ready" (e.g. straight after practising "raise your hands"): hands must come down
+    // before a raise counts, so nobody starts the game by accident.
+    if (phase === 'ready') this.hold.reset(true);
+  }
+
   destroy(): void {
     cancelAnimationFrame(this.raf);
     this.ro.disconnect();
@@ -99,7 +129,8 @@ export class LobbyView {
       issues,
       lowLight: this.session.mode === 'camera' && this.session.brightness !== null && this.session.brightness < 0.17,
       extra: this.session.tracker.extraPeople,
-      startProgress: clamp(this.holdT / HOLD_TO_START, 0, 1),
+      startProgress: this.hold.progress,
+      startArmed: this.hold.armed,
       fullBody: fullBody && detected === n,
     };
   }
@@ -110,13 +141,32 @@ export class LobbyView {
     this.last = now;
     this.hub.frame(this.count, now, true);
     const allReady = this.session.allReady();
-    let allUp = allReady && this.gestures;
-    for (let i = 0; i < this.count && allUp; i++) if (!this.session.state(i).handsUp) allUp = false;
-    this.holdT = allUp ? this.holdT + dt : Math.max(0, this.holdT - dt * 2);
-    if (this.holdT >= HOLD_TO_START) {
-      this.holdT = 0;
-      this.onGestureStart?.();
+
+    if (this.phase === 'practice' && this.practice) {
+      for (let i = 0; i < this.count; i++) {
+        const inp = this.hub.get(i);
+        if (!inp.events.length || !this.session.isReady(i)) continue;
+        for (const step of this.practice.feed(i, inp.events)) {
+          this.pops.push({ player: i, text: `✓ ${this.practiceLabels[step] ?? ''}`, t: 0 });
+          this.onPractice?.(i, step);
+        }
+      }
     }
+
+    // Start gesture: every player raises a hand and holds it (short tracking dropouts forgiven).
+    if (this.phase === 'ready' && this.gestures && allReady) {
+      let allUp = true;
+      let anyUp = false;
+      for (let i = 0; i < this.count; i++) {
+        const up = this.session.state(i).handRaised && this.session.health(i) !== 'lost';
+        if (up) anyUp = true;
+        else allUp = false;
+      }
+      if (this.hold.update(dt, allUp, !anyUp)) this.onGestureStart?.();
+    } else this.hold.update(dt, false, true);
+
+    for (const p of this.pops) p.t += dt;
+    this.pops = this.pops.filter((p) => p.t < 1.2);
     this.status = this.computeStatus();
     this.onStatus?.(this.status);
     this.render();
@@ -197,13 +247,26 @@ export class LobbyView {
         progressRing(g, inp.head.x, ry, 20, p.progress, color, 6);
       }
     }
+    // Practice check-off pops above each player's head
+    for (const p of this.pops) {
+      const inp = this.hub.get(p.player);
+      const u = p.t / 1.2;
+      g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1;
+      text(g, p.text, inp.head.x, inp.head.y - inp.headRadius * 2.4 - 70 - u * 40, { size: 26, color: C.good, weight: 800 });
+      g.globalAlpha = 1;
+    }
     // Hold-to-start meter
-    if (this.holdT > 0) {
-      const u = clamp(this.holdT / HOLD_TO_START, 0, 1);
+    const u = this.hold.progress;
+    if (u > 0) {
       panel(g, w / 2 - 160, h * 0.12, 320, 60, { fill: 'rgba(20,10,40,0.8)', r: 30 });
       text(g, this.lang === 'id' ? 'MULAI…' : 'STARTING…', w / 2, h * 0.12 + 22, { size: 20, stroke: 0 });
       g.fillStyle = C.good;
       g.fillRect(w / 2 - 130, h * 0.12 + 42, 260 * u, 6);
+      for (let i = 0; i < this.count; i++) {
+        if (!this.session.state(i).handRaised) continue;
+        const inp = this.hub.get(i);
+        progressRing(g, inp.head.x, inp.head.y, inp.headRadius * 1.6, u, PLAYER_COLORS[i], 6);
+      }
     }
   }
 }

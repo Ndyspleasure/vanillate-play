@@ -18,6 +18,7 @@ export type AnalyticsEvent =
   | 'camera_failure'
   | 'tracking_failure'
   | 'keyboard_mode'
+  | 'tutorial'
   | 'share_result';
 
 type Props = Record<string, string | number | boolean>;

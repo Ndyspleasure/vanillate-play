@@ -1,8 +1,10 @@
 import { track } from '../../analytics';
 import { app } from '../../app/context';
 import type { RouteMatch, Screen } from '../../app/router';
-import { CameraError, cameraSupport, type CameraErrorCode } from '../../core/camera/CameraManager';
+import { CameraError, CameraStartCancelled, cameraSupport, type CameraErrorCode } from '../../core/camera/CameraManager';
 import { KEY_HELP } from '../../core/input/KeyboardController';
+import { GestureHold } from '../../core/motion/gesture';
+import { PracticeTracker, practiceSteps } from '../../core/motion/practice';
 import { GameRunner, type RunnerPhase } from '../../engine/GameRunner';
 import { PLAYER_COLORS } from '../../engine/draw';
 import type { MatchResult, ModeId } from '../../engine/types';
@@ -13,11 +15,19 @@ import { stats } from '../../storage/stats';
 import { button, modal, modeLabel } from '../components';
 import { clear, h, ICONS, svgIcon } from '../dom';
 import { t, type I18nKey } from '../i18n';
-import { LobbyView, type LobbyStatus } from '../lobby';
+import { LobbyView, type LobbyPhase, type LobbyStatus } from '../lobby';
+import { moveDemo } from '../moveDemo';
 import { openShare } from '../share';
 import { notFoundScreen } from './notfound';
 
 type View = 'setup' | 'loading' | 'error' | 'lobby' | 'game' | 'result';
+type ErrorCode = CameraErrorCode | 'model' | 'ended';
+
+/** Skip background preloading on metered / data-saver connections. */
+function saveData(): boolean {
+  const c = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  return !!c?.saveData;
+}
 
 export function playScreen(m: RouteMatch): Screen {
   const meta = gameById(m.params.id);
@@ -52,6 +62,12 @@ export function playScreen(m: RouteMatch): Screen {
   let resultLoop = 0;
   let destroyed = false;
   let lastStatusKey = '';
+  let starting = false;
+  // Tutorial: shown before the first match of this visit to the game (skipped on rematch).
+  const steps = practiceSteps(meta.moves);
+  let practice = new PracticeTracker(steps, count);
+  let tutorialDone = false;
+  let practicedNow = false;
 
   session.configure(count);
 
@@ -62,6 +78,8 @@ export function playScreen(m: RouteMatch): Screen {
 
   const attachVideo = () => {
     if (session.mode === 'camera' && session.camera.video.parentElement !== stage) stage.prepend(session.camera.video);
+    // Moving the video between screens pauses it in every browser; resume the same live stream.
+    if (session.mode === 'camera') void session.camera.ensurePlaying();
     stage.classList.toggle('stage--sim', session.mode === 'simulated');
   };
 
@@ -120,23 +138,50 @@ export function playScreen(m: RouteMatch): Screen {
     );
   };
 
-  const showLoading = (msg: string, progress?: number) => {
+  const loadStep = (label: string, state: 'wait' | 'active' | 'done' | 'error', detail: string, progress?: number) =>
+    h(
+      'li',
+      { class: `load-step is-${state}` },
+      h('span', { class: 'load-step__icon', 'aria-hidden': 'true' }, state === 'done' ? '✓' : state === 'error' ? '!' : ''),
+      h('strong', null, label),
+      h('span', { class: 'load-step__state' }, detail),
+      progress !== undefined && state === 'active' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: `width:${Math.round(progress * 100)}%` })) : null,
+    );
+
+  /** Loading checklist: camera → motion engine → body tracking, driven by the session lifecycle. */
+  const showLoading = () => {
     view = 'loading';
+    const l = session.lifecycle;
+    const cam = l.camera === 'live' ? 'done' : l.camera === 'error' ? 'error' : 'active';
+    const model = l.model === 'ready' ? 'done' : l.model === 'error' ? 'error' : 'active';
+    const trk = l.tracking === 'running' ? 'done' : cam === 'done' && model === 'done' ? 'active' : 'wait';
+    const pct = `${Math.round(l.modelProgress * 100)}%`;
     setOverlay(
       h(
         'div',
         { class: 'card loading', role: 'status', 'aria-live': 'polite' },
-        h('div', { class: 'spinner', 'aria-hidden': 'true' }),
-        h('p', null, msg),
-        progress !== undefined ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: `width:${Math.round(progress * 100)}%` })) : null,
+        h('h2', null, t('load.title')),
+        h(
+          'ul',
+          { class: 'load-steps' },
+          loadStep(t('load.camera'), cam, cam === 'done' ? t('load.ready') : t('load.allow')),
+          loadStep(t('load.model'), model, model === 'done' ? t('load.ready') : pct, l.modelProgress),
+          loadStep(t('load.tracking'), trk, trk === 'done' ? t('load.ready') : t('load.wait')),
+        ),
+        model !== 'done' ? h('p', { class: 'small muted' }, t('load.note')) : null,
         h('p', { class: 'small muted' }, h('button', { class: 'link-btn', type: 'button', id: 'loading-keyboard', onclick: () => void startKeyboard() }, t('setup.keyboard'))),
       ),
     );
   };
 
-  const showError = (code: CameraErrorCode | 'model') => {
+  const showError = (code: ErrorCode) => {
     view = 'error';
     track('camera_failure', { reason: code });
+    lobby?.destroy();
+    lobby = null;
+    runner?.destroy();
+    runner = null;
+    clear(topRight);
     setOverlay(
       h(
         'div',
@@ -154,23 +199,40 @@ export function playScreen(m: RouteMatch): Screen {
     );
   };
 
-  const offStatus = session.onStatus((s) => {
-    if (view !== 'loading') return;
-    if (s.phase === 'loading') showLoading(s.message === 'Starting camera' ? t('setup.starting') : t('setup.loading'), s.progress);
+  const offLifecycle = session.onLifecycle((l) => {
+    if (view === 'loading') showLoading();
+    // The camera disappeared mid-session (unplugged, taken by another app): stop and offer a retry.
+    const live = view === 'lobby' || view === 'game' || view === 'result';
+    if (live && l.camera === 'error' && l.error === 'camera-ended') {
+      session.stop();
+      showError('ended');
+    } else if (live && session.mode === 'camera' && l.model === 'error') {
+      session.stop();
+      showError('model');
+    }
   });
 
   const startCamera = async () => {
+    if (starting) return;
+    starting = true;
     app.audio.unlock();
-    showLoading(t('setup.starting'));
+    showLoading();
     try {
       await session.startCamera();
       session.configure(count);
-      if (destroyed) return;
+      if (destroyed || view !== 'loading') return;
+      showLoading();
+      // Only enter the lobby once frames are actually being tracked.
+      await session.waitForTracking(5000);
+      if (destroyed || session.mode !== 'camera' || view !== 'loading') return;
       showLobby();
     } catch (err) {
-      if (destroyed) return;
-      session.stop();
+      // Superseded (e.g. the player chose keyboard mode meanwhile): nothing to report.
+      if (destroyed || err instanceof CameraStartCancelled) return;
+      if (session.mode === 'camera') session.stop();
       showError(err instanceof CameraError ? err.code : 'model');
+    } finally {
+      starting = false;
     }
   };
 
@@ -198,40 +260,111 @@ export function playScreen(m: RouteMatch): Screen {
     return h('ul', { class: 'lobby__issues' }, msgs.slice(0, 3).map((x) => h('li', null, '💡 ', x)));
   };
 
+  const lobbyPhase = (st: LobbyStatus): LobbyPhase => {
+    if (!st.ready.every(Boolean)) return 'detect';
+    return tutorialDone ? 'ready' : 'practice';
+  };
+
+  const finishTutorial = (practiced: boolean) => {
+    if (tutorialDone) return;
+    tutorialDone = true;
+    practicedNow = practiced;
+    if (practiced) app.audio.play('success');
+    track('tutorial', { game: meta.id, result: practiced ? 'completed' : 'skipped' });
+  };
+
   const showLobby = () => {
     view = 'lobby';
     runner?.destroy();
     runner = null;
+    clear(topRight);
     attachVideo();
     session.lock(false);
     lobby?.destroy();
+    // Practice is about body moves; keyboard players go straight to "ready".
+    if (session.mode !== 'camera') tutorialDone = true;
     lobby = new LobbyView(stage, session, count);
     lobby.names = settings.get().names.slice(0, count);
-    lobby.gestures = settings.get().gestureControls;
+    lobby.gestures = settings.get().gestureControls && session.mode === 'camera';
     lobby.lang = settings.get().lang;
+    lobby.practice = practice;
+    lobby.practiceLabels = steps.map((st) => t(`move.${st.id}` as I18nKey));
     lobby.onGestureStart = () => startGame(false);
+    lobby.onPractice = () => {
+      app.audio.play('coin', { volume: 0.6 });
+      if (practice.allDone) finishTutorial(true);
+    };
+    const title = h('h2', { class: 'lobby__title' }, t('lobby.title'));
     const cards = h('div', { class: 'lobby__players' });
     const issuesBox = h('div', { class: 'lobby__msgs' });
     const startBtn = button(t('lobby.start'), { size: 'lg', icon: 'play', onClick: () => startGame(false), attrs: { id: 'lobby-start', disabled: true } });
-    const hint = h('p', { class: 'lobby__hint' });
+    const hint = h('p', { class: 'lobby__hint', 'aria-live': 'polite' });
+    const meter = h('div', { class: 'gesture-bar', hidden: true }, h('div', { class: 'gesture-bar__fill' }));
+    const meterFill = meter.firstElementChild as HTMLElement;
+    const skipBtn = button(t('tut.skip'), { variant: 'ghost', size: 'sm', onClick: () => finishTutorial(false), attrs: { id: 'tutorial-skip' } });
+    const againBtn = button(t('tut.again'), {
+      variant: 'ghost',
+      size: 'sm',
+      onClick: () => {
+        practice = new PracticeTracker(steps, count);
+        if (lobby) lobby.practice = practice;
+        tutorialDone = false;
+        lastStatusKey = '';
+      },
+    });
+
+    // Tutorial: how-to lines plus one tile per move with an animated demo and a check per player.
+    const tiles = steps.map((st) => {
+      const checks = Array.from({ length: count }, (_, i) => h('span', { class: 'practice__check', style: `--pc:${PLAYER_COLORS[i]}`, title: settings.get().names[i] }));
+      const tile = h(
+        'div',
+        { class: 'practice__step', dataset: { step: st.id } },
+        moveDemo(st.id),
+        h('strong', null, t(`move.${st.id}` as I18nKey)),
+        h('span', { class: 'practice__how' }, t(`move.${st.id}.how` as I18nKey)),
+        h('span', { class: 'practice__checks' }, checks),
+      );
+      return { tile, checks };
+    });
+    const howTo = meta.text[settings.get().lang].howTo.slice(0, 2);
+    const tutorialBox = h(
+      'div',
+      { class: 'tutorial', hidden: true },
+      h('p', { class: 'tutorial__lead' }, t('tut.lead')),
+      howTo.length ? h('ul', { class: 'tutorial__howto' }, howTo.map((x) => h('li', null, x))) : null,
+      h('div', { class: 'practice' }, tiles.map((x) => x.tile)),
+    );
+
     const extra = h(
       'div',
       { class: 'lobby__actions' },
+      skipBtn,
+      againBtn,
       button(t('lobby.recalibrate'), { variant: 'ghost', size: 'sm', icon: 'refresh', onClick: () => session.recalibrate() }),
       count === 2 ? button(t('lobby.swap'), { variant: 'ghost', size: 'sm', icon: 'swap', onClick: () => session.tracker.swap(0, 1) }) : null,
       session.mode === 'simulated' ? button(t('lobby.keys'), { variant: 'ghost', size: 'sm', icon: 'keyboard', onClick: showKeys }) : null,
     );
-    setOverlay(h('div', { class: 'lobby' }, h('div', { class: 'lobby__panel' }, h('h2', { class: 'lobby__title' }, t('lobby.title')), cards, issuesBox, hint, h('div', { class: 'lobby__cta' }, startBtn), extra)));
+    const panel = h('div', { class: 'lobby' }, h('div', { class: 'lobby__panel' }, title, cards, tutorialBox, issuesBox, hint, meter, h('div', { class: 'lobby__cta' }, startBtn), extra));
+    setOverlay(panel);
     lastStatusKey = '';
     lobby.onStatus = (st) => {
-      const key = JSON.stringify([st.ready, st.calibrating.map((c) => Math.round(c * 10)), st.issues, st.lowLight, st.extra, st.detected]);
+      const phase = lobbyPhase(st);
+      lobby?.setPhase(phase);
+      meterFill.style.width = `${Math.round(st.startProgress * 100)}%`;
+      const key = JSON.stringify([phase, st.ready, st.calibrating.map((c) => Math.round(c * 10)), st.issues, st.lowLight, st.extra, st.detected, practice.done, st.startArmed, tutorialDone]);
       if (key === lastStatusKey) return;
       lastStatusKey = key;
-      clear(cards);
       const names = settings.get().names;
+      title.textContent = phase === 'practice' ? t('tut.title') : t('lobby.title');
+      panel.classList.toggle('lobby--practice', phase === 'practice');
+      clear(cards);
       for (let i = 0; i < count; i++) {
         const present = session.health(i) !== 'lost';
-        const label = st.ready[i] ? `✓ ${t('lobby.ready')}` : present ? t('lobby.calibrating', { pct: Math.round(st.calibrating[i] * 100) }) : t('lobby.waiting', { name: names[i] });
+        const label = st.ready[i]
+          ? `✓ ${t('lobby.ready')}`
+          : present
+            ? t('lobby.calibrating', { pct: Math.round(st.calibrating[i] * 100) })
+            : t('lobby.waiting', { name: names[i] });
         cards.appendChild(
           h(
             'div',
@@ -242,6 +375,21 @@ export function playScreen(m: RouteMatch): Screen {
           ),
         );
       }
+      // Tutorial tiles
+      tutorialBox.hidden = phase !== 'practice';
+      tiles.forEach(({ tile, checks }, si) => {
+        const doneAll = practice.done.every((row) => row[si]);
+        tile.classList.toggle('is-done', doneAll);
+        tile.classList.toggle('is-current', !doneAll && practice.done.some((_, pi) => practice.current(pi) === si));
+        checks.forEach((c, pi) => {
+          const d = practice.done[pi][si];
+          c.classList.toggle('is-done', d);
+          c.textContent = d ? '✓' : '';
+        });
+      });
+      skipBtn.hidden = phase !== 'practice';
+      againBtn.hidden = !(tutorialDone && session.mode === 'camera' && phase === 'ready');
+
       clear(issuesBox);
       issuesBox.appendChild(
         h(
@@ -252,10 +400,16 @@ export function playScreen(m: RouteMatch): Screen {
           st.fullBody ? ` · ${t('lobby.fullBody')}` : '',
         ),
       );
-      issuesBox.appendChild(statusText(st));
+      if (phase === 'detect') issuesBox.appendChild(statusText(st));
       const ready = st.ready.every(Boolean);
       startBtn.toggleAttribute('disabled', !ready);
-      hint.textContent = ready ? (session.mode === 'camera' && settings.get().gestureControls ? `🙌 ${t('lobby.handsUp')}` : t('lobby.handsUpKeyboard')) : '';
+      const gestures = !!lobby?.gestures;
+      meter.hidden = phase !== 'ready' || !gestures;
+      if (phase === 'detect') hint.textContent = st.detected > 0 ? t('lobby.standStill') : '';
+      else if (phase === 'practice') hint.textContent = '';
+      else if (!gestures) hint.textContent = t('lobby.handsUpKeyboard');
+      else if (!st.startArmed) hint.textContent = `✋ ${t('lobby.lowerHands')}`;
+      else hint.textContent = `🙋 ${practicedNow ? `${t('tut.allSet')} ` : ''}${count > 1 ? t('lobby.handsUp') : t('lobby.raiseHand')}`;
     };
   };
 
@@ -287,10 +441,14 @@ export function playScreen(m: RouteMatch): Screen {
       return;
     }
     app.audio.unlock();
+    finishTutorial(false);
     lobby?.destroy();
     lobby = null;
     runner?.destroy();
     cancelAnimationFrame(resultLoop);
+    // Same camera, same model, same calibrated players — only per-match motion state is reset.
+    session.resetMatch();
+    attachVideo();
     view = 'game';
     lostTracked = false;
     const s = settings.get();
@@ -309,7 +467,8 @@ export function playScreen(m: RouteMatch): Screen {
         fxQuality: s.fxQuality,
         showPerf: s.showPerf,
         lang: s.lang,
-        quickStart: quick,
+        // The tutorial already introduced the game: go straight to the countdown.
+        quickStart: quick || practicedNow,
       },
       {
         onEnd: (r) => showResult(r),
@@ -326,6 +485,7 @@ export function playScreen(m: RouteMatch): Screen {
     topRight.appendChild(
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': t('game.pause'), id: 'pause-btn', onclick: () => togglePause() }, svgIcon(ICONS.pause)),
     );
+    practicedNow = false;
     startedAt = performance.now();
     stats.started(meta.id);
     track('game_started', { game: meta.id, mode, players: count, input: session.mode });
@@ -434,9 +594,9 @@ export function playScreen(m: RouteMatch): Screen {
         settings.get().gestureControls && session.mode === 'camera' ? gestureBar : null,
       ),
     );
-    // Hands-up rematch gesture: arm once everyone has lowered their hands.
-    let armed = false;
-    let hold = 0;
+    // Raise-a-hand rematch gesture: arms once everyone has lowered their hands (no accidental
+    // rematch from a victory pose), then everyone holds a hand up briefly.
+    const hold = new GestureHold(1.2, 0.3, true);
     let last = performance.now();
     const fill = gestureBar.firstElementChild as HTMLElement;
     const loop = (now: number) => {
@@ -448,15 +608,13 @@ export function playScreen(m: RouteMatch): Screen {
       let anyUp = false;
       let allUp = true;
       for (let i = 0; i < count; i++) {
-        const st = session.state(i);
-        if (st.handsUp) anyUp = true;
+        const up = session.state(i).handRaised && session.health(i) !== 'lost';
+        if (up) anyUp = true;
         else allUp = false;
-        if (session.health(i) === 'lost') allUp = false;
       }
-      if (!anyUp) armed = true;
-      hold = armed && allUp ? hold + dt : 0;
-      fill.style.width = `${Math.min(100, (hold / 1.5) * 100)}%`;
-      if (hold >= 1.5) rematch();
+      const fire = hold.update(dt, allUp, !anyUp);
+      fill.style.width = `${Math.round(hold.progress * 100)}%`;
+      if (fire) rematch();
     };
     resultLoop = requestAnimationFrame(loop);
     if (isBest) runner?.fx.confetti(runner.width, 80);
@@ -489,13 +647,19 @@ export function playScreen(m: RouteMatch): Screen {
   };
   const onVisibility = () => {
     if (document.hidden && runner && view === 'game' && runner.phase !== 'paused') togglePause();
+    if (!document.hidden && session.mode === 'camera') void session.camera.ensurePlaying();
   };
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', onVisibility);
 
   // Entry point: reuse a running session (rematch / change game never re-asks for the camera).
-  if (session.mode === 'off') showSetup();
-  else showLobby();
+  if (session.mode === 'off') {
+    showSetup();
+    // Download/warm the motion model while the player reads the camera card.
+    if (!cameraSupport() && !saveData()) session.preload().catch(() => undefined);
+  } else if (session.mode === 'camera' && (session.lifecycle.camera !== 'live' || session.framesProcessed === 0)) {
+    void startCamera();
+  } else showLobby();
 
   return {
     el: root,
@@ -504,7 +668,7 @@ export function playScreen(m: RouteMatch): Screen {
     destroy: () => {
       destroyed = true;
       if (view === 'game') track('game_abandoned', { game: meta.id, seconds: Math.round((performance.now() - startedAt) / 1000) });
-      offStatus();
+      offLifecycle();
       cancelAnimationFrame(resultLoop);
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('visibilitychange', onVisibility);
