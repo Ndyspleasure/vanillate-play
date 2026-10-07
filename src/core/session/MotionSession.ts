@@ -17,7 +17,8 @@ export interface SessionPlayer {
   calibration: CalibrationTracker;
   queue: TimedEvent[];
   issues: BodyIssue[];
-  /** Previous pose, for render-time extrapolation. */
+  /** Latest and previous poses, for render-time extrapolation. */
+  lastPose: TrackedPose | null;
   prevPose: TrackedPose | null;
 }
 
@@ -64,6 +65,7 @@ export class MotionSession {
       calibration: new CalibrationTracker(),
       queue: [],
       issues: [],
+      lastPose: null,
       prevPose: null,
     }));
     this.tracker.onSwap = (a, b) => {
@@ -128,6 +130,7 @@ export class MotionSession {
     p.calibration.reset();
     p.queue.length = 0;
     p.prevPose = null;
+    p.lastPose = null;
     p.issues = [];
   }
 
@@ -268,7 +271,8 @@ export class MotionSession {
         for (const e of events) p.queue.push(e);
         if (p.queue.length > 64) p.queue.splice(0, p.queue.length - 64);
       }
-      p.prevPose = slot.pose;
+      p.prevPose = p.lastPose;
+      p.lastPose = slot.pose;
     }
     for (const fn of this.listeners) fn();
   }

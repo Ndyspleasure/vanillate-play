@@ -325,7 +325,7 @@ export class SimulatedProvider implements PoseProvider {
       b.baseX = x;
       b.x = x;
       b.zone = 0;
-      b.torso = count > 2 ? 0.21 : 0.25;
+      b.torso = count > 2 ? 0.17 : 0.2;
     });
   }
 

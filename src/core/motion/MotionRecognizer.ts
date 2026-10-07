@@ -17,7 +17,7 @@ function latch(current: boolean, value: number, on: number, off: number): boolea
   return current ? value > off : value > on;
 }
 
-function emptyState(): MotionState {
+export function emptyState(): MotionState {
   const z = { x: 0, y: 0 };
   return {
     t: 0,

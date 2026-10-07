@@ -23,7 +23,7 @@ describe('calibration', () => {
     expect(rig.session.isReady(1)).toBe(true);
     const c = rig.session.players[0].calibration.calibration!;
     expect(c.fullBody).toBe(true);
-    expect(c.torso).toBeGreaterThan(0.2);
+    expect(c.torso).toBeGreaterThan(0.15);
   });
 
   it('does not calibrate while the player is moving', async () => {
