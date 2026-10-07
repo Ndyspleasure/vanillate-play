@@ -12,6 +12,31 @@ interface Sample {
 
 const HISTORY_MS = 700;
 
+/**
+ * Movement thresholds (torso units, multiplied by the sensitivity factor). Each on/off pair forms a
+ * hysteresis band so a body hovering near a threshold never flickers between states.
+ */
+export const THRESHOLDS = {
+  /** Body-centre offset from the calibrated standing spot to count as "moved left/right". */
+  stepOn: 0.42,
+  stepOff: 0.26,
+  /** Shoulder-over-hip lean to count as leaning. */
+  leanOn: 0.2,
+  leanOff: 0.12,
+  /** Jump take-off: shoulder rise, hip rise and upward speed (torso units/s). */
+  jumpRise: 0.15,
+  jumpHipRise: 0.1,
+  jumpSpeed: 0.7,
+  /** Back on the ground below this rise. */
+  landRise: 0.06,
+  /** Wrist height above the shoulder line for a raised hand. */
+  handOn: 0.6,
+  handOff: 0.35,
+} as const;
+
+/** Longest a jump can last before the airborne state is considered a tracking artefact. */
+const MAX_AIR_MS = 1200;
+
 /** Hysteresis latch: turns on above `on`, off below `off`. */
 function latch(current: boolean, value: number, on: number, off: number): boolean {
   return current ? value > off : value > on;
@@ -55,12 +80,14 @@ export function emptyState(): MotionState {
     leaningRight: false,
     steppedLeft: false,
     steppedRight: false,
+    zone: 0,
     airborne: false,
     squatting: false,
     ducking: false,
     leftHandUp: false,
     rightHandUp: false,
     handsUp: false,
+    handRaised: false,
     blocking: false,
     reachingLeft: false,
     reachingRight: false,
@@ -92,7 +119,10 @@ export class MotionRecognizer {
   private cooldown = new Map<MotionEvent, number>();
   private stillMs = 0;
   private pointMs = 0;
-  private wasLateral = false;
+  private emittedZone: -1 | 0 | 1 = 0;
+  private jumpEmitted = false;
+  private airMs = 0;
+  private airBlocked = false;
   private wasLow = false;
 
   reset(): void {
@@ -104,7 +134,10 @@ export class MotionRecognizer {
     this.cooldown.clear();
     this.stillMs = 0;
     this.pointMs = 0;
-    this.wasLateral = false;
+    this.emittedZone = 0;
+    this.jumpEmitted = false;
+    this.airMs = 0;
+    this.airBlocked = false;
     this.wasLow = false;
   }
 
@@ -224,23 +257,30 @@ export class MotionRecognizer {
     // --- Lean
     const wasLL = s.leaningLeft;
     const wasLR = s.leaningRight;
-    s.leaningRight = latch(s.leaningRight, s.lean, 0.2 * k, 0.12 * k);
-    s.leaningLeft = latch(s.leaningLeft, -s.lean, 0.2 * k, 0.12 * k);
+    s.leaningRight = latch(s.leaningRight, s.lean, THRESHOLDS.leanOn * k, THRESHOLDS.leanOff * k);
+    s.leaningLeft = latch(s.leaningLeft, -s.lean, THRESHOLDS.leanOn * k, THRESHOLDS.leanOff * k);
     if (s.leaningRight && !wasLR) emit('LEAN_RIGHT');
     if (s.leaningLeft && !wasLL) emit('LEAN_LEFT');
 
-    // --- Lateral zones (needs a baseline)
+    // --- Lateral zones: body position relative to the calibrated spot (needs a baseline)
     if (calib) {
-      const wasSL = s.steppedLeft;
-      const wasSR = s.steppedRight;
-      s.steppedRight = latch(s.steppedRight, s.offsetX, 0.55 * k, 0.35 * k);
-      s.steppedLeft = latch(s.steppedLeft, -s.offsetX, 0.55 * k, 0.35 * k);
-      if (s.steppedRight && !wasSR) emit('MOVE_RIGHT');
-      if (s.steppedLeft && !wasSL) emit('MOVE_LEFT');
+      s.steppedRight = latch(s.steppedRight, s.offsetX, THRESHOLDS.stepOn * k, THRESHOLDS.stepOff * k);
+      s.steppedLeft = latch(s.steppedLeft, -s.offsetX, THRESHOLDS.stepOn * k, THRESHOLDS.stepOff * k);
     }
-    const lateral = s.steppedLeft || s.steppedRight || s.leaningLeft || s.leaningRight;
-    if (this.wasLateral && !lateral) emit('CENTER');
-    this.wasLateral = lateral;
+    const goLeft = s.steppedLeft || s.leaningLeft;
+    const goRight = s.steppedRight || s.leaningRight;
+    if (goLeft && goRight) {
+      // Conflicting cues (e.g. stepped right but leaning back left): the stronger one wins.
+      s.zone = s.offsetX / THRESHOLDS.stepOn + s.lean / THRESHOLDS.leanOn < 0 ? -1 : 1;
+    } else s.zone = goLeft ? -1 : goRight ? 1 : 0;
+    // Zone changes are delivered exactly once, and are not lost if they happen while tracking
+    // confidence is briefly low (they are sent as soon as the body is trusted again).
+    if (trusted && s.zone !== this.emittedZone) {
+      if (s.zone === -1) emit('MOVE_LEFT');
+      else if (s.zone === 1) emit('MOVE_RIGHT');
+      else emit('CENTER');
+      this.emittedZone = s.zone;
+    }
 
     // --- Fast lateral moves (step / dodge)
     const back = this.sampleAgo(260, t);
@@ -258,19 +298,46 @@ export class MotionRecognizer {
     if (calib) {
       const wasAir = s.airborne;
       const hipRise = f.hipsVisible ? (calib.hipY - f.hipC.y) / T : s.rise;
+      // Upward shoulder speed over two windows (the shorter one catches quick hops at low FPS).
       let upSpeed = 0;
-      const b = this.sampleAgo(250, t);
-      if (b && t > b.t) upSpeed = (b.f.shC.y - f.shC.y) / T / ((t - b.t) / 1000);
-      if (!s.airborne) {
-        s.airborne = s.rise > 0.18 * k && hipRise > 0.12 * k && upSpeed > 0.8 * k;
-      } else {
-        s.airborne = s.rise > 0.07 * k;
+      for (const ms of [150, 250]) {
+        const b = this.sampleAgo(ms, t);
+        if (b && t - b.t > 30) upSpeed = Math.max(upSpeed, (b.f.shC.y - f.shC.y) / T / ((t - b.t) / 1000));
       }
-      if (s.airborne && !wasAir) {
+      // Walking towards the camera also moves the shoulders up in the image: a real jump keeps the
+      // body the same size.
+      const win = this.sampleAgo(250, t);
+      const growth = win ? f.shoulderWidth / Math.max(win.f.shoulderWidth, 1e-3) : 1;
+      const sameSize =
+        Math.abs(f.torso / calib.torso - 1) < 0.22 &&
+        f.shoulderWidth / Math.max(calib.shoulderWidth, 1e-3) < 1.25 &&
+        growth < 1.12;
+      if (this.airBlocked && s.rise < THRESHOLDS.jumpRise * 0.6 * k) this.airBlocked = false;
+      if (!s.airborne) {
+        s.airborne =
+          !this.airBlocked &&
+          sameSize &&
+          s.rise > THRESHOLDS.jumpRise * k &&
+          hipRise > THRESHOLDS.jumpHipRise * k &&
+          upSpeed > THRESHOLDS.jumpSpeed * k;
+      } else {
+        s.airborne = s.rise > THRESHOLDS.landRise * k;
+      }
+      this.airMs = s.airborne ? this.airMs + dt * 1000 : 0;
+      if (this.airMs > MAX_AIR_MS) {
+        // Nobody stays in the air this long: the baseline is off (e.g. the player moved). Stop
+        // reporting a jump until the body is back near its standing height.
+        s.airborne = false;
+        this.airMs = 0;
+        this.airBlocked = true;
+      }
+      if (s.airborne && !this.jumpEmitted && trusted) {
         emit('JUMP', 300);
         emit('MOVE_UP');
+        this.jumpEmitted = true;
       }
-      if (!s.airborne && wasAir) emit('LAND');
+      if (!s.airborne && wasAir && this.jumpEmitted) emit('LAND');
+      if (!s.airborne) this.jumpEmitted = false;
 
       const wasSq = s.squatting;
       s.squatting = !s.airborne && latch(s.squatting, s.drop, 0.28 * k, 0.16 * k);
@@ -289,9 +356,10 @@ export class MotionRecognizer {
     const wasL = s.leftHandUp;
     const wasR = s.rightHandUp;
     const wasBoth = s.handsUp;
-    s.leftHandUp = latch(s.leftHandUp, s.leftHandHeight, 0.6 * k, 0.35 * k);
-    s.rightHandUp = latch(s.rightHandUp, s.rightHandHeight, 0.6 * k, 0.35 * k);
+    s.leftHandUp = latch(s.leftHandUp, s.leftHandHeight, THRESHOLDS.handOn * k, THRESHOLDS.handOff * k);
+    s.rightHandUp = latch(s.rightHandUp, s.rightHandHeight, THRESHOLDS.handOn * k, THRESHOLDS.handOff * k);
     s.handsUp = s.leftHandUp && s.rightHandUp;
+    s.handRaised = s.leftHandUp || s.rightHandUp;
     if (s.leftHandUp && !wasL) emit('HAND_LEFT_UP');
     if (s.rightHandUp && !wasR) emit('HAND_RIGHT_UP');
     if (s.handsUp && !wasBoth) emit('HANDS_UP');
@@ -389,6 +457,7 @@ export class MotionRecognizer {
     const handHeight = side === 'left' ? this.state.leftHandHeight : this.state.rightHandHeight;
     // A punch ends roughly at shoulder height; an arm dropping to the side or reaching straight up is not one.
     if (ext < 0.78 || handHeight > 1.0 || handHeight < -0.55) return;
+    if (!(side === 'left' ? f.lWristVisible : f.rWristVisible)) return;
     let minExt = ext;
     let travel3 = 0;
     let travel2 = 0;

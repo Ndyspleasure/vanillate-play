@@ -27,6 +27,8 @@ export interface BodyFrame {
   kneesVisible: boolean;
   anklesVisible: boolean;
   noseVisible: boolean;
+  lWristVisible: boolean;
+  rWristVisible: boolean;
   torso: number;
   shoulderWidth: number;
   lArmExt: number;
@@ -131,6 +133,8 @@ export function extractBody(pose: TrackedPose, torsoHint: number | null): BodyFr
     kneesVisible,
     anklesVisible,
     noseVisible: vis(p[LM.nose]),
+    lWristVisible: vis(p[LM.leftWrist]),
+    rWristVisible: vis(p[LM.rightWrist]),
     torso,
     shoulderWidth,
     lArmExt,
@@ -139,7 +143,11 @@ export function extractBody(pose: TrackedPose, torsoHint: number | null): BodyFr
     rWristRel,
     lKneeAngle: hipsVisible && kneesVisible && anklesVisible ? jointAngle(lHip, lKnee, lAnk) : null,
     rKneeAngle: hipsVisible && kneesVisible && anklesVisible ? jointAngle(rHip, rKnee, rAnk) : null,
+    // Body-tracking trust is dominated by the shoulders: a head leaving the top of the frame during a
+    // jump, or hands outside the frame, must not make the whole body "untrusted".
     quality:
-      (p[LM.leftShoulder].v + p[LM.rightShoulder].v + p[LM.nose].v + p[LM.leftWrist].v + p[LM.rightWrist].v) / 5,
+      (p[LM.leftShoulder].v + p[LM.rightShoulder].v) * 0.3 +
+      p[LM.nose].v * 0.2 +
+      (p[LM.leftWrist].v + p[LM.rightWrist].v) * 0.1,
   };
 }

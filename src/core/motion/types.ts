@@ -89,12 +89,19 @@ export interface MotionState {
   leaningRight: boolean;
   steppedLeft: boolean;
   steppedRight: boolean;
+  /**
+   * Lateral zone of the body: -1 = left, 0 = centre, 1 = right (stepping or leaning, with
+   * hysteresis). MOVE_LEFT / MOVE_RIGHT / CENTER are emitted exactly once per zone change.
+   */
+  zone: -1 | 0 | 1;
   airborne: boolean;
   squatting: boolean;
   ducking: boolean;
   leftHandUp: boolean;
   rightHandUp: boolean;
   handsUp: boolean;
+  /** At least one hand raised above the head (used for "raise a hand to start"). */
+  handRaised: boolean;
   blocking: boolean;
   reachingLeft: boolean;
   reachingRight: boolean;

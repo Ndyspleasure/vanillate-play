@@ -75,6 +75,25 @@ export function measure(view: Landmark[]): { center: Point; scale: number; quali
   return { center, scale, quality };
 }
 
+/**
+ * Low-visibility landmarks are guesses (occluded or out of frame) and sometimes jump wildly between
+ * frames. Limit how far such a point may move per frame; well-seen points are never limited.
+ */
+export function limitJumps(pts: Landmark[], prev: Landmark[], maxStep: number): void {
+  for (let j = 0; j < pts.length && j < prev.length; j++) {
+    const p = pts[j];
+    if (p.v >= VISIBLE) continue;
+    const q = prev[j];
+    const dx = p.x - q.x;
+    const dy = p.y - q.y;
+    const d = Math.hypot(dx, dy);
+    if (d > maxStep) {
+      p.x = q.x + (dx / d) * maxStep;
+      p.y = q.y + (dy / d) * maxStep;
+    }
+  }
+}
+
 export class PlayerTracker {
   readonly slots: PlayerSlot[];
   private filters: { view: LandmarkFilterBank; world: LandmarkFilterBank }[];
@@ -249,6 +268,7 @@ export class PlayerTracker {
         const vy = (d.center.y - s.center.y) / dt;
         s.velocity = { x: s.velocity.x * 0.6 + vx * 0.4, y: s.velocity.y * 0.6 + vy * 0.4 };
       }
+      if (wasTracking && jump <= 2.5 && s.pose) limitJumps(d.view, s.pose.pts, Math.max(s.scale, 0.05) * 0.5);
       this.filters[k].view.apply(d.view, tSec);
       if (d.world) this.filters[k].world.apply(d.world, tSec);
       s.pose = { pts: d.view, world: d.world, t: now };

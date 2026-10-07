@@ -58,11 +58,24 @@ export class MutableInput implements PlayerInput {
   }
 }
 
-const EXTRAPOLATE_MS = 40;
+/** How far ahead (ms) a pose may be predicted from its last two samples. */
+const EXTRAPOLATE_MS = 60;
+/** Render smoothing time constant (s): tracking arrives at 15–30 fps, rendering at 60+. */
+const SMOOTH_TAU = 0.035;
 
-/** Builds per-frame PlayerInputs from the motion session, mapped to stage pixels. */
+/**
+ * Builds per-frame PlayerInputs from the motion session, mapped to stage pixels.
+ *
+ * Tracking runs slower than rendering, so drawing the latest pose directly looks choppy. Each
+ * render frame the skeleton is predicted slightly ahead from the last two tracking samples
+ * (hiding inference latency) and then eased towards that target, which gives continuous motion
+ * without teleporting; a freshly (re)acquired player snaps into place instead of sliding in.
+ */
 export class InputHub {
   private inputs: MutableInput[] = [];
+  /** Smoothed view-space landmark positions per player (x, y pairs). */
+  private display: (Float32Array | null)[] = [];
+  private lastNow: number[] = [];
 
   constructor(
     private session: MotionSession,
@@ -93,24 +106,47 @@ export class InputHub {
         }
       }
       const cur = sp.lastPose;
-      if (!cur) continue;
+      if (!cur) {
+        this.display[i] = null;
+        continue;
+      }
       inp.pose = poseVector(inp.state);
       const prev = sp.prevPose;
       let k = 0;
       if (prev && inp.health === 'ok') {
         const span = cur.t - prev.t;
-        if (span > 5 && span < 150) k = (Math.min(now - cur.t, EXTRAPOLATE_MS) * 0.8) / span;
+        if (span > 5 && span < 150) k = (Math.min(now - cur.t, EXTRAPOLATE_MS, span) * 0.8) / span;
         if (k < 0) k = 0;
       }
       const pts = cur.pts;
       const ppts = prev?.pts;
+
+      // Ease the displayed skeleton towards the (predicted) target.
+      let disp = this.display[i];
+      const dt = this.lastNow[i] ? Math.min(0.1, Math.max(0, (now - this.lastNow[i]) / 1000)) : 0;
+      this.lastNow[i] = now;
+      const reacquired = !disp;
+      if (!disp) {
+        disp = new Float32Array(66);
+        this.display[i] = disp;
+      }
+      const a = reacquired || dt === 0 ? 1 : 1 - Math.exp(-dt / SMOOTH_TAU);
+      // Large jumps (identity re-acquired elsewhere) snap rather than glide across the screen.
+      const snapDist = Math.max(0.05, inp.state.torso * 1.5);
+      for (let j = 0; j < 33; j++) {
+        const p = pts[j];
+        const b = ppts ? ppts[j] : p;
+        const tx = p.x + (p.x - b.x) * k;
+        const ty = p.y + (p.y - b.y) * k;
+        const dx = tx - disp[j * 2];
+        const dy = ty - disp[j * 2 + 1];
+        const f = a === 1 || Math.abs(dx) + Math.abs(dy) > snapDist ? 1 : a;
+        disp[j * 2] += dx * f;
+        disp[j * 2 + 1] += dy * f;
+      }
       const map = (idx: number, out: Point): Point => {
-        const a = pts[idx];
-        const b = ppts ? ppts[idx] : a;
-        const x = a.x + (a.x - b.x) * k;
-        const y = a.y + (a.y - b.y) * k;
-        out.x = this.mapper.offX + x * this.mapper.scale;
-        out.y = this.mapper.offY + y * this.mapper.scale;
+        out.x = this.mapper.offX + disp[idx * 2] * this.mapper.scale;
+        out.y = this.mapper.offY + disp[idx * 2 + 1] * this.mapper.scale;
         return out;
       };
       for (let j = 0; j < 33; j++) {
@@ -130,8 +166,8 @@ export class InputHub {
       map(LM.rightAnkle, inp.rightFoot);
       map(LM.leftKnee, inp.leftKnee);
       map(LM.rightKnee, inp.rightKnee);
-      const ls = map(LM.leftShoulder, { x: 0, y: 0 });
-      const rs = map(LM.rightShoulder, { x: 0, y: 0 });
+      const ls = map(LM.leftShoulder, this.tmpA);
+      const rs = map(LM.rightShoulder, this.tmpB);
       inp.shoulders.x = (ls.x + rs.x) / 2;
       inp.shoulders.y = (ls.y + rs.y) / 2;
       inp.torsoPx = inp.state.torso * this.mapper.scale;
@@ -144,4 +180,7 @@ export class InputHub {
       inp.head.y -= inp.headRadius * 0.25;
     }
   }
+
+  private tmpA: Point = { x: 0, y: 0 };
+  private tmpB: Point = { x: 0, y: 0 };
 }
