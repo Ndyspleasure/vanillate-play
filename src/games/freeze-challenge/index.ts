@@ -1,12 +1,6 @@
-// PLACEHOLDER — replaced by the real implementation.
-import { soloResult } from '../../engine/hud';
 import type { GameFactory } from '../../engine/types';
+import { createFreeze } from '../freeze-battle';
 
-const factory: GameFactory = (ctx) => ({
-  view: { camera: 'dim', skeleton: true },
-  update() {
-    if (ctx.time > 2) ctx.end(soloResult(ctx, 0));
-  },
-  render() {},
-});
+/** Freeze Challenge (GAMES.md 6.36): random freezes with an optional dramatic freeze-frame replay. */
+const factory: GameFactory = (ctx) => createFreeze(ctx, { lives: 2, viral: true, maxRounds: 8 });
 export default factory;

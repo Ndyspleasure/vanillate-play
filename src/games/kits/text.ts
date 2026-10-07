@@ -116,6 +116,15 @@ const T = {
   rest: ['REST', 'ISTIRAHAT'],
   reps: ['{n} reps', '{n} repetisi'],
 
+  matchPose: ['MATCH THE POSE!', 'TIRU POSENYA!'],
+  poseOf: ['POSE {n} / {m}', 'POSE {n} / {m}'],
+  together: ['{x} TOGETHER!', '{x} BERSAMA!'],
+  syncPct: ['{p}% SYNC', '{p}% SINKRON'],
+  keepDancing: ['KEEP DANCING!', 'TERUS JOGET!'],
+  danceNow: ['DANCE!', 'JOGET!'],
+  safe: ['SAFE', 'AMAN'],
+  eliminated: ['ELIMINATED!', 'TERELIMINASI!'],
+  noShow: ['NO MOVE', 'TIDAK BERGERAK'],
   // Stat labels
   statAvgReaction: ['Average reaction', 'Rata-rata reaksi'],
   statBestReaction: ['Best reaction', 'Reaksi terbaik'],

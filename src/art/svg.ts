@@ -100,7 +100,7 @@ export const ART: Record<string, string> = {
     c(54, 24, 3.5, '#3dd6ff') +
     c(50, 8, 3, '#7dff6b') +
     line('M30 14L34 8M46 30L56 30M42 20L48 14', O, 3),
-  runner: figure(32, '#f77f00', 'run') + line('M6 20H14M4 30H12M8 40H16', '#ffe9b8', 3),
+  runner: figure(32, '{c}', 'run') + line('M6 20H14M4 30H12M8 40H16', '#ffe9b8', 3),
   meteor: line('M44 20L10 54M50 26L18 58M38 14L6 46', '#ff7a00', 6) + c(46, 18, 13, '#9d6b53') + c(42, 15, 3, '#6d4c41') + c(50, 22, 2.5, '#6d4c41'),
   bow: s('M14 6C40 14 40 50 14 58', 'none', 'stroke-width="6" stroke="#8d5524"') + line('M14 6V58', '#fff7e8', 2) + line('M8 32H56', O, 3) + s('M56 32L46 26V38Z', '#9e9e9e') + s('M8 32L4 27M8 32L4 37', 'none'),
   paddle:

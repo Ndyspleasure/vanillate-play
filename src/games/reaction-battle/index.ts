@@ -260,6 +260,7 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
           break;
       }
     },
+    inspect: () => ({ phase, cmd: cmd.id, fake, round }),
     render(g) {
       const showLives = variant === 'elimination';
       scoreHeader(

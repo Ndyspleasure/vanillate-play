@@ -1,12 +1,6 @@
-// PLACEHOLDER — replaced by the real implementation.
-import { soloResult } from '../../engine/hud';
 import type { GameFactory } from '../../engine/types';
+import { createFreeze } from '../freeze-battle';
 
-const factory: GameFactory = (ctx) => ({
-  view: { camera: 'dim', skeleton: true },
-  update() {
-    if (ctx.time > 2) ctx.end(soloResult(ctx, 0));
-  },
-  render() {},
-});
+/** Freeze Party (GAMES.md 6.20): group freeze — caught once and you're out. */
+const factory: GameFactory = (ctx) => createFreeze(ctx, { lives: 1, maxRounds: 12 });
 export default factory;
