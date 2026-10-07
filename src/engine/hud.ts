@@ -1,5 +1,6 @@
 import { formatTime } from '../core/math';
 import { bar, C, FONT, panel, text, topShade } from './draw';
+import { tx } from '../games/kits/text';
 import type { GameContext, Grade, MatchResult } from './types';
 
 /** Shared HUD + result builders so every game looks and reports consistently. */
@@ -105,7 +106,7 @@ export function versusResult(
     .sort((a, b) => (opts.lowerIsBetter ? a.s - b.s : b.s - a.s))
     .map((x) => x.i);
   const disp = opts.display ?? ((v: number) => String(Math.round(v)));
-  const headline = opts.headline ?? (winner === null ? 'DRAW!' : `${name(ctx, winner).toUpperCase()} WINS`);
+  const headline = opts.headline ?? (winner === null ? tx(ctx, 'draw') : tx(ctx, 'wins', { name: name(ctx, winner).toUpperCase() }));
   const line = scores.map((s, i) => `${name(ctx, i)} ${disp(s)}`).join(' · ');
   return {
     kind: scores.length > 2 ? 'party' : 'versus',
@@ -128,10 +129,10 @@ export function coopResult(
   const grade = gradeFor(p);
   const headline =
     opts.headline ??
-    (grade === 'PERFECT' ? 'PERFECT SYNC' : grade === 'GREAT' ? 'GREAT SYNC' : grade === 'GOOD' ? 'GOOD SYNC' : 'KEEP PRACTICING');
+    tx(ctx, grade === 'PERFECT' ? 'perfectSync' : grade === 'GREAT' ? 'greatSync' : grade === 'GOOD' ? 'goodSync' : 'keepPracticing');
   const sub =
     opts.subline ??
-    (grade === 'PERFECT' ? 'PERFECT COUPLE!' : grade === 'GREAT' ? 'GREAT TEAM!' : grade === 'GOOD' ? 'Nice teamwork!' : 'Rematch and sync up!');
+    tx(ctx, grade === 'PERFECT' ? 'perfectCouple' : grade === 'GREAT' ? 'greatTeam' : grade === 'GOOD' ? 'niceTeam' : 'syncUp');
   return {
     kind: 'coop',
     winner: null,
@@ -141,10 +142,10 @@ export function coopResult(
     subline: sub,
     grade,
     stats: opts.stats ?? [],
-    shareText: `${ctx.meta.emoji} ${ctx.meta.name.toUpperCase()}\n${opts.shareLine ?? `YOU TWO ARE ${p}% IN SYNC ❤️`}\n${ctx.players
+    shareText: `${ctx.meta.emoji} ${ctx.meta.name.toUpperCase()}\n${opts.shareLine ?? tx(ctx, 'inSync', { p })}\n${ctx.players
       .map((pl) => pl.name)
       .join(' + ')}\n— Vanillate Motion`,
-    record: { key: `${ctx.meta.id}:${ctx.mode}`, value: p, label: 'Best sync', display: `${p}%` },
+    record: { key: `${ctx.meta.id}:${ctx.mode}`, value: p, label: tx(ctx, 'bestSync'), display: `${p}%` },
   };
 }
 
@@ -167,15 +168,15 @@ export function soloResult(
     winner: null,
     scores: [{ player: 0, score, display: disp }],
     big: disp,
-    headline: opts.headline ?? 'GAME OVER',
+    headline: opts.headline ?? tx(ctx, 'gameOver'),
     subline: opts.subline,
     grade: opts.grade,
     stats: opts.stats ?? [],
-    shareText: `${ctx.meta.emoji} ${ctx.meta.name.toUpperCase()}\n${name(ctx, 0)}: ${disp}\nCan you beat me?\n— Vanillate Motion`,
+    shareText: `${ctx.meta.emoji} ${ctx.meta.name.toUpperCase()}\n${name(ctx, 0)}: ${disp}\n${tx(ctx, 'canYouBeat')}\n— Vanillate Motion`,
     record: {
       key: `${ctx.meta.id}:${ctx.mode}`,
       value: score,
-      label: opts.recordLabel ?? 'Best score',
+      label: opts.recordLabel ?? tx(ctx, 'bestScore'),
       lowerIsBetter: opts.lowerIsBetter,
       display: disp,
     },

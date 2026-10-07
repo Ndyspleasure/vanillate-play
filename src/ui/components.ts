@@ -1,4 +1,5 @@
 import { app } from '../app/context';
+import { artEl } from '../art/sprites';
 import type { GameMeta, ModeId, MoveHint } from '../engine/types';
 import { lang, loc, t, type I18nKey } from './i18n';
 import { h, ICONS, svgIcon, type Child } from './dom';
@@ -26,7 +27,7 @@ export function thumb(meta: GameMeta, size: 'sm' | 'md' | 'lg' = 'md'): HTMLElem
       style: `--c1:${meta.colors[0]};--c2:${meta.colors[1]}`,
       'aria-hidden': 'true',
     },
-    h('span', { class: 'thumb__emoji' }, meta.emoji),
+    h('span', { class: 'thumb__emoji' }, artEl(meta.emoji, { color: meta.colors[0] })),
     h('span', { class: 'thumb__ring' }),
   );
 }
@@ -72,25 +73,25 @@ export function gameCard(meta: GameMeta): HTMLElement {
 }
 
 const MOVE_LABELS: Record<MoveHint, [string, string, string]> = {
-  jump: ['⬆️', 'Jump', 'Lompat'],
-  squat: ['⬇️', 'Squat', 'Jongkok'],
-  lean: ['↔️', 'Lean', 'Condong'],
-  step: ['👣', 'Step', 'Geser'],
-  punch: ['👊', 'Punch', 'Pukul'],
-  block: ['🛡️', 'Block', 'Tangkis'],
-  hands: ['🙌', 'Hands up', 'Angkat tangan'],
-  reach: ['✋', 'Reach', 'Raih'],
-  kick: ['🦵', 'Kick', 'Tendang'],
-  still: ['🧊', 'Freeze', 'Diam'],
-  pose: ['🤸', 'Pose', 'Pose'],
-  dance: ['💃', 'Dance', 'Joget'],
-  flap: ['🪽', 'Flap', 'Kepak'],
-  run: ['🏃', 'Run in place', 'Lari di tempat'],
+  jump: ['up', 'Jump', 'Lompat'],
+  squat: ['down', 'Squat', 'Jongkok'],
+  lean: ['upRight', 'Lean', 'Condong'],
+  step: ['right', 'Step', 'Geser'],
+  punch: ['fist', 'Punch', 'Pukul'],
+  block: ['shield', 'Block', 'Tangkis'],
+  hands: ['handsUp', 'Hands up', 'Angkat tangan'],
+  reach: ['handRight', 'Reach', 'Raih'],
+  kick: ['leg', 'Kick', 'Tendang'],
+  still: ['ice', 'Freeze', 'Diam'],
+  pose: ['acrobat', 'Pose', 'Pose'],
+  dance: ['dancer', 'Dance', 'Joget'],
+  flap: ['bird', 'Flap', 'Kepak'],
+  run: ['runner', 'Run in place', 'Lari di tempat'],
 };
 
 export function moveChip(m: MoveHint): HTMLElement {
   const [e, en, id] = MOVE_LABELS[m];
-  return h('span', { class: 'chip' }, h('span', { 'aria-hidden': 'true' }, e), lang() === 'id' ? id : en);
+  return h('span', { class: 'chip' }, artEl(e), lang() === 'id' ? id : en);
 }
 
 let toastHost: HTMLElement | null = null;
@@ -146,7 +147,7 @@ export function header(active: string): HTMLElement {
     h(
       'div',
       { class: 'site-header__inner' },
-      h('a', { href: '/', class: 'logo', 'aria-label': 'Vanillate Motion home' }, h('span', { class: 'logo__mark', 'aria-hidden': 'true' }), h('span', { class: 'logo__text' }, 'Vanillate', h('b', null, ' Motion'))),
+      h('a', { href: '/', class: 'logo', 'aria-label': 'Vanillate Motion home' }, artEl('logo', { className: 'logo__mark' }), h('span', { class: 'logo__text' }, 'Vanillate', h('b', null, ' Motion'))),
       h(
         'nav',
         { class: 'nav', 'aria-label': 'Main' },

@@ -1,5 +1,6 @@
 import type { RouteMatch, Screen } from '../../app/router';
 import type { CategoryId } from '../../engine/types';
+import { artEl } from '../../art/sprites';
 import { CATEGORIES, GAMES } from '../../games/catalog';
 import { footer, gameCard, header } from '../components';
 import { clear, h } from '../dom';
@@ -30,10 +31,10 @@ export function libraryScreen(m: RouteMatch): Screen {
             renderGrid();
           },
         },
-        h('span', { 'aria-hidden': 'true' }, emoji),
+        artEl(emoji),
         label,
       );
-    chips.appendChild(mk(null, t('lib.all'), '🎮'));
+    chips.appendChild(mk(null, t('lib.all'), 'logo'));
     for (const c of CATEGORIES) chips.appendChild(mk(c.id, t(`cat.${c.id}` as I18nKey), c.emoji));
   };
 

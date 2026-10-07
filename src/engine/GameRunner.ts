@@ -3,11 +3,12 @@ import { clamp, easeOutBack } from '../core/math';
 import type { MotionSession } from '../core/session/MotionSession';
 import { SIM_ASPECT } from '../core/tracking/SimulatedProvider';
 import type { AudioEngine } from './audio';
-import { C, FONT, PLAYER_COLORS, PLAYER_TINTS, handCursor, panel, playerTag, skeleton, text } from './draw';
+import { C, FONT, emoji, PLAYER_COLORS, PLAYER_TINTS, handCursor, panel, playerTag, skeleton, text } from './draw';
 import { Fx, type FxQuality } from './fx';
 import { InputHub } from './input';
 import { Rng } from './rng';
 import { StageMapper, playerZones } from './stage';
+import { tx } from '../games/kits/text';
 import type { GameContext, GameInstance, GameMeta, MatchResult, ModeId, PlayerInfo, PlayerInput } from './types';
 
 export type RunnerPhase = 'loading' | 'intro' | 'countdown' | 'play' | 'paused' | 'lost' | 'resuming' | 'ended';
@@ -262,8 +263,8 @@ export class GameRunner {
           kind: 'solo',
           winner: null,
           scores: [],
-          headline: 'OOPS!',
-          subline: 'This game hit a problem. Try a rematch or another game.',
+          headline: tx(this.settings, 'oops'),
+          subline: tx(this.settings, 'oopsSub'),
           stats: [],
           shareText: '',
         });
@@ -519,17 +520,18 @@ export class GameRunner {
       const a = Math.min(1, t * 3, (INTRO_S - t) * 3);
       g.globalAlpha = Math.max(0, a);
       panel(g, w * 0.5 - Math.min(w * 0.42, 520), h * 0.3, Math.min(w * 0.84, 1040), h * 0.36, {
-        fill: 'rgba(20,10,40,0.82)',
+        fill: 'rgba(20,10,40,0.95)',
         r: 28,
       });
-      text(g, `${this.meta.emoji} ${this.meta.name.toUpperCase()}`, w / 2, h * 0.4, { size: big * 0.06, weight: 800 });
+      emoji(g, this.meta.emoji, w / 2 - Math.min(w * 0.3, 380), h * 0.4, big * 0.08, 1, this.meta.colors[0]);
+      text(g, this.meta.name.toUpperCase(), w / 2, h * 0.4, { size: big * 0.06, weight: 800 });
       const tip = this.meta.text[this.settings.lang].howTo[0] ?? '';
       text(g, tip, w / 2, h * 0.52, { size: Math.max(16, big * 0.026), color: C.vanilla, maxWidth: w * 0.78 });
       g.globalAlpha = 1;
     } else if (this.phase === 'countdown') {
       const step = Math.floor(t);
       const u = t - step;
-      const label = step < 3 ? String(3 - step) : 'GO!';
+      const label = step < 3 ? String(3 - step) : tx(this.settings, 'go');
       if (t < COUNT_S) {
         const s = easeOutBack(Math.min(1, u * 2.2));
         g.globalAlpha = step < 3 ? 1 - Math.max(0, u - 0.7) / 0.3 : 1 - u * 2;
@@ -547,8 +549,8 @@ export class GameRunner {
       if (this.phase === 'lost') {
         const missing = [];
         for (let i = 0; i < this.count; i++) if (this.session.health(i) === 'lost') missing.push(this.players[i].name.toUpperCase());
-        text(g, `${missing.join(' & ')} NOT DETECTED`, w / 2, h * 0.42, { size: big * 0.05, color: C.warn, weight: 800 });
-        text(g, 'MOVE INTO FRAME', w / 2, h * 0.52, { size: big * 0.035, color: C.ink });
+        text(g, tx(this.settings, 'notDetected', { names: missing.join(' & ') }), w / 2, h * 0.42, { size: big * 0.05, color: C.warn, weight: 800 });
+        text(g, tx(this.settings, 'moveIntoFrame'), w / 2, h * 0.52, { size: big * 0.035, color: C.ink });
         // Zone hints
         const zones = playerZones(w, h, this.count);
         for (let i = 0; i < this.count; i++) {
@@ -561,9 +563,9 @@ export class GameRunner {
           g.setLineDash([]);
         }
       } else if (this.phase === 'resuming') {
-        text(g, 'READY…', w / 2, h * 0.45, { size: big * 0.09, color: C.good, weight: 800 });
+        text(g, tx(this.settings, 'ready'), w / 2, h * 0.45, { size: big * 0.09, color: C.good, weight: 800 });
       } else {
-        text(g, 'PAUSED', w / 2, h * 0.45, { size: big * 0.08, weight: 800 });
+        text(g, tx(this.settings, 'paused'), w / 2, h * 0.45, { size: big * 0.08, weight: 800 });
       }
     }
 
@@ -583,7 +585,7 @@ export class GameRunner {
         if (this.session.health(i) === 'weak') {
           const inp = this.hub.get(i);
           g.font = `700 14px ${FONT}`;
-          text(g, '⚠ tracking', inp.head.x, inp.head.y - inp.headRadius * 2, { size: 14, color: C.warn });
+          text(g, tx(this.settings, 'tracking'), inp.head.x, inp.head.y - inp.headRadius * 2, { size: 14, color: C.warn });
         }
       }
     }

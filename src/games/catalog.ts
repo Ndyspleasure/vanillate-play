@@ -14,13 +14,13 @@ const opt = (id: string, en: string, idn: string, def: string, choices: [string,
 });
 
 export const CATEGORIES: { id: CategoryId; emoji: string }[] = [
-  { id: 'for-two', emoji: '❤️' },
-  { id: 'versus', emoji: '⚔️' },
-  { id: 'couple', emoji: '🤝' },
-  { id: 'party', emoji: '👥' },
-  { id: 'solo', emoji: '🧍' },
-  { id: 'sports', emoji: '⚽' },
-  { id: 'viral', emoji: '✨' },
+  { id: 'for-two', emoji: 'heart' },
+  { id: 'versus', emoji: 'glove' },
+  { id: 'couple', emoji: 'handshake' },
+  { id: 'party', emoji: 'party' },
+  { id: 'solo', emoji: 'runner' },
+  { id: 'sports', emoji: 'soccer' },
+  { id: 'viral', emoji: 'sparkle' },
 ];
 
 export const GAMES: GameMeta[] = [
@@ -219,7 +219,7 @@ export const GAMES: GameMeta[] = [
         tagline: 'TUNGGU… GO! Siapa paling cepat bereaksi?',
         description:
           'Diam saat muncul TUNGGU. Saat perintah muncul — LOMPAT, JONGKOK, ANGKAT TANGAN, KIRI, KANAN, PUKUL, atau DIAM — lakukan paling dulu. Bergerak duluan = false start!',
-        howTo: ['Diam saat WAIT…', 'Lakukan perintah begitu muncul.', 'Reaksi benar tercepat dapat poin. False start mengurangi poin.'],
+        howTo: ['Diam saat TUNGGU…', 'Lakukan perintah begitu muncul.', 'Reaksi benar tercepat dapat poin. False start mengurangi poin.'],
       },
     },
     load: () => import('./reaction-battle'),

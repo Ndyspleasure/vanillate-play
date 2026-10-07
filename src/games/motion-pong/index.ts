@@ -2,6 +2,7 @@ import { clamp, lerp, smoothFactor } from '../../core/math';
 import { C, circle, roundRect, withAlpha } from '../../engine/draw';
 import { scoreHeader, soloResult, versusResult } from '../../engine/hud';
 import type { GameFactory, PlayerInput } from '../../engine/types';
+import { tx } from '../kits/text';
 
 /**
  * Motion Pong (GAMES.md 6.25) — the simplest technical demo: your highest hand is the paddle.
@@ -58,18 +59,18 @@ const factory: GameFactory = (ctx) => {
     if (score[scorer] >= WIN) {
       finished = true;
       const stats = [
-        { label: 'Paddle hits', values: solo ? [String(hits[0])] : hits.map(String) },
-        { label: 'Longest rally', values: [String(longestRally)] },
+        { label: tx(ctx, 'statPaddleHits'), values: solo ? [String(hits[0])] : hits.map(String) },
+        { label: tx(ctx, 'statRally'), values: [String(longestRally)] },
       ];
       if (solo) {
         const won = score[0] > score[1];
         ctx.end(
           soloResult(ctx, score[0] * 100 + hits[0], {
             display: `${score[0]} – ${score[1]}`,
-            headline: won ? 'YOU BEAT THE CPU!' : 'CPU WINS',
-            subline: won ? 'Unstoppable paddle!' : 'Rematch the machine!',
+            headline: won ? tx(ctx, 'youWin') : tx(ctx, 'cpuWins'),
+            subline: undefined,
             stats,
-            recordLabel: 'Best match score',
+            recordLabel: tx(ctx, 'bestScore'),
           }),
         );
       } else ctx.end(versusResult(ctx, score, { stats }));
@@ -134,7 +135,7 @@ const factory: GameFactory = (ctx) => {
           rally++;
           ctx.audio.play('hit', { pitch: 1 + rally * 0.03, pan: dir * 0.6 });
           ctx.fx.burst(ball.x, ball.y, solo && i === 1 ? '#ffffff' : ctx.players[i].color, 12, { speed: 220, gravity: 0 });
-          if (rally > 0 && rally % 5 === 0) ctx.fx.text(`RALLY ${rally}!`, ctx.width / 2, ctx.height * 0.3, C.vanilla, 36);
+          if (rally > 0 && rally % 5 === 0) ctx.fx.text(tx(ctx, 'rally', { n: rally }), ctx.width / 2, ctx.height * 0.3, C.vanilla, 36);
         }
       }
       if (ball.x < -ball.r * 2) point(1);
@@ -166,7 +167,7 @@ const factory: GameFactory = (ctx) => {
       circle(g, ball.x, ball.y, ball.r, '#fff7e8', '#ffd23d', 4);
       scoreHeader(g, ctx, [score[0], score[1]], {
         labels: solo ? [ctx.players[0].name, 'CPU'] : undefined,
-        center: `First to ${WIN}`,
+        center: tx(ctx, 'firstTo', { n: WIN }),
       });
     },
   };

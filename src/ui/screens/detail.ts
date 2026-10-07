@@ -1,5 +1,6 @@
 import { track } from '../../analytics';
 import { app } from '../../app/context';
+import { artEl } from '../../art/sprites';
 import type { RouteMatch, Screen } from '../../app/router';
 import type { ModeId } from '../../engine/types';
 import { gameById, playersForMode } from '../../games/catalog';
@@ -114,7 +115,7 @@ export function detailScreen(m: RouteMatch): Screen {
         h(
           'div',
           { class: 'detail__info' },
-          h('h1', null, h('span', { 'aria-hidden': 'true' }, meta.emoji, ' '), meta.name),
+          h('h1', null, artEl(meta.emoji, { className: 'h1-art', color: meta.colors[0] }), ' ', meta.name),
           h('p', { class: 'lead' }, text.tagline),
           h('p', null, text.description),
           h('h2', null, t('detail.howto')),

@@ -101,6 +101,8 @@ const en = {
   'setup.err.model': 'The motion engine could not start on this device.',
   'setup.err.model.fix': 'Check your connection and retry. Older devices can play with the keyboard.',
   'setup.retry': 'Try again',
+  'setup.bothVisible': 'Make sure both players are visible from head to toe.',
+  'lobby.cpuPlayers': 'Players 3–4 are CPU-controlled in keyboard mode.',
 
   'lobby.title': 'Get ready',
   'lobby.waiting': 'Waiting for {name}…',
@@ -309,6 +311,8 @@ const id: Partial<Record<I18nKey, string>> = {
   'setup.err.model': 'Motion engine tidak bisa berjalan di perangkat ini.',
   'setup.err.model.fix': 'Cek koneksi lalu coba lagi. Perangkat lama bisa main pakai keyboard.',
   'setup.retry': 'Coba lagi',
+  'setup.bothVisible': 'Pastikan kedua pemain terlihat dari kepala sampai kaki.',
+  'lobby.cpuPlayers': 'Pemain 3–4 dikendalikan CPU di mode keyboard.',
 
   'lobby.title': 'Bersiap',
   'lobby.waiting': 'Menunggu {name}…',

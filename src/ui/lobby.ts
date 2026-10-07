@@ -38,6 +38,7 @@ export class LobbyView {
   onGestureStart: (() => void) | null = null;
   gestures = true;
   names: string[] = [];
+  lang: 'en' | 'id' = 'en';
 
   constructor(
     private container: HTMLElement,
@@ -200,7 +201,7 @@ export class LobbyView {
     if (this.holdT > 0) {
       const u = clamp(this.holdT / HOLD_TO_START, 0, 1);
       panel(g, w / 2 - 160, h * 0.12, 320, 60, { fill: 'rgba(20,10,40,0.8)', r: 30 });
-      text(g, '🙌 STARTING…', w / 2, h * 0.12 + 22, { size: 20, stroke: 0 });
+      text(g, this.lang === 'id' ? 'MULAI…' : 'STARTING…', w / 2, h * 0.12 + 22, { size: 20, stroke: 0 });
       g.fillStyle = C.good;
       g.fillRect(w / 2 - 130, h * 0.12 + 42, 260 * u, 6);
     }

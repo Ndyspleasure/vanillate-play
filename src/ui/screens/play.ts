@@ -6,6 +6,7 @@ import { KEY_HELP } from '../../core/input/KeyboardController';
 import { GameRunner, type RunnerPhase } from '../../engine/GameRunner';
 import { PLAYER_COLORS } from '../../engine/draw';
 import type { MatchResult, ModeId } from '../../engine/types';
+import { artEl } from '../../art/sprites';
 import { gameById, playersForMode } from '../../games/catalog';
 import { settings } from '../../storage/settings';
 import { stats } from '../../storage/stats';
@@ -38,7 +39,7 @@ export function playScreen(m: RouteMatch): Screen {
     'div',
     { class: 'play-top' },
     h('a', { class: 'icon-btn', href: `/games/${meta.id}`, 'aria-label': t('detail.back') }, svgIcon(ICONS.back)),
-    h('div', { class: 'play-top__title' }, h('span', { 'aria-hidden': 'true' }, meta.emoji), ' ', h('strong', null, meta.name), h('span', { class: 'muted' }, ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}`)),
+    h('div', { class: 'play-top__title' }, artEl(meta.emoji, { color: meta.colors[0] }), ' ', h('strong', null, meta.name), h('span', { class: 'muted' }, ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}`)),
     topRight,
   );
   const root = h('div', { class: 'play' }, topbar, h('div', { class: 'stage-wrap' }, stage, overlay));
@@ -107,14 +108,14 @@ export function playScreen(m: RouteMatch): Screen {
       h(
         'div',
         { class: 'card setup' },
-        h('div', { class: 'setup__icon', 'aria-hidden': 'true' }, '📷'),
+        h('div', { class: 'setup__icon' }, artEl('camera')),
         h('h1', null, t('setup.title')),
         h('p', null, t('setup.lead')),
         h('p', { class: 'privacy-note' }, svgIcon(ICONS.shield, 18), ' ', t('setup.privacy')),
         h('p', { class: 'muted' }, t('setup.safety')),
         unsupported ? h('p', { class: 'error-text' }, t(`setup.err.${unsupported}` as I18nKey), ' ', t(`setup.err.${unsupported}.fix` as I18nKey)) : safety,
         h('div', { class: 'setup__buttons' }, unsupported ? null : enable, kb),
-        count > 1 ? h('p', { class: 'muted small' }, '🧍🧍 Make sure both players are visible from head to toe.') : null,
+        count > 1 ? h('p', { class: 'muted small' }, t('setup.bothVisible')) : null,
       ),
     );
   };
@@ -139,7 +140,7 @@ export function playScreen(m: RouteMatch): Screen {
       h(
         'div',
         { class: 'card setup', role: 'alert' },
-        h('div', { class: 'setup__icon', 'aria-hidden': 'true' }, code === 'denied' ? '🚫' : '😕'),
+        h('div', { class: 'setup__icon' }, artEl(code === 'denied' ? 'no' : 'skull')),
         h('h1', null, t(`setup.err.${code}` as I18nKey)),
         h('p', null, t(`setup.err.${code}.fix` as I18nKey)),
         h(
@@ -206,6 +207,7 @@ export function playScreen(m: RouteMatch): Screen {
     lobby = new LobbyView(stage, session, count);
     lobby.names = settings.get().names.slice(0, count);
     lobby.gestures = settings.get().gestureControls;
+    lobby.lang = settings.get().lang;
     lobby.onGestureStart = () => startGame(false);
     const cards = h('div', { class: 'lobby__players' });
     const issuesBox = h('div', { class: 'lobby__msgs' });
@@ -270,7 +272,7 @@ export function playScreen(m: RouteMatch): Screen {
             h('dl', null, k.keys.map((row) => [h('dt', null, h('kbd', null, row.key)), h('dd', null, row.action)])),
           ),
         ),
-        count > 2 ? h('p', { class: 'muted' }, 'Players 3–4 are CPU-controlled in keyboard mode.') : null,
+        count > 2 ? h('p', { class: 'muted' }, t('lobby.cpuPlayers')) : null,
       ),
       { wide: true },
     );
@@ -406,7 +408,7 @@ export function playScreen(m: RouteMatch): Screen {
       h(
         'div',
         { class: 'card result', role: 'dialog', 'aria-label': result.headline },
-        h('p', { class: 'result__kicker' }, `${meta.emoji} ${meta.name}`),
+        h('p', { class: 'result__kicker' }, artEl(meta.emoji, { color: meta.colors[0] }), ` ${meta.name}`),
         result.grade ? h('p', { class: `result__grade grade--${result.grade.toLowerCase()}` }, result.grade) : null,
         h('h2', { class: 'result__headline' }, result.headline),
         scores,

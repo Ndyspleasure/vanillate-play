@@ -2,6 +2,7 @@ import type { Screen } from '../../app/router';
 import { SimBody, SIM_ASPECT } from '../../core/tracking/SimulatedProvider';
 import { SKELETON_EDGES, LM } from '../../core/tracking/landmarks';
 import { PLAYER_COLORS } from '../../engine/draw';
+import { artEl } from '../../art/sprites';
 import { GAMES } from '../../games/catalog';
 import { settings } from '../../storage/settings';
 import { button, footer, gameCard, header } from '../components';
@@ -136,7 +137,7 @@ export function homeScreen(): Screen {
       h(
         'section',
         { class: 'section section--tint' },
-        h('div', { class: 'section__head' }, h('h2', null, '❤️ ', t('home.fortwo')), h('p', null, t('home.fortwoLead'))),
+        h('div', { class: 'section__head' }, h('h2', null, artEl('heart'), ' ', t('home.fortwo')), h('p', null, t('home.fortwoLead'))),
         h('div', { class: 'grid' }, forTwo.map(gameCard)),
         h('p', { class: 'center' }, button(t('home.cta2'), { href: '/games', variant: 'secondary' })),
       ),
@@ -148,11 +149,11 @@ export function homeScreen(): Screen {
           'ol',
           { class: 'steps' },
           [
-            ['📷', t('home.step1'), t('home.step1b')],
-            ['🧍🧍', t('home.step2'), t('home.step2b')],
-            ['🎮', t('home.step3'), t('home.step3b')],
+            ['camera', t('home.step1'), t('home.step1b')],
+            ['duo', t('home.step2'), t('home.step2b')],
+            ['glove', t('home.step3'), t('home.step3b')],
           ].map(([e, a, b], i) =>
-            h('li', { class: 'step' }, h('span', { class: 'step__num' }, String(i + 1)), h('span', { class: 'step__emoji', 'aria-hidden': 'true' }, e), h('h3', null, a), h('p', null, b)),
+            h('li', { class: 'step' }, h('span', { class: 'step__num' }, String(i + 1)), h('span', { class: 'step__emoji' }, artEl(e)), h('h3', null, a), h('p', null, b)),
           ),
         ),
       ),
@@ -169,12 +170,12 @@ export function homeScreen(): Screen {
             (['home.cam1', 'home.cam2', 'home.cam3', 'home.cam4', 'home.cam5'] as const).map((k) => h('li', null, t(k))),
           ),
         ),
-        h('div', { class: 'camera-diagram', 'aria-hidden': 'true' }, h('span', { class: 'camera-diagram__cam' }, '📷'), h('span', { class: 'camera-diagram__floor' }), h('span', { class: 'camera-diagram__p1' }, '🧍'), h('span', { class: 'camera-diagram__p2' }, '🧍'), h('span', { class: 'camera-diagram__dist' }, '2–3 m')),
+        h('div', { class: 'camera-diagram', 'aria-hidden': 'true' }, h('span', { class: 'camera-diagram__cam' }, artEl('camera')), h('span', { class: 'camera-diagram__floor' }), h('span', { class: 'camera-diagram__p1' }, artEl('handsUp', { color: '#ff4d8d' })), h('span', { class: 'camera-diagram__p2' }, artEl('handsUp', { color: '#3dd6ff' })), h('span', { class: 'camera-diagram__dist' }, '2–3 m')),
       ),
       h(
         'section',
         { class: 'section section--tint' },
-        h('div', { class: 'section__head' }, h('h2', null, '✨ ', t('home.popular')), h('p', null, t('home.popularLead'))),
+        h('div', { class: 'section__head' }, h('h2', null, artEl('sparkle'), ' ', t('home.popular')), h('p', null, t('home.popularLead'))),
         h('div', { class: 'grid' }, viral.map(gameCard)),
       ),
       h('section', { class: 'section section--about' }, h('h2', null, t('home.about')), h('p', null, t('home.aboutBody'))),

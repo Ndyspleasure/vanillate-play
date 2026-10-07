@@ -2,6 +2,7 @@ import '@fontsource-variable/fredoka/wght.css';
 import '@fontsource-variable/nunito/wght.css';
 import './styles/main.css';
 import { app } from './app/context';
+import { preloadArt } from './art/sprites';
 import type { Screen } from './app/router';
 import { toast } from './ui/components';
 import { h } from './ui/dom';
@@ -45,6 +46,7 @@ app.router.onChange = (screen: Screen, path: string) => {
   }
 };
 
+preloadArt();
 app.router.start();
 
 // Connectivity hints (the game itself works offline once cached).

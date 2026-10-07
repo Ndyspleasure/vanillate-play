@@ -2,6 +2,7 @@ import type { Point } from '../core/math';
 import { clamp01 } from '../core/math';
 import { ghostSkeleton, type PoseDef } from '../core/motion/pose';
 import { SKELETON_EDGES, LM } from '../core/tracking/landmarks';
+import { drawArt } from '../art/sprites';
 import type { PlayerInput } from './types';
 
 /** Canvas drawing helpers shared by all games. */
@@ -54,7 +55,9 @@ export function text(g: CanvasRenderingContext2D, str: string, x: number, y: num
   if (o.alpha !== undefined) g.globalAlpha = 1;
 }
 
-export function emoji(g: CanvasRenderingContext2D, e: string, x: number, y: number, size: number, alpha = 1): void {
+/** Draw an icon: uses the SVG art set when available, otherwise falls back to the emoji glyph. */
+export function emoji(g: CanvasRenderingContext2D, e: string, x: number, y: number, size: number, alpha = 1, color?: string): void {
+  if (drawArt(g, e, x, y, size * 1.05, { alpha, color })) return;
   g.globalAlpha = alpha;
   g.font = `${Math.round(size)}px ${EMOJI_FONT}`;
   g.textAlign = 'center';

@@ -3,8 +3,9 @@ import { C } from '../../engine/draw';
 import { centerText, scoreHeader, soloResult, versusResult } from '../../engine/hud';
 import type { GameContext, GameFactory, GameInstance } from '../../engine/types';
 import type { MotionEvent } from '../../core/motion/types';
-import { COMMANDS, isFalseStart, performed, type Command, type CommandId } from '../kits/commands';
+import { COMMANDS, cmdLabel, isFalseStart, performed, type Command, type CommandId } from '../kits/commands';
 import { FreezeMonitor } from '../kits/freeze';
+import { tx } from '../kits/text';
 import { bigCommand, bubble, hearts } from '../kits/ui';
 
 /**
@@ -147,19 +148,19 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
     const avg = times.map((list) => (list.length ? mean(list) : 9999));
     const best = times.map((list) => (list.length ? Math.min(...list) : 0));
     const stats = [
-      { label: 'Average reaction', values: avg.map((a) => (a < 9999 ? formatMs(a) : '—')) },
-      { label: 'Best reaction', values: best.map((b) => (b ? formatMs(b) : '—')) },
-      { label: 'False starts', values: falseStarts.map(String) },
+      { label: tx(ctx, 'statAvgReaction'), values: avg.map((a) => (a < 9999 ? formatMs(a) : '—')) },
+      { label: tx(ctx, 'statBestReaction'), values: best.map((b) => (b ? formatMs(b) : '—')) },
+      { label: tx(ctx, 'statFalseStarts'), values: falseStarts.map(String) },
     ];
     if (solo) {
       ctx.end({
         ...soloResult(ctx, avg[0] < 9999 ? Math.round(avg[0]) : 9999, {
           display: avg[0] < 9999 ? formatMs(avg[0]) : '—',
-          headline: 'REACTION TIME',
-          subline: `${points[0]} points`,
+          headline: ctx.lang === 'id' ? 'WAKTU REAKSI' : 'REACTION TIME',
+          subline: tx(ctx, 'points', { n: points[0] }),
           stats,
           lowerIsBetter: true,
-          recordLabel: 'Best average reaction',
+          recordLabel: tx(ctx, 'statAvgReaction'),
         }),
       });
       return;
@@ -197,7 +198,7 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
               outcomes[i] = { kind: 'false' };
               falseStarts[i]++;
               ctx.audio.play('buzzer');
-              ctx.fx.text('FALSE START!', ctx.input(i).head.x, ctx.input(i).head.y - 60, C.bad, 30);
+              ctx.fx.text(tx(ctx, 'falseStart'), ctx.input(i).head.x, ctx.input(i).head.y - 60, C.bad, 30);
             }
           }
           if (phaseT >= waitFor) startCommand();
@@ -211,7 +212,7 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
               if (t !== null && phaseT > 0.1) {
                 outcomes[i] = { kind: 'wrong' };
                 ctx.audio.play('boing');
-                ctx.fx.text('GOTCHA!', inp.head.x, inp.head.y - 60, C.bad, 30);
+                ctx.fx.text(tx(ctx, 'gotcha'), inp.head.x, inp.head.y - 60, C.bad, 30);
               }
               continue;
             }
@@ -244,7 +245,7 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
           for (const i of caught) {
             outcomes[i] = { kind: 'moved' };
             ctx.audio.play('boing');
-            ctx.fx.text('MOVED!', ctx.input(i).head.x, ctx.input(i).head.y - 60, C.bad, 30);
+            ctx.fx.text(tx(ctx, 'moved'), ctx.input(i).head.x, ctx.input(i).head.y - 60, C.bad, 30);
           }
           if (phaseT > 2.2) {
             for (let i = 0; i < n; i++) if (alive(i) && !outcomes[i]) outcomes[i] = { kind: 'held' };
@@ -265,7 +266,7 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
         g,
         ctx,
         ctx.players.map((p) => (solo ? `${points[0]}` : showLives ? '' : String(points[p.index]))),
-        { center: `ROUND ${Math.min(round, totalRounds)} / ${totalRounds}` },
+        { center: tx(ctx, 'roundOf', { n: Math.min(round, totalRounds), m: totalRounds }) },
       );
       if (showLives) {
         ctx.players.forEach((_p, i) => {
@@ -275,12 +276,12 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
       }
       if (phase === 'wait') {
         const pulse = 1 + Math.sin(phaseT * 6) * 0.04;
-        centerText(g, ctx, 'WAIT…', 'Stay still', C.bad, pulse, ctx.height * 0.32);
+        centerText(g, ctx, tx(ctx, 'wait'), tx(ctx, 'stayStill'), C.bad, pulse, ctx.height * 0.32);
       } else if (phase === 'go') {
-        if (fake) bigCommand(g, ctx, `DON'T ${cmd.label.replace('!', '')}`, '🚫', C.bad);
-        else bigCommand(g, ctx, cmd.label, cmd.emoji, cmd.color, 1 + Math.max(0, 0.25 - phaseT));
+        if (fake) bigCommand(g, ctx, tx(ctx, 'cmdDont', { x: cmdLabel(ctx, cmd).replace('!', '') }), '🚫', C.bad);
+        else bigCommand(g, ctx, cmdLabel(ctx, cmd), cmd.emoji, cmd.color, 1 + Math.max(0, 0.25 - phaseT));
       } else if (phase === 'freeze') {
-        bigCommand(g, ctx, 'FREEZE!', '🧊', '#8be9ff');
+        bigCommand(g, ctx, tx(ctx, 'cmdFreeze'), '🧊', '#8be9ff');
       } else if (phase === 'reveal' && roundMsg) {
         centerText(g, ctx, '⚡ ' + roundMsg, undefined, C.vanilla, 0.55, ctx.height * 0.3);
       }
@@ -288,16 +289,16 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
         const o = outcomes[i];
         const inp = ctx.input(i);
         if (!alive(i)) {
-          bubble(g, inp, 'OUT', C.muted);
+          bubble(g, inp, tx(ctx, 'out'), C.muted);
           continue;
         }
         if (!o) continue;
         if (o.kind === 'ok') bubble(g, inp, `✓ ${formatMs(o.ms)}`, C.good);
-        else if (o.kind === 'false') bubble(g, inp, 'FALSE START', C.bad);
-        else if (o.kind === 'wrong') bubble(g, inp, fake ? 'GOTCHA!' : '✗ WRONG', C.bad);
-        else if (o.kind === 'late') bubble(g, inp, 'TOO SLOW', C.warn);
-        else if (o.kind === 'held') bubble(g, inp, '✓ STEADY', C.good);
-        else if (o.kind === 'moved') bubble(g, inp, 'MOVED!', C.bad);
+        else if (o.kind === 'false') bubble(g, inp, tx(ctx, 'falseStart'), C.bad);
+        else if (o.kind === 'wrong') bubble(g, inp, fake ? tx(ctx, 'gotcha') : tx(ctx, 'wrong'), C.bad);
+        else if (o.kind === 'late') bubble(g, inp, tx(ctx, 'tooSlow'), C.warn);
+        else if (o.kind === 'held') bubble(g, inp, tx(ctx, 'steady'), C.good);
+        else if (o.kind === 'moved') bubble(g, inp, tx(ctx, 'moved'), C.bad);
       }
     },
   };
