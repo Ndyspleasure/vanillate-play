@@ -2,9 +2,10 @@
 import { defineConfig } from 'vite';
 import { mediapipeAssets } from './build/mediapipe-assets.ts';
 import { serviceWorker } from './build/service-worker.ts';
+import { seo } from './build/seo.ts';
 
 export default defineConfig({
-  plugins: [mediapipeAssets(), serviceWorker()],
+  plugins: [mediapipeAssets(), serviceWorker(), seo()],
   worker: { format: 'es' },
   build: {
     target: 'es2022',

@@ -127,6 +127,7 @@ export class GameRunner {
     const mod = await this.meta.load();
     const factory = mod.default;
     const rng = new Rng(this.settings.seed ?? (Date.now() & 0x7fffffff));
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- getters on the context read live runner state
     const runner = this;
     this.ctx = {
       meta: this.meta,

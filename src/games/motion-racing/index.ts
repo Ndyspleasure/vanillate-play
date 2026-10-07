@@ -82,7 +82,7 @@ const factory: GameFactory = (ctx) => {
           c.speed = lerp(c.speed, 0, 0.02);
           return;
         }
-        let steer = 0;
+        let steer: number;
         let maxSpeed = 62;
         if (c.ai) {
           const look = curve(c.z + 30);

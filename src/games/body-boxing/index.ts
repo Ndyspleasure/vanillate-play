@@ -77,7 +77,7 @@ const factory: GameFactory = (ctx) => {
 
   const resolve = (gl: Glove) => {
     const d = gl.to;
-    let blocked = false;
+    let blocked: boolean;
     let dodged = false;
     if (solo && d === 1) {
       const r = ctx.rng.next();

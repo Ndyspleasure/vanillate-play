@@ -575,6 +575,8 @@ Deployment:
 
 - **Vercel**
 
+> **Implementation note (v1.0):** the game layer uses a lightweight custom Canvas 2D runtime instead of Phaser.js — all games are vector graphics over the live camera, so this saves ~1 MB of bundle, keeps camera/overlay alignment in one place and lets every game be tested headlessly. Pose tracking uses MediaPipe Pose Landmarker in a Web Worker with self-hosted assets. See `docs/ARCHITECTURE.md`.
+
 ---
 
 # 15. Vercel Deployment

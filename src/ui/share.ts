@@ -1,5 +1,6 @@
 import { track } from '../analytics';
-import { C, EMOJI_FONT, FONT, PLAYER_COLORS, roundRect } from '../engine/draw';
+import { drawArt } from '../art/sprites';
+import { C, FONT, PLAYER_COLORS, roundRect } from '../engine/draw';
 import type { GameMeta, MatchResult, PlayerInfo } from '../engine/types';
 import { button, modal, toast } from './components';
 import { h } from './dom';
@@ -47,9 +48,7 @@ export function renderShareCard(
   let y = 110;
   center('VANILLATE MOTION', y, 40, C.vanilla, 800);
   y += 110;
-  g.font = `120px ${EMOJI_FONT}`;
-  g.textAlign = 'center';
-  g.fillText(meta.emoji, W / 2, y);
+  drawArt(g, meta.emoji, W / 2, y - 30, 150, { color: meta.colors[0] });
   y += 110;
   center(meta.name.toUpperCase(), y, 64);
   y += 60;
@@ -98,10 +97,7 @@ export function renderShareCard(
       g.font = `800 110px ${FONT}`;
       g.fillStyle = C.ink;
       g.fillText(s.display ?? String(s.score), x, y + 120, colW - 20);
-      if (result.winner === s.player) {
-        g.font = `64px ${EMOJI_FONT}`;
-        g.fillText('🏆', x, y - 50);
-      }
+      if (result.winner === s.player) drawArt(g, 'trophy', x, y - 60, 72);
     });
     y += 200;
   }
@@ -117,7 +113,7 @@ export function renderShareCard(
     g.textAlign = 'left';
     y += 58;
   }
-  center('Play at vanillate-motion · your body is the controller', H - 70, 30, 'rgba(255,247,232,0.7)', 600);
+  center(`${location.host} · your body is the controller`, H - 70, 30, 'rgba(255,247,232,0.7)', 600);
   return c;
 }
 

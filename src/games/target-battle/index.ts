@@ -26,7 +26,7 @@ export function createTargets(ctx: GameContext, variant: Variant): GameInstance 
   const out = new Array(n).fill(false);
   const duration = variant === '60s' ? 60 : variant === 'sudden' ? 90 : variant === 'timed' ? 30 : variant === 'endless' || variant === 'speed' || variant === 'accuracy' ? 999 : 30;
   let time = 0;
-  let spawned = new Array(n).fill(0);
+  const spawned = new Array(n).fill(0);
   let finished = false;
 
   const lifeFor = () => {
