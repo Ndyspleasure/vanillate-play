@@ -129,6 +129,7 @@ export function playScreen(m: RouteMatch): Screen {
         h('div', { class: 'spinner', 'aria-hidden': 'true' }),
         h('p', null, msg),
         progress !== undefined ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: `width:${Math.round(progress * 100)}%` })) : null,
+        h('p', { class: 'small muted' }, h('button', { class: 'link-btn', type: 'button', id: 'loading-keyboard', onclick: () => void startKeyboard() }, t('setup.keyboard'))),
       ),
     );
   };
@@ -146,8 +147,8 @@ export function playScreen(m: RouteMatch): Screen {
         h(
           'div',
           { class: 'setup__buttons' },
-          button(t('setup.retry'), { icon: 'refresh', onClick: () => void startCamera() }),
-          button(t('setup.keyboard'), { variant: 'secondary', icon: 'keyboard', onClick: () => void startKeyboard() }),
+          button(t('setup.retry'), { icon: 'refresh', onClick: () => void startCamera(), attrs: { id: 'retry-camera' } }),
+          button(t('setup.keyboard'), { variant: 'secondary', icon: 'keyboard', onClick: () => void startKeyboard(), attrs: { id: 'keyboard-mode' } }),
         ),
       ),
     );

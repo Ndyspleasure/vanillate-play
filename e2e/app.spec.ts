@@ -58,11 +58,16 @@ test('Indonesian language switch', async ({ page }) => {
 });
 
 test('camera denied path offers a keyboard fallback', async ({ browser }) => {
-  const ctx = await browser.newContext({ permissions: [] });
+  const ctx = await browser.newContext();
   const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+  });
   await page.goto('/play/reaction-battle');
   await page.locator('#safety-check').check();
   await page.locator('#enable-camera').click();
-  await expect(page.locator('#keyboard-mode')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('alert')).toContainText(/blocked|diblokir/);
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
   await ctx.close();
 });

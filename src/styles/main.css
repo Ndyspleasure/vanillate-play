@@ -1724,3 +1724,13 @@ html.reduced-motion *::after {
 .camera-diagram__cam .art {
   --art-size: 2.6rem;
 }
+
+.link-btn {
+  background: none;
+  border: 0;
+  color: var(--vanilla);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 4px;
+}
