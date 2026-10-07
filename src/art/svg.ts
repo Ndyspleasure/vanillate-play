@@ -130,6 +130,12 @@ export const ART: Record<string, string> = {
     c(16, 44, 2.5, '#cfcfcf') +
     c(48, 44, 2.5, '#cfcfcf') +
     line('M8 34H20', '#fff', 3),
+  carBack:
+    s('M8 40C8 30 14 22 22 20H42C50 22 56 30 56 40V50H8Z', '{c}') +
+    s('M18 24H46L50 34H14Z', '#bdeeff') +
+    s('M4 44H14V58H4ZM50 44H60V58H50Z', '#2b2b2b') +
+    s('M12 42H22V46H12ZM42 42H52V46H42Z', '#ff3b3b') +
+    s('M26 44H38V48H26Z', '#fff7e8'),
   rocket:
     s('M32 4C44 12 46 28 42 44H22C18 28 20 12 32 4Z', '#e9ecff') +
     c(32, 22, 6, '#4cc9f0') +

@@ -21,6 +21,9 @@ export class Flyer {
   crashed = false;
   invuln = 0;
   flapT = 0;
+  /** Hover until the first flap (or a short grace period) so players can get ready. */
+  started = false;
+  graceT = 0;
   constructor(
     public speed = 0.28,
     public glide = false,
@@ -35,6 +38,7 @@ export class Flyer {
       return false;
     }
     if (inp.any('FLAP', 'JUMP', 'HANDS_UP', 'HAND_LEFT_UP', 'HAND_RIGHT_UP')) {
+      this.started = true;
       this.vy = -0.62;
       this.flapT = 0.25;
       return true;
@@ -45,6 +49,13 @@ export class Flyer {
   update(dt: number, track: Pipe[]): 'pass' | 'crash' | null {
     this.flapT = Math.max(0, this.flapT - dt);
     this.invuln = Math.max(0, this.invuln - dt);
+    if (!this.started && !this.glide) {
+      this.graceT += dt;
+      if (this.graceT > 3) this.started = true;
+      this.y = 0.45 + Math.sin(this.graceT * 4) * 0.02;
+      this.vy = 0;
+      return null;
+    }
     if (!this.glide) {
       this.vy += 1.5 * dt;
       this.y += this.vy * dt;

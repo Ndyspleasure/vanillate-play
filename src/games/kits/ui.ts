@@ -29,7 +29,9 @@ export function zoneLabel(g: CanvasRenderingContext2D, ctx: GameContext, i: numb
 }
 
 export function bigCommand(g: CanvasRenderingContext2D, ctx: GameContext, label: string, icon: string, color: string, scale = 1, y = ctx.height * 0.3): void {
-  const size = Math.min(ctx.width / Math.max(5, label.length * 0.6), 130) * scale;
+  const size = Math.min((ctx.width * 0.9) / Math.max(5, label.length * 0.62), 104, ctx.height * 0.14) * scale;
+  // Keep the icon clear of the score header.
+  y = Math.max(y, 132 + size * 1.25);
   emoji(g, icon, ctx.width / 2, y - size * 0.95, size * 0.8);
   text(g, label, ctx.width / 2, y, { size, color, weight: 800, stroke: Math.max(6, size / 8) });
 }

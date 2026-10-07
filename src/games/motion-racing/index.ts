@@ -228,17 +228,17 @@ const factory: GameFactory = (ctx) => {
       const k = Math.floor(rel / SEG);
       const p = pts[Math.min(pts.length - 1, k)];
       const size = p.w * 0.9;
-      emoji(g, '🏎️', p.x + (c.x - 0) * p.w * 0.9, p.y - size * 0.35, size, 1, c.color);
+      emoji(g, 'carBack', p.x + c.x * p.w * 0.9, p.y - size * 0.35, size, 1, c.color);
     }
     // Player car
-    const tilt = clamp((car.x - (pts[1]?.x ?? 0) * 0) * 0, -0.2, 0.2);
+    const tilt = clamp(-curve(car.z) * 0.08, -0.2, 0.2);
     const cx = r.x + r.w / 2;
     const cy = r.y + r.h * 0.86;
     const size = Math.min(r.w * 0.36, r.h * 0.3);
     g.save();
     g.translate(cx, cy);
     g.rotate(tilt + (car.drift ? Math.sin(t * 20) * 0.04 : 0));
-    emoji(g, '🏎️', 0, 0, size, 1, car.color);
+    emoji(g, 'carBack', 0, 0, size, 1, car.color);
     g.restore();
     if (car.nitroT > 0) emoji(g, '🔥', cx, cy + size * 0.35, size * 0.4);
     g.restore();
