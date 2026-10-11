@@ -150,6 +150,7 @@ export class GameRunner {
     this.canvas.style.height = `${h}px`;
     const aspect = this.hasCamera ? this.session.camera.aspect : SIM_ASPECT;
     this.mapper.set(w, h, aspect);
+    this.session.tracker.setVisibleRange(...this.mapper.visibleRange());
   }
 
   async start(): Promise<void> {

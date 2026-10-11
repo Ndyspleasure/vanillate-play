@@ -90,6 +90,7 @@ export class LobbyView {
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;
     this.mapper.set(w, h, this.session.mode === 'camera' ? this.session.camera.aspect : SIM_ASPECT);
+    this.session.tracker.setVisibleRange(...this.mapper.visibleRange());
   }
 
   setPhase(phase: LobbyPhase): void {

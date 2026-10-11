@@ -64,3 +64,18 @@ describe('camera angles', () => {
     expect(rig.events[0]).not.toContain('KICK_RIGHT');
   });
 });
+
+describe('cropped camera views (portrait phones, creator mode)', () => {
+  it('assigns two players standing close together inside a narrow visible crop', async () => {
+    const rig = new SimRig(2);
+    rig.sim.spread = 0.3;
+    rig.sim.layout(2);
+    rig.session.tracker.setVisibleRange(0.34, 0.66);
+    await rig.step(1.6);
+    expect(rig.session.isReady(0)).toBe(true);
+    expect(rig.session.isReady(1)).toBe(true);
+    expect(rig.session.tracker.extraPeople).toBe(0);
+    // Player 1 is still the one on the left.
+    expect(rig.session.slot(0).center.x).toBeLessThan(rig.session.slot(1).center.x);
+  });
+});

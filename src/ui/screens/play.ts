@@ -17,13 +17,16 @@ import { artEl } from '../../art/sprites';
 import { gameById, playersForMode } from '../../games/catalog';
 import { settings } from '../../storage/settings';
 import { stats } from '../../storage/stats';
-import { button, modal, modeLabel } from '../components';
+import { button, modal, modeLabel, toast } from '../components';
 import { clear, h, ICONS, svgIcon } from '../dom';
 import { t, type I18nKey } from '../i18n';
 import { LobbyView, type LobbyPhase, type LobbyStatus } from '../lobby';
 import { moveDemo } from '../moveDemo';
 import { openShare } from '../share';
 import { notFoundScreen } from './notfound';
+
+/** Simulated players stand this close together in creator mode (the 9:16 crop shows ~1/3 of the frame). */
+const CREATOR_SPREAD = 0.3;
 
 type View = 'setup' | 'loading' | 'error' | 'lobby' | 'game' | 'result';
 type ErrorCode = CameraErrorCode | 'model' | 'ended';
@@ -52,6 +55,25 @@ export function playScreen(m: RouteMatch): Screen {
   const stage = h('div', { class: 'stage', id: 'stage' });
   const overlay = h('div', { class: 'play-overlay' });
   const topRight = h('div', { class: 'play-top__right' });
+  // Creator mode: a vertical 9:16 stage for recording/streaming (always reachable from the top bar).
+  const creatorBtn = h(
+    'button',
+    {
+      class: 'icon-btn creator-btn',
+      type: 'button',
+      id: 'creator-toggle',
+      title: t('creator.toggle'),
+      'aria-label': t('creator.toggle'),
+      'aria-pressed': String(settings.get().creatorMode),
+      onclick: () => {
+        const on = !settings.get().creatorMode;
+        settings.update({ creatorMode: on });
+        applyCreator();
+        toast(on ? t('creator.on') : t('creator.off'), 'info', 1600);
+      },
+    },
+    svgIcon(ICONS.phone),
+  );
   const topbar = h(
     'div',
     { class: 'play-top' },
@@ -72,9 +94,17 @@ export function playScreen(m: RouteMatch): Screen {
         ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}${level !== 'normal' ? ` · ${t(`level.${level}` as I18nKey)}` : ''}`,
       ),
     ),
+    creatorBtn,
     topRight,
   );
   const root = h('div', { class: 'play' }, topbar, h('div', { class: 'stage-wrap' }, stage, overlay));
+  const applyCreator = () => {
+    const on = settings.get().creatorMode;
+    root.classList.toggle('play--creator', on);
+    session.setSimSpread(on ? CREATOR_SPREAD : 1);
+    creatorBtn.setAttribute('aria-pressed', String(on));
+  };
+  applyCreator();
 
   let view: View = 'setup';
   let lobby: LobbyView | null = null;
@@ -330,6 +360,7 @@ export function playScreen(m: RouteMatch): Screen {
   // ── Lobby ──────────────────────────────────────────────
   const statusText = (st: LobbyStatus): HTMLElement => {
     const msgs: string[] = [];
+    if (settings.get().creatorMode && count > 1 && session.mode === 'camera') msgs.push(t('creator.duo'));
     if (st.lowLight) msgs.push(t('issue.low-light'));
     if (st.extra > 0) msgs.push(t('issue.extra', { m: count }));
     st.issues.forEach((list) => {
@@ -840,20 +871,18 @@ export function playScreen(m: RouteMatch): Screen {
     (overlay.querySelector('#rematch-btn') as HTMLElement | null)?.focus();
     void clip.then((c) => {
       if (!c || view !== 'result') return;
-      overlay
-        .querySelector('.result__buttons')
-        ?.before(
-          h(
-            'button',
-            {
-              class: 'chip chip--clip',
-              type: 'button',
-              id: 'clip-ready',
-              onclick: () => openShare(meta, result, players, photo, clip),
-            },
-            `🎬 ${t('result.clipReady')}`,
-          ),
-        );
+      overlay.querySelector('.result__buttons')?.before(
+        h(
+          'button',
+          {
+            class: 'chip chip--clip',
+            type: 'button',
+            id: 'clip-ready',
+            onclick: () => openShare(meta, result, players, photo, clip),
+          },
+          `🎬 ${t('result.clipReady')}`,
+        ),
+      );
     });
   };
 
@@ -922,6 +951,7 @@ export function playScreen(m: RouteMatch): Screen {
       lobby?.destroy();
       runner?.destroy();
       session.keyboard?.pointer(null);
+      session.setSimSpread(1);
       if (session.camera.video.parentElement === stage) session.camera.video.remove();
     },
   };

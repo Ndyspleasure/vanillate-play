@@ -104,6 +104,7 @@ export class MotionSession {
   private lifecycleListeners = new Set<(l: SessionLifecycle) => void>();
   private sensitivity: Sensitivity = 'normal';
   private modelPref: ModelPreference = 'auto';
+  private simSpread = 1;
   /** Frames tracked on the current model (drives the automatic model policy). */
   private framesOnModel = 0;
   /** An automatic upgrade to `full` is being evaluated. */
@@ -407,10 +408,20 @@ export class MotionSession {
     });
   }
 
+  /** Spread simulated players over this fraction of the frame (creator mode packs them closer). */
+  setSimSpread(spread: number): void {
+    this.simSpread = spread;
+    if (this.sim && this.sim.spread !== spread) {
+      this.sim.spread = spread;
+      this.sim.layout(this.sim.activeCount);
+    }
+  }
+
   async startSimulated(): Promise<void> {
     this.stop();
     this.mode = 'simulated';
     const sim = new SimulatedProvider(MAX_PLAYERS);
+    sim.spread = this.simSpread;
     this.sim = sim;
     this.provider = sim;
     await sim.init(this.required, (s) => this.setStatus(s));

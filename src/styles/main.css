@@ -2341,3 +2341,21 @@ html.reduced-motion *::after {
   font-weight: 700;
   pointer-events: auto;
 }
+
+/* ── Creator mode: vertical 9:16 stage ───────────────── */
+.play--creator .stage-wrap {
+  flex: 1 1 auto;
+  width: min(100%, calc((100dvh - 58px) * 9 / 16));
+  margin: 0 auto;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+.play--creator .play-overlay {
+  padding: 10px;
+}
+
+.creator-btn[aria-pressed='true'] {
+  background: var(--pink);
+  color: #fff;
+}

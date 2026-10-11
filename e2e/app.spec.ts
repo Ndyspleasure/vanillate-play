@@ -98,3 +98,20 @@ test('opted-in replay clip is recorded and offered for sharing', async ({ page }
   await expect(page.locator('#download-clip')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('creator mode plays in a vertical 9:16 frame', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/play/body-boxing?mode=versus');
+  await page.locator('#creator-toggle').click();
+  await expect(page.locator('#creator-toggle')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#keyboard-mode').click();
+  // Both (simulated) players fit the vertical crop and get detected.
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  const box = await page.locator('.stage-wrap').boundingBox();
+  expect(box!.height / box!.width).toBeGreaterThan(1.6);
+  await page.locator('#lobby-start').click();
+  await expect(page.locator('#pause-btn')).toBeVisible();
+  await page.locator('#creator-toggle').click();
+  await expect(page.locator('#creator-toggle')).toHaveAttribute('aria-pressed', 'false');
+  expect(errors).toEqual([]);
+});

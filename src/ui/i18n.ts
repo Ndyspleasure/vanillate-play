@@ -309,6 +309,11 @@ const en = {
     '{s} s clip, recorded on this device. It is deleted when you leave this screen unless you download or share it.',
   'result.clipReady': 'Replay clip ready',
   'share.downloadVideo': 'Download video',
+  'creator.toggle': 'Creator mode (vertical 9:16)',
+  'creator.on': 'Creator mode on — vertical frame for phone recording',
+  'creator.off': 'Creator mode off',
+  'creator.duo': 'Creator mode: stand close together in the middle so you both fit the vertical frame.',
+  'settings.creator': 'Creator mode: vertical 9:16 game screen for recording or streaming',
 };
 
 export type I18nKey = keyof typeof en;
@@ -620,6 +625,11 @@ const id: Partial<Record<I18nKey, string>> = {
     'Klip {s} detik, direkam di perangkat ini. Dihapus saat kamu meninggalkan layar ini kecuali kamu unduh atau bagikan.',
   'result.clipReady': 'Klip ulangan siap',
   'share.downloadVideo': 'Unduh video',
+  'creator.toggle': 'Mode kreator (vertikal 9:16)',
+  'creator.on': 'Mode kreator aktif — bingkai vertikal untuk rekam HP',
+  'creator.off': 'Mode kreator mati',
+  'creator.duo': 'Mode kreator: berdiri berdekatan di tengah agar kalian berdua masuk bingkai vertikal.',
+  'settings.creator': 'Mode kreator: layar game vertikal 9:16 untuk rekam atau streaming',
 };
 
 const DICTS: Record<Lang, Partial<Record<I18nKey, string>>> = { en, id };

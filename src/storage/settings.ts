@@ -26,6 +26,8 @@ export interface Settings {
   analytics: boolean;
   /** Record replay clips (opt-in; clips stay on the device unless shared). */
   replayClips: boolean;
+  /** Vertical 9:16 game screen for recording/streaming on desktop. */
+  creatorMode: boolean;
   /** Last chosen difficulty (pre-selected on game pages). */
   level: Level;
 }
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   analytics: true,
   level: 'normal',
   replayClips: false,
+  creatorMode: false,
 };
 
 type Listener = (s: Settings) => void;

@@ -26,7 +26,14 @@ export function settingsScreen(): Screen {
     );
 
   const toggle = (
-    key: 'reducedMotion' | 'showSkeleton' | 'showPerf' | 'gestureControls' | 'analytics' | 'replayClips',
+    key:
+      | 'reducedMotion'
+      | 'showSkeleton'
+      | 'showPerf'
+      | 'gestureControls'
+      | 'analytics'
+      | 'replayClips'
+      | 'creatorMode',
     label: string,
   ) =>
     h(
@@ -116,6 +123,7 @@ export function settingsScreen(): Screen {
         toggle('reducedMotion', t('settings.reduced')),
         toggle('showSkeleton', t('settings.skeleton')),
         toggle('gestureControls', t('settings.gestures')),
+        toggle('creatorMode', t('settings.creator')),
         button(t('lab.open'), { variant: 'secondary', size: 'sm', href: '/lab', attrs: { id: 'open-lab' } }),
       ),
       h(
