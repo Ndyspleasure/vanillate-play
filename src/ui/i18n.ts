@@ -316,6 +316,26 @@ const en = {
   'settings.creator': 'Creator mode: vertical 9:16 game screen for recording or streaming',
   'issue.crowded': '{a} and {b}: spread out a little so the camera can tell you apart',
   'issue.zone': '{name}: step back so you fit your zone',
+  'col.title': 'Party collections',
+  'col.lead': 'Play a set of games back to back with one scoreboard — perfect for game night.',
+  'col.games': '{n} games',
+  'col.playersRange': '{a}–{b} players',
+  'col.how':
+    'Win a game to earn points (1st place earns the most). Co-op games add to your team score. The camera stays on between games.',
+  'col.start': 'Start collection',
+  'col.restart': 'Start over',
+  'col.continue': 'Continue · game {n} of {m}',
+  'col.progress': '{name} · game {n} of {m}',
+  'col.next': 'Next: {game}',
+  'col.standings': 'Standings',
+  'col.team': 'Team score',
+  'col.pts': '{n} pts',
+  'col.champion': '{name} wins {set}!',
+  'col.tie': "It's a tie — rematch the whole set?",
+  'col.teamDone': '{set} complete — team score {p}%',
+  'col.again': 'Play the set again',
+  'col.more': 'Other collections',
+  'col.handsNext': 'Everyone raise a hand for the next game',
 };
 
 export type I18nKey = keyof typeof en;
@@ -634,6 +654,26 @@ const id: Partial<Record<I18nKey, string>> = {
   'settings.creator': 'Mode kreator: layar game vertikal 9:16 untuk rekam atau streaming',
   'issue.crowded': '{a} dan {b}: beri jarak sedikit agar kamera bisa membedakan kalian',
   'issue.zone': '{name}: mundur sedikit agar muat di zonamu',
+  'col.title': 'Koleksi pesta',
+  'col.lead': 'Mainkan beberapa game berturut-turut dengan satu papan skor — pas untuk malam main bareng.',
+  'col.games': '{n} game',
+  'col.playersRange': '{a}–{b} pemain',
+  'col.how':
+    'Menangkan game untuk dapat poin (juara 1 dapat paling banyak). Game co-op menambah skor tim. Kamera tetap menyala di antara game.',
+  'col.start': 'Mulai koleksi',
+  'col.restart': 'Mulai ulang',
+  'col.continue': 'Lanjutkan · game {n} dari {m}',
+  'col.progress': '{name} · game {n} dari {m}',
+  'col.next': 'Berikutnya: {game}',
+  'col.standings': 'Klasemen',
+  'col.team': 'Skor tim',
+  'col.pts': '{n} poin',
+  'col.champion': '{name} juara {set}!',
+  'col.tie': 'Seri — main ulang semua?',
+  'col.teamDone': '{set} selesai — skor tim {p}%',
+  'col.again': 'Main set ini lagi',
+  'col.more': 'Koleksi lain',
+  'col.handsNext': 'Semua angkat tangan untuk game berikutnya',
 };
 
 const DICTS: Record<Lang, Partial<Record<I18nKey, string>>> = { en, id };

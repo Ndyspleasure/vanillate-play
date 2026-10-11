@@ -115,3 +115,39 @@ test('creator mode plays in a vertical 9:16 frame', async ({ page }) => {
   await expect(page.locator('#creator-toggle')).toHaveAttribute('aria-pressed', 'false');
   expect(errors).toEqual([]);
 });
+
+test('party collection: start from the home page and finish a run with standings', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expect(page.locator('.collection-card')).toHaveCount(5);
+  await page.locator('[data-collection="duo-showdown"] a').click();
+  await expect(page).toHaveURL(/\/collections\/duo-showdown/);
+  await page.locator('#start-collection').click();
+  await expect(page).toHaveURL(/\/play\/body-boxing\?.*set=duo-showdown/);
+  await expect(page.locator('.play-top__title')).toContainText('1/5');
+
+  // Jump to the last game of the set with four results already in.
+  await page.evaluate(() => {
+    const e = (points: number[]) => ({ game: 'x', headline: 'x', points });
+    localStorage.setItem(
+      'vm.run.v1',
+      JSON.stringify({
+        id: 'duo-showdown',
+        players: 2,
+        level: 'normal',
+        startedAt: Date.now(),
+        entries: [e([1, 0]), e([0, 1]), e([1, 0]), e([1, 0])],
+      }),
+    );
+  });
+  await page.goto('/play/target-battle?mode=versus&players=2&set=duo-showdown');
+  await expect(page.locator('.play-top__title')).toContainText('5/5');
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  await page.locator('#lobby-start').click();
+  await expect(page.locator('#run-panel')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('#run-panel')).toContainText(/wins Duo Showdown/);
+  await expect(page.locator('#collection-again')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('vm.run.v1'))).toBeNull();
+  expect(errors).toEqual([]);
+});

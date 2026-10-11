@@ -6,6 +6,7 @@ import { artEl } from '../../art/sprites';
 import { GAMES } from '../../games/catalog';
 import { settings } from '../../storage/settings';
 import { button, footer, gameCard, header } from '../components';
+import { collectionsSection } from './collection';
 import { h } from '../dom';
 import { t } from '../i18n';
 
@@ -151,6 +152,7 @@ export function homeScreen(): Screen {
         h('div', { class: 'grid' }, forTwo.map(gameCard)),
         h('p', { class: 'center' }, button(t('home.cta2'), { href: '/games', variant: 'secondary' })),
       ),
+      collectionsSection(),
       h(
         'section',
         { class: 'section', id: 'how' },

@@ -1399,9 +1399,17 @@ export const GAMES: GameMeta[] = [
     featured: true,
     colors: ['#ff4d8d', '#b98cff'],
     moves: ['jump', 'pose', 'still', 'hands'],
+    options: [
+      opt('pack', 'Challenge pack', 'Paket tantangan', 'classic', [
+        ['classic', 'Classic · 7 rounds', 'Klasik · 7 ronde'],
+        ['date', 'Date Night · poses, hearts & high fives', 'Kencan · pose, hati & tos'],
+        ['quick', 'Quick Three · under a minute', 'Kilat Tiga · kurang dari semenit'],
+        ['workout', 'Couple Workout · jumps & squats', 'Olahraga Berdua · lompat & jongkok'],
+      ]),
+    ],
     text: {
       en: {
-        tagline: '7 mini rounds. One couple score.',
+        tagline: 'Mini rounds, one couple score. Pick a pack.',
         description:
           'Sync Jump, Mirror Pose, Reaction Duo, Freeze Together, Same Move, Follow the Leader and more. Finish with your COUPLE SCORE and BEST SYNC — perfect for sharing.',
         howTo: [
@@ -1411,7 +1419,7 @@ export const GAMES: GameMeta[] = [
         ],
       },
       id: {
-        tagline: '7 ronde mini. Satu skor pasangan.',
+        tagline: 'Ronde mini, satu skor pasangan. Pilih paket.',
         description:
           'Lompat Sinkron, Pose Cermin, Reaksi Berdua, Diam Bersama, Gerakan Sama, Ikuti Pemimpin, dan lainnya. Akhiri dengan SKOR PASANGAN dan SINKRON TERBAIK — pas untuk dibagikan.',
         howTo: [

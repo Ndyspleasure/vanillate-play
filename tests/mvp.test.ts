@@ -154,3 +154,41 @@ describe('Motion Race', () => {
     expect(h.result?.winner).toBe(0);
   });
 });
+
+describe('couple challenge packs', () => {
+  it('every pack plays all of its rounds to a couple score', async () => {
+    const { gameById } = await import('../src/games/catalog');
+    const { PACKS } = await import('../src/games/couple-challenge');
+    const meta = gameById('couple-challenge')!;
+    const mod = await meta.load();
+    const pack = meta.options!.find((o) => o.id === 'pack')!;
+    expect(pack.choices.map((c) => c.value).sort()).toEqual(Object.keys(PACKS).sort());
+    for (const id of Object.keys(PACKS)) {
+      const hh = createHarness(meta, mod.default, 'coop', 2, { pack: id });
+      hh.run(120);
+      expect(hh.result, id).not.toBeNull();
+      // One stat row per round plus "best sync".
+      expect(hh.result!.stats.length, id).toBe(PACKS[id].length + 1);
+    }
+  });
+
+  it('a high five scores when the inner hands meet up high', async () => {
+    const { gameById } = await import('../src/games/catalog');
+    const meta = gameById('couple-challenge')!;
+    const mod = await meta.load();
+    const hh = createHarness(meta, mod.default, 'coop', 2, { pack: 'quick' });
+    // Round 1 (sync jump) and 2 (heart) time out; then the high five.
+    hh.run(30, (_t, h) => {
+      const st = h.game.inspect!() as { round: string; phase: string };
+      if (st.round !== 'highFive' || st.phase !== 'run') return;
+      const [a, b] = h.inputs;
+      const mid = { x: (a.shoulders.x + b.shoulders.x) / 2, y: a.shoulders.y - 80 };
+      a.rightHand = { ...mid };
+      b.leftHand = { x: mid.x + 10, y: mid.y };
+      a.state.handRaised = true;
+    });
+    expect(hh.result).not.toBeNull();
+    const row = hh.result!.stats.find((s) => /HIGH FIVE/.test(s.label))!;
+    expect(parseInt(row.values[0], 10)).toBeGreaterThanOrEqual(60);
+  });
+});

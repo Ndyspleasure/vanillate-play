@@ -2359,3 +2359,138 @@ html.reduced-motion *::after {
   background: var(--pink);
   color: #fff;
 }
+
+/* ── Party collections ───────────────────────────────── */
+.grid--collections {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.collection-card {
+  position: relative;
+  padding: 20px;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(255, 77, 141, 0.18), rgba(139, 92, 255, 0.14));
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform 0.15s;
+}
+
+.collection-card:hover,
+.collection-card:focus-within {
+  transform: translateY(-3px);
+}
+
+.collection-card h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.collection-card p {
+  margin: 0;
+}
+
+.collection-card__emoji {
+  font-size: 2.2rem;
+}
+
+.collection-card__meta {
+  font-weight: 700;
+  color: var(--vanilla);
+  font-size: 0.9rem;
+}
+
+.collection-card__thumbs {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.collection-card__thumbs > * {
+  width: 30px;
+  height: 30px;
+}
+
+.collection__hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.collection__emoji {
+  font-size: 3rem;
+}
+
+.collection__list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  counter-reset: col;
+}
+
+.collection__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.collection__item p {
+  margin: 2px 0 0;
+}
+
+.collection__item.is-done {
+  opacity: 0.6;
+}
+
+.collection__check {
+  color: var(--green);
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+
+.run-panel {
+  margin: 10px 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 210, 61, 0.08);
+  border: 1px solid rgba(255, 210, 61, 0.35);
+}
+
+.run-panel__title {
+  margin: 0 0 8px;
+  font-weight: 800;
+  font-family: var(--font-display);
+}
+
+.run-panel__table {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.run-panel__table li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-left: 4px solid var(--pc);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.run-panel__table li.is-leader {
+  background: rgba(255, 210, 61, 0.16);
+}
+
+.run-panel p {
+  margin: 4px 0 0;
+}

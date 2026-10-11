@@ -15,6 +15,15 @@ import { PLAYER_COLORS } from '../../engine/draw';
 import { LEVELS, type Level, type MatchResult, type ModeId } from '../../engine/types';
 import { artEl } from '../../art/sprites';
 import { gameById, playersForMode } from '../../games/catalog';
+import {
+  collectionById,
+  gameUrl,
+  loadRun,
+  recordResult,
+  saveRun,
+  standings,
+  type CollectionRun,
+} from '../../games/collections';
 import { settings } from '../../storage/settings';
 import { stats } from '../../storage/stats';
 import { button, modal, modeLabel, toast } from '../components';
@@ -51,6 +60,18 @@ export function playScreen(m: RouteMatch): Screen {
   const qLevel = m.query.get('level') as Level | null;
   const level: Level = qLevel && LEVELS.includes(qLevel) ? qLevel : 'normal';
   const session = app.session;
+  // Party collection run: this game is the next one in the active run.
+  const collection = collectionById(m.query.get('set') ?? '');
+  let run: CollectionRun | null = collection ? loadRun() : null;
+  const runIndex =
+    collection &&
+    run &&
+    run.id === collection.id &&
+    run.players === count &&
+    collection.games[run.entries.length]?.id === meta.id
+      ? run.entries.length
+      : -1;
+  if (runIndex < 0) run = null;
 
   const stage = h('div', { class: 'stage', id: 'stage' });
   const overlay = h('div', { class: 'play-overlay' });
@@ -91,7 +112,7 @@ export function playScreen(m: RouteMatch): Screen {
       h(
         'span',
         { class: 'muted' },
-        ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}${level !== 'normal' ? ` · ${t(`level.${level}` as I18nKey)}` : ''}`,
+        ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}${level !== 'normal' ? ` · ${t(`level.${level}` as I18nKey)}` : ''}${collection && run ? ` · ${collection.emoji} ${runIndex + 1}/${collection.games.length}` : ''}`,
       ),
     ),
     creatorBtn,
@@ -810,6 +831,82 @@ export function playScreen(m: RouteMatch): Screen {
       : null;
     const gestureBar = h('div', { class: 'gesture-bar' }, h('div', { class: 'gesture-bar__fill' }));
     const isVs = result.kind === 'versus' || result.kind === 'party';
+    // Collection run: score this game, show the standings and offer the next game instead of a rematch.
+    let runPanel: HTMLElement | null = null;
+    let nextUrl: string | null = null;
+    if (collection && run && run.entries.length === runIndex) {
+      run = recordResult(run, meta.id, result);
+      const st = standings(run);
+      const done = run.entries.length >= collection.games.length;
+      const setName = collection.name[settings.get().lang];
+      if (done) {
+        saveRun(null);
+        track('collection_completed', { collection: collection.id, players: count });
+      } else {
+        saveRun(run);
+        nextUrl = gameUrl(collection, run.entries.length, run.players, run.level);
+      }
+      const hasVs = run.entries.some((e) => e.team === undefined);
+      const nextMeta = done ? null : gameById(collection.games[run.entries.length].id);
+      runPanel = h(
+        'div',
+        { class: 'run-panel', id: 'run-panel' },
+        h(
+          'p',
+          { class: 'run-panel__title' },
+          done
+            ? hasVs
+              ? st.leader !== null
+                ? `🏆 ${t('col.champion', { name: names[st.leader] ?? `P${st.leader + 1}`, set: setName })}`
+                : t('col.tie')
+              : t('col.teamDone', { set: setName, p: st.team ?? 0 })
+            : t('col.progress', { name: setName, n: run.entries.length, m: collection.games.length }),
+        ),
+        hasVs
+          ? h(
+              'ol',
+              { class: 'run-panel__table', 'aria-label': t('col.standings') },
+              st.order.map((i) =>
+                h(
+                  'li',
+                  { style: `--pc:${PLAYER_COLORS[i]}`, class: st.leader === i ? 'is-leader' : '' },
+                  h('span', null, names[i] ?? `P${i + 1}`),
+                  h('strong', null, t('col.pts', { n: st.totals[i] })),
+                ),
+              ),
+            )
+          : null,
+        st.team !== null ? h('p', { class: 'small' }, `💞 ${t('col.team')}: ${st.team}%`) : null,
+        nextMeta ? h('p', { class: 'small muted' }, t('col.next', { game: nextMeta.name })) : null,
+      );
+      if (done) app.audio.play('cheer');
+    }
+    const goNext = () => {
+      if (!nextUrl) return;
+      cancelAnimationFrame(resultLoop);
+      app.router.go(nextUrl);
+    };
+    const primary =
+      nextUrl && collection && run
+        ? button(t('col.next', { game: gameById(collection.games[run.entries.length].id)?.name ?? '' }), {
+            size: 'lg',
+            icon: 'play',
+            onClick: goNext,
+            attrs: { id: 'next-game' },
+          })
+        : collection && runIndex >= 0
+          ? button(t('col.again'), {
+              size: 'lg',
+              icon: 'refresh',
+              onClick: () => app.router.go(`/collections/${collection.id}`),
+              attrs: { id: 'collection-again' },
+            })
+          : button(isVs ? t('result.rematch') : t('result.again'), {
+              size: 'lg',
+              icon: 'refresh',
+              onClick: () => rematch(),
+              attrs: { id: 'rematch-btn' },
+            });
     setOverlay(
       h(
         'div',
@@ -826,16 +923,12 @@ export function playScreen(m: RouteMatch): Screen {
           : prevBest
             ? h('p', { class: 'muted small' }, t('result.prevBest', { v: prevBest.display }))
             : null,
-        statsTable,
+        runPanel,
+        runPanel ? null : statsTable,
         h(
           'div',
           { class: 'result__buttons' },
-          button(isVs ? t('result.rematch') : t('result.again'), {
-            size: 'lg',
-            icon: 'refresh',
-            onClick: () => rematch(),
-            attrs: { id: 'rematch-btn' },
-          }),
+          primary,
           button(t('result.change'), { variant: 'secondary', onClick: () => app.router.go('/games') }),
           button(t('result.share'), {
             variant: 'secondary',
@@ -851,7 +944,7 @@ export function playScreen(m: RouteMatch): Screen {
           }),
         ),
         settings.get().gestureControls && session.mode === 'camera'
-          ? h('p', { class: 'muted small' }, '🙌 ', t('result.handsUp'))
+          ? h('p', { class: 'muted small' }, '🙌 ', nextUrl ? t('col.handsNext') : t('result.handsUp'))
           : null,
         settings.get().gestureControls && session.mode === 'camera' ? gestureBar : null,
       ),
@@ -876,11 +969,14 @@ export function playScreen(m: RouteMatch): Screen {
       }
       const fire = hold.update(dt, allUp, !anyUp);
       fill.style.width = `${Math.round(hold.progress * 100)}%`;
-      if (fire) rematch();
+      if (fire) {
+        if (nextUrl) goNext();
+        else if (runIndex < 0) rematch();
+      }
     };
     resultLoop = requestAnimationFrame(loop);
     if (isBest) runner?.fx.confetti(runner.width, 80);
-    (overlay.querySelector('#rematch-btn') as HTMLElement | null)?.focus();
+    (overlay.querySelector('.result__buttons .btn') as HTMLElement | null)?.focus();
     void clip.then((c) => {
       if (!c || view !== 'result') return;
       overlay.querySelector('.result__buttons')?.before(
