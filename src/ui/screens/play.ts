@@ -1,7 +1,12 @@
 import { track } from '../../analytics';
 import { app } from '../../app/context';
 import type { RouteMatch, Screen } from '../../app/router';
-import { CameraError, CameraStartCancelled, cameraSupport, type CameraErrorCode } from '../../core/camera/CameraManager';
+import {
+  CameraError,
+  CameraStartCancelled,
+  cameraSupport,
+  type CameraErrorCode,
+} from '../../core/camera/CameraManager';
 import { KEY_HELP } from '../../core/input/KeyboardController';
 import { GestureHold } from '../../core/motion/gesture';
 import { PracticeTracker, practiceSteps } from '../../core/motion/practice';
@@ -48,8 +53,19 @@ export function playScreen(m: RouteMatch): Screen {
   const topbar = h(
     'div',
     { class: 'play-top' },
-    h('a', { class: 'icon-btn', href: `/games/${meta.id}`, 'aria-label': t('detail.back') }, svgIcon(ICONS.back)),
-    h('div', { class: 'play-top__title' }, artEl(meta.emoji, { color: meta.colors[0] }), ' ', h('strong', null, meta.name), h('span', { class: 'muted' }, ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}`)),
+    h(
+      'a',
+      { class: 'icon-btn', href: `/games/${meta.id}`, 'aria-label': t('detail.back') },
+      svgIcon(ICONS.back),
+    ),
+    h(
+      'div',
+      { class: 'play-top__title' },
+      artEl(meta.emoji, { color: meta.colors[0] }),
+      ' ',
+      h('strong', null, meta.name),
+      h('span', { class: 'muted' }, ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}`),
+    ),
     topRight,
   );
   const root = h('div', { class: 'play' }, topbar, h('div', { class: 'stage-wrap' }, stage, overlay));
@@ -77,7 +93,8 @@ export function playScreen(m: RouteMatch): Screen {
   };
 
   const attachVideo = () => {
-    if (session.mode === 'camera' && session.camera.video.parentElement !== stage) stage.prepend(session.camera.video);
+    if (session.mode === 'camera' && session.camera.video.parentElement !== stage)
+      stage.prepend(session.camera.video);
     // Moving the video between screens pauses it in every browser; resume the same live stream.
     if (session.mode === 'camera') void session.camera.ensurePlaying();
     stage.classList.toggle('stage--sim', session.mode === 'simulated');
@@ -87,22 +104,37 @@ export function playScreen(m: RouteMatch): Screen {
     if (session.mode !== 'simulated' || !session.keyboard) return;
     const mapper = runner?.mapper ?? lobby?.mapper;
     if (!mapper) return;
-    if (e.type === 'pointerup' || e.type === 'pointercancel' || (e.type === 'pointermove' && e.buttons === 0 && e.pointerType === 'mouse')) {
+    if (
+      e.type === 'pointerup' ||
+      e.type === 'pointercancel' ||
+      (e.type === 'pointermove' && e.buttons === 0 && e.pointerType === 'mouse')
+    ) {
       session.keyboard.pointer(null);
       return;
     }
     const r = stage.getBoundingClientRect();
     session.keyboard.pointer(mapper.toView(e.clientX - r.left, e.clientY - r.top));
   };
-  for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'] as const) stage.addEventListener(ev, pointer);
+  for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'] as const)
+    stage.addEventListener(ev, pointer);
 
   // ── Setup ──────────────────────────────────────────────
   const showSetup = () => {
     view = 'setup';
     const unsupported = cameraSupport();
     let agreed = settings.get().safetyAcknowledged;
-    const enable = button(t('setup.enable'), { size: 'lg', icon: 'camera', onClick: () => void startCamera(), attrs: { id: 'enable-camera' } });
-    const kb = button(t('setup.keyboard'), { variant: 'secondary', icon: 'keyboard', onClick: () => void startKeyboard(), attrs: { id: 'keyboard-mode' } });
+    const enable = button(t('setup.enable'), {
+      size: 'lg',
+      icon: 'camera',
+      onClick: () => void startCamera(),
+      attrs: { id: 'enable-camera' },
+    });
+    const kb = button(t('setup.keyboard'), {
+      variant: 'secondary',
+      icon: 'keyboard',
+      onClick: () => void startKeyboard(),
+      attrs: { id: 'keyboard-mode' },
+    });
     const sync = () => {
       enable.toggleAttribute('disabled', !agreed || !!unsupported);
     };
@@ -131,21 +163,44 @@ export function playScreen(m: RouteMatch): Screen {
         h('p', null, t('setup.lead')),
         h('p', { class: 'privacy-note' }, svgIcon(ICONS.shield, 18), ' ', t('setup.privacy')),
         h('p', { class: 'muted' }, t('setup.safety')),
-        unsupported ? h('p', { class: 'error-text' }, t(`setup.err.${unsupported}` as I18nKey), ' ', t(`setup.err.${unsupported}.fix` as I18nKey)) : safety,
+        unsupported
+          ? h(
+              'p',
+              { class: 'error-text' },
+              t(`setup.err.${unsupported}` as I18nKey),
+              ' ',
+              t(`setup.err.${unsupported}.fix` as I18nKey),
+            )
+          : safety,
         h('div', { class: 'setup__buttons' }, unsupported ? null : enable, kb),
         count > 1 ? h('p', { class: 'muted small' }, t('setup.bothVisible')) : null,
       ),
     );
   };
 
-  const loadStep = (label: string, state: 'wait' | 'active' | 'done' | 'error', detail: string, progress?: number) =>
+  const loadStep = (
+    label: string,
+    state: 'wait' | 'active' | 'done' | 'error',
+    detail: string,
+    progress?: number,
+  ) =>
     h(
       'li',
       { class: `load-step is-${state}` },
-      h('span', { class: 'load-step__icon', 'aria-hidden': 'true' }, state === 'done' ? '✓' : state === 'error' ? '!' : ''),
+      h(
+        'span',
+        { class: 'load-step__icon', 'aria-hidden': 'true' },
+        state === 'done' ? '✓' : state === 'error' ? '!' : '',
+      ),
       h('strong', null, label),
       h('span', { class: 'load-step__state' }, detail),
-      progress !== undefined && state === 'active' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: `width:${Math.round(progress * 100)}%` })) : null,
+      progress !== undefined && state === 'active'
+        ? h(
+            'div',
+            { class: 'progress' },
+            h('div', { class: 'progress__bar', style: `width:${Math.round(progress * 100)}%` }),
+          )
+        : null,
     );
 
   /** Loading checklist: camera → motion engine → body tracking, driven by the session lifecycle. */
@@ -169,7 +224,20 @@ export function playScreen(m: RouteMatch): Screen {
           loadStep(t('load.tracking'), trk, trk === 'done' ? t('load.ready') : t('load.wait')),
         ),
         model !== 'done' ? h('p', { class: 'small muted' }, t('load.note')) : null,
-        h('p', { class: 'small muted' }, h('button', { class: 'link-btn', type: 'button', id: 'loading-keyboard', onclick: () => void startKeyboard() }, t('setup.keyboard'))),
+        h(
+          'p',
+          { class: 'small muted' },
+          h(
+            'button',
+            {
+              class: 'link-btn',
+              type: 'button',
+              id: 'loading-keyboard',
+              onclick: () => void startKeyboard(),
+            },
+            t('setup.keyboard'),
+          ),
+        ),
       ),
     );
   };
@@ -192,8 +260,17 @@ export function playScreen(m: RouteMatch): Screen {
         h(
           'div',
           { class: 'setup__buttons' },
-          button(t('setup.retry'), { icon: 'refresh', onClick: () => void startCamera(), attrs: { id: 'retry-camera' } }),
-          button(t('setup.keyboard'), { variant: 'secondary', icon: 'keyboard', onClick: () => void startKeyboard(), attrs: { id: 'keyboard-mode' } }),
+          button(t('setup.retry'), {
+            icon: 'refresh',
+            onClick: () => void startCamera(),
+            attrs: { id: 'retry-camera' },
+          }),
+          button(t('setup.keyboard'), {
+            variant: 'secondary',
+            icon: 'keyboard',
+            onClick: () => void startKeyboard(),
+            attrs: { id: 'keyboard-mode' },
+          }),
         ),
       ),
     );
@@ -252,12 +329,17 @@ export function playScreen(m: RouteMatch): Screen {
     st.issues.forEach((list) => {
       for (const iss of list) {
         if (iss === 'moving' || (iss === 'arms-up' && st.ready.every(Boolean))) continue;
-        if ((iss === 'feet-hidden' || iss === 'hips-hidden') && !meta.fullBody && iss === 'feet-hidden') continue;
+        if ((iss === 'feet-hidden' || iss === 'hips-hidden') && !meta.fullBody && iss === 'feet-hidden')
+          continue;
         const msg = t(`issue.${iss}` as I18nKey);
         if (!msgs.includes(msg)) msgs.push(msg);
       }
     });
-    return h('ul', { class: 'lobby__issues' }, msgs.slice(0, 3).map((x) => h('li', null, '💡 ', x)));
+    return h(
+      'ul',
+      { class: 'lobby__issues' },
+      msgs.slice(0, 3).map((x) => h('li', null, '💡 ', x)),
+    );
   };
 
   const lobbyPhase = (st: LobbyStatus): LobbyPhase => {
@@ -297,11 +379,21 @@ export function playScreen(m: RouteMatch): Screen {
     const title = h('h2', { class: 'lobby__title' }, t('lobby.title'));
     const cards = h('div', { class: 'lobby__players' });
     const issuesBox = h('div', { class: 'lobby__msgs' });
-    const startBtn = button(t('lobby.start'), { size: 'lg', icon: 'play', onClick: () => startGame(false), attrs: { id: 'lobby-start', disabled: true } });
+    const startBtn = button(t('lobby.start'), {
+      size: 'lg',
+      icon: 'play',
+      onClick: () => startGame(false),
+      attrs: { id: 'lobby-start', disabled: true },
+    });
     const hint = h('p', { class: 'lobby__hint', 'aria-live': 'polite' });
     const meter = h('div', { class: 'gesture-bar', hidden: true }, h('div', { class: 'gesture-bar__fill' }));
     const meterFill = meter.firstElementChild as HTMLElement;
-    const skipBtn = button(t('tut.skip'), { variant: 'ghost', size: 'sm', onClick: () => finishTutorial(false), attrs: { id: 'tutorial-skip' } });
+    const skipBtn = button(t('tut.skip'), {
+      variant: 'ghost',
+      size: 'sm',
+      onClick: () => finishTutorial(false),
+      attrs: { id: 'tutorial-skip' },
+    });
     const againBtn = button(t('tut.again'), {
       variant: 'ghost',
       size: 'sm',
@@ -315,7 +407,13 @@ export function playScreen(m: RouteMatch): Screen {
 
     // Tutorial: how-to lines plus one tile per move with an animated demo and a check per player.
     const tiles = steps.map((st) => {
-      const checks = Array.from({ length: count }, (_, i) => h('span', { class: 'practice__check', style: `--pc:${PLAYER_COLORS[i]}`, title: settings.get().names[i] }));
+      const checks = Array.from({ length: count }, (_, i) =>
+        h('span', {
+          class: 'practice__check',
+          style: `--pc:${PLAYER_COLORS[i]}`,
+          title: settings.get().names[i],
+        }),
+      );
       const tile = h(
         'div',
         { class: 'practice__step', dataset: { step: st.id } },
@@ -331,8 +429,18 @@ export function playScreen(m: RouteMatch): Screen {
       'div',
       { class: 'tutorial', hidden: true },
       h('p', { class: 'tutorial__lead' }, t('tut.lead')),
-      howTo.length ? h('ul', { class: 'tutorial__howto' }, howTo.map((x) => h('li', null, x))) : null,
-      h('div', { class: 'practice' }, tiles.map((x) => x.tile)),
+      howTo.length
+        ? h(
+            'ul',
+            { class: 'tutorial__howto' },
+            howTo.map((x) => h('li', null, x)),
+          )
+        : null,
+      h(
+        'div',
+        { class: 'practice' },
+        tiles.map((x) => x.tile),
+      ),
     );
 
     const extra = h(
@@ -340,18 +448,58 @@ export function playScreen(m: RouteMatch): Screen {
       { class: 'lobby__actions' },
       skipBtn,
       againBtn,
-      button(t('lobby.recalibrate'), { variant: 'ghost', size: 'sm', icon: 'refresh', onClick: () => session.recalibrate() }),
-      count === 2 ? button(t('lobby.swap'), { variant: 'ghost', size: 'sm', icon: 'swap', onClick: () => session.tracker.swap(0, 1) }) : null,
-      session.mode === 'simulated' ? button(t('lobby.keys'), { variant: 'ghost', size: 'sm', icon: 'keyboard', onClick: showKeys }) : null,
+      button(t('lobby.recalibrate'), {
+        variant: 'ghost',
+        size: 'sm',
+        icon: 'refresh',
+        onClick: () => session.recalibrate(),
+      }),
+      count === 2
+        ? button(t('lobby.swap'), {
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'swap',
+            onClick: () => session.tracker.swap(0, 1),
+          })
+        : null,
+      session.mode === 'simulated'
+        ? button(t('lobby.keys'), { variant: 'ghost', size: 'sm', icon: 'keyboard', onClick: showKeys })
+        : null,
     );
-    const panel = h('div', { class: 'lobby' }, h('div', { class: 'lobby__panel' }, title, cards, tutorialBox, issuesBox, hint, meter, h('div', { class: 'lobby__cta' }, startBtn), extra));
+    const panel = h(
+      'div',
+      { class: 'lobby' },
+      h(
+        'div',
+        { class: 'lobby__panel' },
+        title,
+        cards,
+        tutorialBox,
+        issuesBox,
+        hint,
+        meter,
+        h('div', { class: 'lobby__cta' }, startBtn),
+        extra,
+      ),
+    );
     setOverlay(panel);
     lastStatusKey = '';
     lobby.onStatus = (st) => {
       const phase = lobbyPhase(st);
       lobby?.setPhase(phase);
       meterFill.style.width = `${Math.round(st.startProgress * 100)}%`;
-      const key = JSON.stringify([phase, st.ready, st.calibrating.map((c) => Math.round(c * 10)), st.issues, st.lowLight, st.extra, st.detected, practice.done, st.startArmed, tutorialDone]);
+      const key = JSON.stringify([
+        phase,
+        st.ready,
+        st.calibrating.map((c) => Math.round(c * 10)),
+        st.issues,
+        st.lowLight,
+        st.extra,
+        st.detected,
+        practice.done,
+        st.startArmed,
+        tutorialDone,
+      ]);
       if (key === lastStatusKey) return;
       lastStatusKey = key;
       const names = settings.get().names;
@@ -368,7 +516,11 @@ export function playScreen(m: RouteMatch): Screen {
         cards.appendChild(
           h(
             'div',
-            { class: `player-card${st.ready[i] ? ' is-ready' : ''}`, style: `--pc:${PLAYER_COLORS[i]}`, dataset: { player: String(i) } },
+            {
+              class: `player-card${st.ready[i] ? ' is-ready' : ''}`,
+              style: `--pc:${PLAYER_COLORS[i]}`,
+              dataset: { player: String(i) },
+            },
             h('span', { class: 'player-card__dot', 'aria-hidden': 'true' }),
             h('strong', null, names[i]),
             h('span', { class: 'player-card__status' }, label),
@@ -380,7 +532,10 @@ export function playScreen(m: RouteMatch): Screen {
       tiles.forEach(({ tile, checks }, si) => {
         const doneAll = practice.done.every((row) => row[si]);
         tile.classList.toggle('is-done', doneAll);
-        tile.classList.toggle('is-current', !doneAll && practice.done.some((_, pi) => practice.current(pi) === si));
+        tile.classList.toggle(
+          'is-current',
+          !doneAll && practice.done.some((_, pi) => practice.current(pi) === si),
+        );
         checks.forEach((c, pi) => {
           const d = practice.done[pi][si];
           c.classList.toggle('is-done', d);
@@ -409,7 +564,8 @@ export function playScreen(m: RouteMatch): Screen {
       else if (phase === 'practice') hint.textContent = '';
       else if (!gestures) hint.textContent = t('lobby.handsUpKeyboard');
       else if (!st.startArmed) hint.textContent = `✋ ${t('lobby.lowerHands')}`;
-      else hint.textContent = `🙋 ${practicedNow ? `${t('tut.allSet')} ` : ''}${count > 1 ? t('lobby.handsUp') : t('lobby.raiseHand')}`;
+      else
+        hint.textContent = `🙋 ${practicedNow ? `${t('tut.allSet')} ` : ''}${count > 1 ? t('lobby.handsUp') : t('lobby.raiseHand')}`;
     };
   };
 
@@ -424,7 +580,11 @@ export function playScreen(m: RouteMatch): Screen {
             'div',
             { class: 'keys__col' },
             h('h3', { style: `color:${PLAYER_COLORS[k.player]}` }, settings.get().names[k.player]),
-            h('dl', null, k.keys.map((row) => [h('dt', null, h('kbd', null, row.key)), h('dd', null, row.action)])),
+            h(
+              'dl',
+              null,
+              k.keys.map((row) => [h('dt', null, h('kbd', null, row.key)), h('dd', null, row.action)]),
+            ),
           ),
         ),
         count > 2 ? h('p', { class: 'muted' }, t('lobby.cpuPlayers')) : null,
@@ -483,7 +643,17 @@ export function playScreen(m: RouteMatch): Screen {
     setOverlay(null);
     clear(topRight);
     topRight.appendChild(
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': t('game.pause'), id: 'pause-btn', onclick: () => togglePause() }, svgIcon(ICONS.pause)),
+      h(
+        'button',
+        {
+          class: 'icon-btn',
+          type: 'button',
+          'aria-label': t('game.pause'),
+          id: 'pause-btn',
+          onclick: () => togglePause(),
+        },
+        svgIcon(ICONS.pause),
+      ),
     );
     practicedNow = false;
     startedAt = performance.now();
@@ -510,7 +680,13 @@ export function playScreen(m: RouteMatch): Screen {
         h('h2', null, t('game.pause')),
         button(t('game.resume'), { icon: 'play', onClick: togglePause, attrs: { id: 'resume-btn' } }),
         button(t('game.restart'), { variant: 'secondary', icon: 'refresh', onClick: () => restart() }),
-        button(t('game.recalibrate'), { variant: 'secondary', onClick: () => { session.recalibrate(); showLobby(); } }),
+        button(t('game.recalibrate'), {
+          variant: 'secondary',
+          onClick: () => {
+            session.recalibrate();
+            showLobby();
+          },
+        }),
         button(t('game.quit'), { variant: 'ghost', onClick: () => app.router.go('/games') }),
       ),
     );
@@ -546,8 +722,16 @@ export function playScreen(m: RouteMatch): Screen {
             result.scores.map((s) =>
               h(
                 'div',
-                { class: `result__score${result.winner === s.player ? ' is-winner' : ''}`, style: `--pc:${PLAYER_COLORS[s.player]}` },
-                h('span', { class: 'result__name' }, result.winner === s.player ? '🏆 ' : '', players[s.player]?.name ?? `P${s.player + 1}`),
+                {
+                  class: `result__score${result.winner === s.player ? ' is-winner' : ''}`,
+                  style: `--pc:${PLAYER_COLORS[s.player]}`,
+                },
+                h(
+                  'span',
+                  { class: 'result__name' },
+                  result.winner === s.player ? '🏆 ' : '',
+                  players[s.player]?.name ?? `P${s.player + 1}`,
+                ),
                 h('strong', null, s.display ?? String(s.score)),
               ),
             ),
@@ -559,7 +743,16 @@ export function playScreen(m: RouteMatch): Screen {
           h(
             'tbody',
             null,
-            result.stats.map((row) => h('tr', null, h('th', null, row.label), row.values.map((v, i) => h('td', { style: row.values.length > 1 ? `color:${PLAYER_COLORS[i]}` : '' }, v)))),
+            result.stats.map((row) =>
+              h(
+                'tr',
+                null,
+                h('th', null, row.label),
+                row.values.map((v, i) =>
+                  h('td', { style: row.values.length > 1 ? `color:${PLAYER_COLORS[i]}` : '' }, v),
+                ),
+              ),
+            ),
           ),
         )
       : null;
@@ -570,18 +763,33 @@ export function playScreen(m: RouteMatch): Screen {
         'div',
         { class: 'card result', role: 'dialog', 'aria-label': result.headline },
         h('p', { class: 'result__kicker' }, artEl(meta.emoji, { color: meta.colors[0] }), ` ${meta.name}`),
-        result.grade ? h('p', { class: `result__grade grade--${result.grade.toLowerCase()}` }, result.grade) : null,
+        result.grade
+          ? h('p', { class: `result__grade grade--${result.grade.toLowerCase()}` }, result.grade)
+          : null,
         h('h2', { class: 'result__headline' }, result.headline),
         scores,
         result.subline ? h('p', { class: 'result__sub' }, result.subline) : null,
-        isBest ? h('p', { class: 'result__best' }, '🏆 ', t('result.best')) : prevBest ? h('p', { class: 'muted small' }, t('result.prevBest', { v: prevBest.display })) : null,
+        isBest
+          ? h('p', { class: 'result__best' }, '🏆 ', t('result.best'))
+          : prevBest
+            ? h('p', { class: 'muted small' }, t('result.prevBest', { v: prevBest.display }))
+            : null,
         statsTable,
         h(
           'div',
           { class: 'result__buttons' },
-          button(isVs ? t('result.rematch') : t('result.again'), { size: 'lg', icon: 'refresh', onClick: () => rematch(), attrs: { id: 'rematch-btn' } }),
+          button(isVs ? t('result.rematch') : t('result.again'), {
+            size: 'lg',
+            icon: 'refresh',
+            onClick: () => rematch(),
+            attrs: { id: 'rematch-btn' },
+          }),
           button(t('result.change'), { variant: 'secondary', onClick: () => app.router.go('/games') }),
-          button(t('result.share'), { variant: 'secondary', icon: 'share', onClick: () => openShare(meta, result, players, photo) }),
+          button(t('result.share'), {
+            variant: 'secondary',
+            icon: 'share',
+            onClick: () => openShare(meta, result, players, photo),
+          }),
           button(t('result.exit'), {
             variant: 'ghost',
             onClick: () => {
@@ -590,7 +798,9 @@ export function playScreen(m: RouteMatch): Screen {
             },
           }),
         ),
-        settings.get().gestureControls && session.mode === 'camera' ? h('p', { class: 'muted small' }, '🙌 ', t('result.handsUp')) : null,
+        settings.get().gestureControls && session.mode === 'camera'
+          ? h('p', { class: 'muted small' }, '🙌 ', t('result.handsUp'))
+          : null,
         settings.get().gestureControls && session.mode === 'camera' ? gestureBar : null,
       ),
     );
@@ -635,7 +845,11 @@ export function playScreen(m: RouteMatch): Screen {
   // ── Keyboard shortcuts ─────────────────────────────────
   const onKey = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement | null;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) return;
+    if (
+      target &&
+      (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')
+    )
+      return;
     if (document.querySelector('.modal')) return;
     if (e.key === 'Escape' && view === 'game') {
       e.preventDefault();
@@ -657,7 +871,10 @@ export function playScreen(m: RouteMatch): Screen {
     showSetup();
     // Download/warm the motion model while the player reads the camera card.
     if (!cameraSupport() && !saveData()) session.preload().catch(() => undefined);
-  } else if (session.mode === 'camera' && (session.lifecycle.camera !== 'live' || session.framesProcessed === 0)) {
+  } else if (
+    session.mode === 'camera' &&
+    (session.lifecycle.camera !== 'live' || session.framesProcessed === 0)
+  ) {
     void startCamera();
   } else showLobby();
 
@@ -667,7 +884,11 @@ export function playScreen(m: RouteMatch): Screen {
     immersive: true,
     destroy: () => {
       destroyed = true;
-      if (view === 'game') track('game_abandoned', { game: meta.id, seconds: Math.round((performance.now() - startedAt) / 1000) });
+      if (view === 'game')
+        track('game_abandoned', {
+          game: meta.id,
+          seconds: Math.round((performance.now() - startedAt) / 1000),
+        });
       offLifecycle();
       cancelAnimationFrame(resultLoop);
       document.removeEventListener('keydown', onKey);

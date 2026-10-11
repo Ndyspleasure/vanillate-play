@@ -5,7 +5,12 @@ import { gameById } from '../src/games/catalog';
 import { COMMANDS, type CommandId } from '../src/games/kits/commands';
 import { createHarness } from './gameHarness';
 
-async function harness(id: string, mode: Parameters<typeof createHarness>[2], count: number, options: Record<string, string> = {}) {
+async function harness(
+  id: string,
+  mode: Parameters<typeof createHarness>[2],
+  count: number,
+  options: Record<string, string> = {},
+) {
   const meta = gameById(id)!;
   const mod = await meta.load();
   return createHarness(meta, mod.default, mode, count, options);
@@ -94,7 +99,11 @@ describe('Mirror Battle', () => {
     const h = await harness('mirror-battle', 'versus', 2);
     h.run(120, (_t, hh) => {
       const def = poseById(hh.game.inspect!().pose as string);
-      Object.assign(hh.inputs[0].pose.angles, { lUpper: -100, lFore: -95, rUpper: -80, rFore: -85, torso: 90 }, def.angles);
+      Object.assign(
+        hh.inputs[0].pose.angles,
+        { lUpper: -100, lFore: -95, rUpper: -80, rFore: -85, torso: 90 },
+        def.angles,
+      );
       hh.inputs[0].state.squatting = true;
       hh.inputs[0].state.kneeUpLeft = true;
       hh.inputs[0].state.kneeUpRight = true;

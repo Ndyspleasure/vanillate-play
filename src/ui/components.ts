@@ -6,7 +6,14 @@ import { h, ICONS, svgIcon, type Child } from './dom';
 
 export function button(
   label: Child,
-  opts: { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; icon?: keyof typeof ICONS; onClick?: (e: MouseEvent) => void; href?: string; size?: 'lg' | 'md' | 'sm'; attrs?: Record<string, unknown> } = {},
+  opts: {
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+    icon?: keyof typeof ICONS;
+    onClick?: (e: MouseEvent) => void;
+    href?: string;
+    size?: 'lg' | 'md' | 'sm';
+    attrs?: Record<string, unknown>;
+  } = {},
 ): HTMLElement {
   const cls = `btn btn--${opts.variant ?? 'primary'} btn--${opts.size ?? 'md'}`;
   const content = [opts.icon ? svgIcon(ICONS[opts.icon]) : null, h('span', null, label)];
@@ -108,7 +115,11 @@ export function toast(msg: string, kind: 'info' | 'good' | 'warn' = 'info', ms =
   }, ms);
 }
 
-export function modal(title: string, body: Child, opts: { onClose?: () => void; wide?: boolean } = {}): { close: () => void; el: HTMLElement } {
+export function modal(
+  title: string,
+  body: Child,
+  opts: { onClose?: () => void; wide?: boolean } = {},
+): { close: () => void; el: HTMLElement } {
   const prevFocus = document.activeElement as HTMLElement | null;
   const close = () => {
     overlay.classList.add('modal--out');
@@ -122,32 +133,60 @@ export function modal(title: string, body: Child, opts: { onClose?: () => void; 
   };
   const dialog = h(
     'div',
-    { class: `modal__dialog${opts.wide ? ' modal__dialog--wide' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+    {
+      class: `modal__dialog${opts.wide ? ' modal__dialog--wide' : ''}`,
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-label': title,
+    },
     h(
       'header',
       { class: 'modal__head' },
       h('h2', null, title),
-      h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close', onclick: close }, svgIcon(ICONS.close)),
+      h(
+        'button',
+        { class: 'icon-btn', type: 'button', 'aria-label': 'Close', onclick: close },
+        svgIcon(ICONS.close),
+      ),
     ),
     h('div', { class: 'modal__body' }, body),
   );
-  const overlay = h('div', { class: 'modal', onclick: (e: MouseEvent) => e.target === overlay && close() }, dialog);
+  const overlay = h(
+    'div',
+    { class: 'modal', onclick: (e: MouseEvent) => e.target === overlay && close() },
+    dialog,
+  );
   document.body.appendChild(overlay);
   document.addEventListener('keydown', onKey);
-  requestAnimationFrame(() => (dialog.querySelector('button, a, input, select') as HTMLElement | null)?.focus());
+  requestAnimationFrame(() =>
+    (dialog.querySelector('button, a, input, select') as HTMLElement | null)?.focus(),
+  );
   return { close, el: dialog };
 }
 
 export function header(active: string): HTMLElement {
   const link = (href: string, label: string, key: string) =>
-    h('a', { href, class: `nav__link${active === key ? ' is-active' : ''}`, 'aria-current': active === key ? 'page' : undefined }, label);
+    h(
+      'a',
+      {
+        href,
+        class: `nav__link${active === key ? ' is-active' : ''}`,
+        'aria-current': active === key ? 'page' : undefined,
+      },
+      label,
+    );
   return h(
     'header',
     { class: 'site-header' },
     h(
       'div',
       { class: 'site-header__inner' },
-      h('a', { href: '/', class: 'logo', 'aria-label': 'Vanillate Motion home' }, artEl('logo', { className: 'logo__mark' }), h('span', { class: 'logo__text' }, 'Vanillate', h('b', null, ' Motion'))),
+      h(
+        'a',
+        { href: '/', class: 'logo', 'aria-label': 'Vanillate Motion home' },
+        artEl('logo', { className: 'logo__mark' }),
+        h('span', { class: 'logo__text' }, 'Vanillate', h('b', null, ' Motion')),
+      ),
       h(
         'nav',
         { class: 'nav', 'aria-label': 'Main' },
@@ -170,7 +209,15 @@ export function header(active: string): HTMLElement {
               'Camera on · Off',
             )
           : null,
-        h('a', { href: '/settings', class: `nav__link nav__icon${active === 'settings' ? ' is-active' : ''}`, 'aria-label': t('nav.settings') }, svgIcon(ICONS.settings)),
+        h(
+          'a',
+          {
+            href: '/settings',
+            class: `nav__link nav__icon${active === 'settings' ? ' is-active' : ''}`,
+            'aria-label': t('nav.settings'),
+          },
+          svgIcon(ICONS.settings),
+        ),
         button(t('nav.play'), { href: '/games?cat=for-two', size: 'sm', icon: 'play' }),
       ),
     ),
@@ -185,7 +232,15 @@ export function footer(): HTMLElement {
       'div',
       { class: 'site-footer__inner' },
       h('p', null, h('strong', null, 'Vanillate Motion'), ' — ', t('brand.tagline')),
-      h('p', { class: 'muted' }, svgIcon(ICONS.shield, 16), ' ', t('footer.note'), ' ', h('a', { href: '/privacy' }, t('footer.privacy'))),
+      h(
+        'p',
+        { class: 'muted' },
+        svgIcon(ICONS.shield, 16),
+        ' ',
+        t('footer.note'),
+        ' ',
+        h('a', { href: '/privacy' }, t('footer.privacy')),
+      ),
     ),
   );
 }

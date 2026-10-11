@@ -73,7 +73,10 @@ const factory: GameFactory = (ctx) => {
     finished = true;
     const stats = [
       { label: tx(ctx, 'statShots'), values: made.map((m, i) => `${m}/${taken[i]}`) },
-      { label: tx(ctx, 'statAccuracy'), values: made.map((m, i) => (taken[i] ? `${Math.round((m / taken[i]) * 100)}%` : '—')) },
+      {
+        label: tx(ctx, 'statAccuracy'),
+        values: made.map((m, i) => (taken[i] ? `${Math.round((m / taken[i]) * 100)}%` : '—')),
+      },
     ];
     if (n === 1) ctx.end(soloResult(ctx, score[0], { stats }));
     else ctx.end(versusResult(ctx, score, { stats }));
@@ -166,9 +169,23 @@ const factory: GameFactory = (ctx) => {
         emoji(g, '🏀', hx, hy, 50);
         circle(g, hx, hy, 34, undefined, ctx.players[shooter].color, 3);
       }
-      const center = variant === 'time' ? `${Math.max(0, Math.ceil((n === 1 ? timeEach - time : timeEach - turnT)))}s` : `${ctx.players[shooter].name}: ${Math.min(shotsEach, taken[shooter] + 1)}/${shotsEach}`;
+      const center =
+        variant === 'time'
+          ? `${Math.max(0, Math.ceil(n === 1 ? timeEach - time : timeEach - turnT))}s`
+          : `${ctx.players[shooter].name}: ${Math.min(shotsEach, taken[shooter] + 1)}/${shotsEach}`;
       scoreHeader(g, ctx, score, { center });
-      if (time < 5) text(g, L(ctx, 'Dip low, then throw both hands up to shoot!', 'Turunkan bola, lalu lempar kedua tangan ke atas!'), ctx.width / 2, ctx.height - 36, { size: 22, color: C.vanilla });
+      if (time < 5)
+        text(
+          g,
+          L(
+            ctx,
+            'Dip low, then throw both hands up to shoot!',
+            'Turunkan bola, lalu lempar kedua tangan ke atas!',
+          ),
+          ctx.width / 2,
+          ctx.height - 36,
+          { size: 22, color: C.vanilla },
+        );
       if (streak >= 3) text(g, `🔥 ${streak}`, ctx.width - 60, ctx.height - 40, { size: 30, color: C.gold });
     },
     inspect: () => ({ shooter, taken: [...taken], score: [...score], balls: balls.length }),

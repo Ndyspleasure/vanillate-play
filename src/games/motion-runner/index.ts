@@ -58,7 +58,15 @@ const factory: GameFactory = (ctx) => {
     },
     render(g) {
       const w = Math.min(ctx.width - 24, ctx.height * 1.5);
-      renderLane(g, { x: (ctx.width - w) / 2, y: 12, w, h: ctx.height - 24 }, runner, track, ctx.players[0].color, time, { curve: Math.sin(runner.z / 70) });
+      renderLane(
+        g,
+        { x: (ctx.width - w) / 2, y: 12, w, h: ctx.height - 24 },
+        runner,
+        track,
+        ctx.players[0].color,
+        time,
+        { curve: Math.sin(runner.z / 70) },
+      );
       const score = Math.round(runner.z + runner.coins * 10);
       text(g, String(score), ctx.width / 2, 50, { size: 44, color: C.vanilla });
       emoji(g, '🪙', ctx.width / 2 - 70, 92, 26);

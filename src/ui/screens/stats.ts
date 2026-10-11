@@ -17,7 +17,8 @@ export function statsScreen(): Screen {
   const wins = Object.entries(d.wins).sort((a, b) => b[1] - a[1]);
   const bests = Object.entries(d.bests);
   const empty = d.totalMatches === 0;
-  const tile = (label: string, value: string) => h('div', { class: 'stat-tile' }, h('strong', null, value), h('span', null, label));
+  const tile = (label: string, value: string) =>
+    h('div', { class: 'stat-tile' }, h('strong', null, value), h('span', null, label));
 
   const el = h(
     'div',
@@ -28,10 +29,34 @@ export function statsScreen(): Screen {
       { id: 'main', class: 'section narrow' },
       h('h1', null, t('stats.title')),
       h('p', { class: 'muted' }, t('stats.lead')),
-      h('div', { class: 'stat-tiles' }, tile(t('stats.matches'), String(d.totalMatches)), tile(t('stats.time'), fmtTime(d.totalPlayMs)), tile(t('stats.games'), String(games.length))),
-      empty ? h('div', { class: 'card center' }, h('p', null, t('stats.empty')), button(t('home.cta'), { href: '/games?cat=for-two', icon: 'play' })) : null,
+      h(
+        'div',
+        { class: 'stat-tiles' },
+        tile(t('stats.matches'), String(d.totalMatches)),
+        tile(t('stats.time'), fmtTime(d.totalPlayMs)),
+        tile(t('stats.games'), String(games.length)),
+      ),
+      empty
+        ? h(
+            'div',
+            { class: 'card center' },
+            h('p', null, t('stats.empty')),
+            button(t('home.cta'), { href: '/games?cat=for-two', icon: 'play' }),
+          )
+        : null,
       wins.length
-        ? h('section', { class: 'card' }, h('h2', null, '🏆 ', t('stats.wins')), h('ul', { class: 'list' }, wins.slice(0, 8).map(([n, w]) => h('li', null, h('span', null, n), h('strong', null, String(w))))))
+        ? h(
+            'section',
+            { class: 'card' },
+            h('h2', null, '🏆 ', t('stats.wins')),
+            h(
+              'ul',
+              { class: 'list' },
+              wins
+                .slice(0, 8)
+                .map(([n, w]) => h('li', null, h('span', null, n), h('strong', null, String(w)))),
+            ),
+          )
         : null,
       bests.length
         ? h(
@@ -44,7 +69,16 @@ export function statsScreen(): Screen {
               bests.map(([key, b]) => {
                 const [id, mode] = key.split(':');
                 const meta = gameById(id);
-                return h('li', null, h('span', null, `${meta?.emoji ?? ''} ${meta?.name ?? id} · ${modeLabel(mode as never)} — ${b.label}`), h('strong', null, b.display));
+                return h(
+                  'li',
+                  null,
+                  h(
+                    'span',
+                    null,
+                    `${meta?.emoji ?? ''} ${meta?.name ?? id} · ${modeLabel(mode as never)} — ${b.label}`,
+                  ),
+                  h('strong', null, b.display),
+                );
               }),
             ),
           )
@@ -59,7 +93,12 @@ export function statsScreen(): Screen {
               { class: 'list' },
               games.map(([id, g]) => {
                 const meta = gameById(id);
-                return h('li', null, h('a', { href: `/games/${id}` }, `${meta?.emoji ?? ''} ${meta?.name ?? id}`), h('span', null, t('stats.plays', { n: g.plays })));
+                return h(
+                  'li',
+                  null,
+                  h('a', { href: `/games/${id}` }, `${meta?.emoji ?? ''} ${meta?.name ?? id}`),
+                  h('span', null, t('stats.plays', { n: g.plays })),
+                );
               }),
             ),
           )
@@ -78,7 +117,11 @@ export function statsScreen(): Screen {
                   'li',
                   null,
                   h('span', null, `${meta?.emoji ?? ''} ${meta?.name ?? r.game} — ${r.headline}`),
-                  h('span', { class: 'muted' }, `${r.scores.join(' – ')} · ${new Date(r.at).toLocaleDateString()}`),
+                  h(
+                    'span',
+                    { class: 'muted' },
+                    `${r.scores.join(' – ')} · ${new Date(r.at).toLocaleDateString()}`,
+                  ),
                 );
               }),
             ),

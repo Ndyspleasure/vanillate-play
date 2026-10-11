@@ -227,7 +227,8 @@ export class MotionSession {
     const poses = this.mode === 'camera' ? this.cameraPoses() : PRELOAD_POSES;
     this.modelLoad = provider
       .init(poses, (st) => {
-        if (st.phase === 'loading') this.setLifecycle({ modelProgress: st.progress ?? this.lifecycle.modelProgress });
+        if (st.phase === 'loading')
+          this.setLifecycle({ modelProgress: st.progress ?? this.lifecycle.modelProgress });
         if (this.mode === 'camera') this.setStatus(st);
       })
       .then(() => {
@@ -288,7 +289,12 @@ export class MotionSession {
     this.setLifecycle({ camera: 'live' });
     let provider: MediaPipeProvider;
     try {
-      if (!this.mp?.ready) this.setStatus({ phase: 'loading', message: 'Downloading motion model', progress: this.lifecycle.modelProgress });
+      if (!this.mp?.ready)
+        this.setStatus({
+          phase: 'loading',
+          message: 'Downloading motion model',
+          progress: this.lifecycle.modelProgress,
+        });
       provider = await model;
     } catch (err) {
       if (cancelled()) throw new CameraStartCancelled();
@@ -525,7 +531,8 @@ export class MotionSession {
   health(i: number): TrackingHealth {
     // No frames for longer than the grace period means we know nothing about anyone: never report
     // a frozen pose as a present player (the watchdog is meanwhile restarting the camera/loop).
-    if (this.running && this.mode === 'camera' && performance.now() - this.lastFrameAt > GRACE_MS) return 'lost';
+    if (this.running && this.mode === 'camera' && performance.now() - this.lastFrameAt > GRACE_MS)
+      return 'lost';
     const slot = this.tracker.slots[i];
     if (slot.state === 'empty' || slot.state === 'lost') return 'lost';
     if (slot.state === 'grace' || slot.quality < 0.55) return 'weak';

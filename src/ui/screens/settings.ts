@@ -17,15 +17,25 @@ export function settingsScreen(): Screen {
   const select = <K extends keyof Settings>(key: K, choices: [Settings[K], string][], id: string) =>
     h(
       'select',
-      { id, onchange: (e: Event) => save({ [key]: (e.target as HTMLSelectElement).value } as Partial<Settings>) },
+      {
+        id,
+        onchange: (e: Event) => save({ [key]: (e.target as HTMLSelectElement).value } as Partial<Settings>),
+      },
       choices.map(([v, label]) => h('option', { value: String(v), selected: s[key] === v }, label)),
     );
 
-  const toggle = (key: 'reducedMotion' | 'showSkeleton' | 'showPerf' | 'gestureControls' | 'analytics', label: string) =>
+  const toggle = (
+    key: 'reducedMotion' | 'showSkeleton' | 'showPerf' | 'gestureControls' | 'analytics',
+    label: string,
+  ) =>
     h(
       'label',
       { class: 'toggle' },
-      h('input', { type: 'checkbox', checked: s[key], onchange: (e: Event) => save({ [key]: (e.target as HTMLInputElement).checked }) }),
+      h('input', {
+        type: 'checkbox',
+        checked: s[key],
+        onchange: (e: Event) => save({ [key]: (e.target as HTMLInputElement).checked }),
+      }),
       h('span', null, label),
     );
 
@@ -98,17 +108,39 @@ export function settingsScreen(): Screen {
         toggle('showSkeleton', t('settings.skeleton')),
         toggle('gestureControls', t('settings.gestures')),
       ),
-      h('section', { class: 'card settings-group' }, h('h2', null, t('settings.sound')), range('sfxVolume', t('settings.sfx')), range('musicVolume', t('settings.music'))),
+      h(
+        'section',
+        { class: 'card settings-group' },
+        h('h2', null, t('settings.sound')),
+        range('sfxVolume', t('settings.sfx')),
+        range('musicVolume', t('settings.music')),
+      ),
       h(
         'section',
         { class: 'card settings-group' },
         h('h2', null, t('settings.performance')),
-        h('label', { class: 'field' }, h('span', null, t('settings.fx')), select('fxQuality', (['auto', 'low', 'medium', 'high'] as const).map((v) => [v, t(`settings.fx.${v}` as I18nKey)]), 'set-fx')),
+        h(
+          'label',
+          { class: 'field' },
+          h('span', null, t('settings.fx')),
+          select(
+            'fxQuality',
+            (['auto', 'low', 'medium', 'high'] as const).map((v) => [v, t(`settings.fx.${v}` as I18nKey)]),
+            'set-fx',
+          ),
+        ),
         h(
           'label',
           { class: 'field' },
           h('span', null, t('settings.tracking')),
-          select('trackingQuality', (['performance', 'balanced', 'quality'] as const).map((v) => [v, t(`settings.tracking.${v}` as I18nKey)]), 'set-tracking'),
+          select(
+            'trackingQuality',
+            (['performance', 'balanced', 'quality'] as const).map((v) => [
+              v,
+              t(`settings.tracking.${v}` as I18nKey),
+            ]),
+            'set-tracking',
+          ),
         ),
         toggle('showPerf', t('settings.perf')),
       ),

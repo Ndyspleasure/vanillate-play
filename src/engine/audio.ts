@@ -219,9 +219,11 @@ export class MusicPlayer {
       if (s.snare[i]) this.engine.drum('snare', t, this.bus);
       if (s.hat[i]) this.engine.drum('hat', t, this.bus);
       const b = s.bass[i];
-      if (b !== null) this.engine.note(NOTE(s.root + b + shift - 12), t, stepDur * 1.8, 'triangle', 0.32, this.bus);
+      if (b !== null)
+        this.engine.note(NOTE(s.root + b + shift - 12), t, stepDur * 1.8, 'triangle', 0.32, this.bus);
       const l = s.lead[i];
-      if (l !== null && bar !== 3) this.engine.note(NOTE(s.root + l + shift), t, stepDur * 0.9, s.wave, 0.07, this.bus);
+      if (l !== null && bar !== 3)
+        this.engine.note(NOTE(s.root + l + shift), t, stepDur * 0.9, s.wave, 0.07, this.bus);
       this.nextTime += stepDur;
       this.step++;
     }
@@ -349,7 +351,12 @@ export class AudioEngine {
     o.stop(t + dur + 0.05);
   }
 
-  private noise(dur: number, vol: number, freq: number, opts: { type?: BiquadFilterType; slide?: number; delay?: number; out: AudioNode }): void {
+  private noise(
+    dur: number,
+    vol: number,
+    freq: number,
+    opts: { type?: BiquadFilterType; slide?: number; delay?: number; out: AudioNode },
+  ): void {
     const ctx = this.ctx!;
     const t = ctx.currentTime + (opts.delay ?? 0);
     const src = ctx.createBufferSource();
@@ -410,10 +417,14 @@ export class AudioEngine {
         this.tone(1318 * k, 0.25, 'square', 0.16 * v, { ...o, delay: 0.07 });
         break;
       case 'success':
-        [523, 659, 784].forEach((f, i) => this.tone(f * k, 0.18, 'triangle', 0.25 * v, { ...o, delay: i * 0.07 }));
+        [523, 659, 784].forEach((f, i) =>
+          this.tone(f * k, 0.18, 'triangle', 0.25 * v, { ...o, delay: i * 0.07 }),
+        );
         break;
       case 'perfect':
-        [784, 988, 1175, 1568].forEach((f, i) => this.tone(f * k, 0.2, 'square', 0.13 * v, { ...o, delay: i * 0.06 }));
+        [784, 988, 1175, 1568].forEach((f, i) =>
+          this.tone(f * k, 0.2, 'square', 0.13 * v, { ...o, delay: i * 0.06 }),
+        );
         break;
       case 'fail':
         this.tone(330 * k, 0.35, 'sawtooth', 0.18 * v, { ...o, slide: 110 });
@@ -447,7 +458,9 @@ export class AudioEngine {
         break;
       case 'cheer':
         this.noise(1.1, 0.35 * v, 1500, { ...o, slide: 2500 });
-        [523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.3, 'triangle', 0.12 * v, { ...o, delay: 0.1 + i * 0.08 }));
+        [523, 659, 784, 1046].forEach((f, i) =>
+          this.tone(f, 0.3, 'triangle', 0.12 * v, { ...o, delay: 0.1 + i * 0.08 }),
+        );
         break;
       case 'boing':
         this.tone(150 * k, 0.5, 'sine', 0.4 * v, { ...o, slide: 600 * k });
@@ -473,7 +486,9 @@ export class AudioEngine {
         );
         break;
       case 'lose':
-        [392, 370, 349, 330].forEach((f, i) => this.tone(f * k, 0.3, 'triangle', 0.2 * v, { ...o, delay: i * 0.2 }));
+        [392, 370, 349, 330].forEach((f, i) =>
+          this.tone(f * k, 0.3, 'triangle', 0.2 * v, { ...o, delay: i * 0.2 }),
+        );
         break;
       case 'heart':
         this.tone(523 * k, 0.15, 'sine', 0.25 * v, o);
@@ -493,7 +508,9 @@ export class AudioEngine {
         this.tone(90 * k, 0.2, 'sine', 0.6 * v, { ...o, slide: 40 });
         break;
       case 'powerup':
-        [440, 554, 659, 880, 1108].forEach((f, i) => this.tone(f * k, 0.1, 'square', 0.12 * v, { ...o, delay: i * 0.05 }));
+        [440, 554, 659, 880, 1108].forEach((f, i) =>
+          this.tone(f * k, 0.1, 'square', 0.12 * v, { ...o, delay: i * 0.05 }),
+        );
         break;
       case 'step':
         this.tone(200 * k, 0.05, 'triangle', 0.12 * v, o);

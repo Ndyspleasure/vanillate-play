@@ -3,15 +3,35 @@ import { clamp, easeOutBack } from '../core/math';
 import type { MotionSession } from '../core/session/MotionSession';
 import { SIM_ASPECT } from '../core/tracking/SimulatedProvider';
 import type { AudioEngine } from './audio';
-import { C, FONT, emoji, PLAYER_COLORS, PLAYER_TINTS, handCursor, panel, playerTag, skeleton, text } from './draw';
+import {
+  C,
+  FONT,
+  emoji,
+  PLAYER_COLORS,
+  PLAYER_TINTS,
+  handCursor,
+  panel,
+  playerTag,
+  skeleton,
+  text,
+} from './draw';
 import { Fx, type FxQuality } from './fx';
 import { InputHub } from './input';
 import { Rng } from './rng';
 import { StageMapper, playerZones } from './stage';
 import { tx } from '../games/kits/text';
-import type { GameContext, GameInstance, GameMeta, MatchResult, ModeId, PlayerInfo, PlayerInput } from './types';
+import type {
+  GameContext,
+  GameInstance,
+  GameMeta,
+  MatchResult,
+  ModeId,
+  PlayerInfo,
+  PlayerInput,
+} from './types';
 
-export type RunnerPhase = 'loading' | 'intro' | 'countdown' | 'play' | 'paused' | 'lost' | 'resuming' | 'ended';
+export type RunnerPhase =
+  'loading' | 'intro' | 'countdown' | 'play' | 'paused' | 'lost' | 'resuming' | 'ended';
 
 export interface RunnerSettings {
   names: string[];
@@ -126,7 +146,7 @@ export class GameRunner {
   async start(): Promise<void> {
     const mod = await this.meta.load();
     const factory = mod.default;
-    const rng = new Rng(this.settings.seed ?? (Date.now() & 0x7fffffff));
+    const rng = new Rng(this.settings.seed ?? Date.now() & 0x7fffffff);
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- getters on the context read live runner state
     const runner = this;
     this.ctx = {
@@ -177,7 +197,12 @@ export class GameRunner {
   }
 
   pause(): void {
-    if (this.phase === 'play' || this.phase === 'countdown' || this.phase === 'intro' || this.phase === 'resuming') {
+    if (
+      this.phase === 'play' ||
+      this.phase === 'countdown' ||
+      this.phase === 'intro' ||
+      this.phase === 'resuming'
+    ) {
       this.pausedFrom = this.phase === 'resuming' ? 'play' : this.phase;
       this.setPhase('paused');
       this.game?.onPause?.();
@@ -440,7 +465,7 @@ export class GameRunner {
       g.stroke();
     }
     for (let j = 0; j < 6; j++) {
-      const y = floorY + (h - floorY) * ((j / 6) ** 1.6);
+      const y = floorY + (h - floorY) * (j / 6) ** 1.6;
       g.beginPath();
       g.moveTo(0, y);
       g.lineTo(w, y);
@@ -513,7 +538,13 @@ export class GameRunner {
       for (let i = 0; i < this.count; i++) {
         const inp = this.hub.get(i);
         if (inp.health === 'lost') continue;
-        playerTag(g, this.players[i].name, inp.head.x, inp.head.y - inp.headRadius * 2.2, this.players[i].color);
+        playerTag(
+          g,
+          this.players[i].name,
+          inp.head.x,
+          inp.head.y - inp.headRadius * 2.2,
+          this.players[i].color,
+        );
       }
     }
 
@@ -527,7 +558,11 @@ export class GameRunner {
       emoji(g, this.meta.emoji, w / 2 - Math.min(w * 0.3, 380), h * 0.4, big * 0.08, 1, this.meta.colors[0]);
       text(g, this.meta.name.toUpperCase(), w / 2, h * 0.4, { size: big * 0.06, weight: 800 });
       const tip = this.meta.text[this.settings.lang].howTo[0] ?? '';
-      text(g, tip, w / 2, h * 0.52, { size: Math.max(16, big * 0.026), color: C.vanilla, maxWidth: w * 0.78 });
+      text(g, tip, w / 2, h * 0.52, {
+        size: Math.max(16, big * 0.026),
+        color: C.vanilla,
+        maxWidth: w * 0.78,
+      });
       g.globalAlpha = 1;
     } else if (this.phase === 'countdown') {
       const step = Math.floor(t);
@@ -549,8 +584,13 @@ export class GameRunner {
       g.fillRect(0, 0, w, h);
       if (this.phase === 'lost') {
         const missing = [];
-        for (let i = 0; i < this.count; i++) if (this.session.health(i) === 'lost') missing.push(this.players[i].name.toUpperCase());
-        text(g, tx(this.settings, 'notDetected', { names: missing.join(' & ') }), w / 2, h * 0.42, { size: big * 0.05, color: C.warn, weight: 800 });
+        for (let i = 0; i < this.count; i++)
+          if (this.session.health(i) === 'lost') missing.push(this.players[i].name.toUpperCase());
+        text(g, tx(this.settings, 'notDetected', { names: missing.join(' & ') }), w / 2, h * 0.42, {
+          size: big * 0.05,
+          color: C.warn,
+          weight: 800,
+        });
         text(g, tx(this.settings, 'moveIntoFrame'), w / 2, h * 0.52, { size: big * 0.035, color: C.ink });
         // Zone hints
         const zones = playerZones(w, h, this.count);
@@ -564,7 +604,11 @@ export class GameRunner {
           g.setLineDash([]);
         }
       } else if (this.phase === 'resuming') {
-        text(g, tx(this.settings, 'ready'), w / 2, h * 0.45, { size: big * 0.09, color: C.good, weight: 800 });
+        text(g, tx(this.settings, 'ready'), w / 2, h * 0.45, {
+          size: big * 0.09,
+          color: C.good,
+          weight: 800,
+        });
       } else {
         text(g, tx(this.settings, 'paused'), w / 2, h * 0.45, { size: big * 0.08, weight: 800 });
       }
@@ -586,7 +630,10 @@ export class GameRunner {
         if (this.session.health(i) === 'weak') {
           const inp = this.hub.get(i);
           g.font = `700 14px ${FONT}`;
-          text(g, tx(this.settings, 'tracking'), inp.head.x, inp.head.y - inp.headRadius * 2, { size: 14, color: C.warn });
+          text(g, tx(this.settings, 'tracking'), inp.head.x, inp.head.y - inp.headRadius * 2, {
+            size: 14,
+            color: C.warn,
+          });
         }
       }
     }

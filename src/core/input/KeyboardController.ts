@@ -142,7 +142,10 @@ export class KeyboardController {
 
   private isTyping(e: KeyboardEvent): boolean {
     const t = e.target as HTMLElement | null;
-    return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+    return (
+      !!t &&
+      (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)
+    );
   }
 
   private onDown = (e: KeyboardEvent) => {

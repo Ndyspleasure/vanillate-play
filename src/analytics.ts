@@ -39,7 +39,12 @@ function flush(): void {
   const body = JSON.stringify({ events: queue.splice(0, queue.length) });
   try {
     if (!navigator.sendBeacon?.(ENDPOINT, body)) {
-      void fetch(ENDPOINT, { method: 'POST', body, keepalive: true, headers: { 'content-type': 'application/json' } });
+      void fetch(ENDPOINT, {
+        method: 'POST',
+        body,
+        keepalive: true,
+        headers: { 'content-type': 'application/json' },
+      });
     }
   } catch {
     /* analytics must never break the game */

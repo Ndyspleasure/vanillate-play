@@ -30,13 +30,29 @@ export function createDodge(ctx: GameContext, ninja: boolean): GameInstance {
     const r = ctx.rng.next();
     const kind: Hazard['kind'] = r < 0.3 ? 'high' : r < 0.55 ? 'low' : ninja && r < 0.75 ? 'wall' : 'body';
     const from = ctx.rng.pick([-1, 1] as const);
-    const style: Hazard['style'] = ninja ? (kind === 'body' ? 'star' : 'laser') : kind === 'body' ? 'meteor' : 'ball';
+    const style: Hazard['style'] = ninja
+      ? kind === 'body'
+        ? 'star'
+        : 'laser'
+      : kind === 'body'
+        ? 'meteor'
+        : 'ball';
     for (let i = 0; i < n; i++) {
       if (!alive(i)) continue;
       const inp = ctx.input(i);
       const T = inp.torsoPx;
       const y = kind === 'high' ? inp.head.y + T * 0.05 : (inp.leftFoot.y + inp.rightFoot.y) / 2 - T * 0.25;
-      field.add({ kind, owner: i, t: warn, warn, x: inp.center.x, y, from, style, width: kind === 'wall' ? 26 : 50 });
+      field.add({
+        kind,
+        owner: i,
+        t: warn,
+        warn,
+        x: inp.center.x,
+        y,
+        from,
+        style,
+        width: kind === 'wall' ? 26 : 50,
+      });
     }
     ctx.audio.play(ninja ? 'laser' : 'warn', { volume: 0.5 });
     nextSpawn = Math.max(ninja ? 0.75 : 0.95, (ninja ? 1.5 : 1.9) - time * 0.012) + ctx.rng.range(0, 0.4);
@@ -50,7 +66,14 @@ export function createDodge(ctx: GameContext, ninja: boolean): GameInstance {
       { label: tx(ctx, 'statMultiplier'), values: maxMult.map((m) => `×${m}`) },
     ];
     if (n === 1) ctx.end(soloResult(ctx, Math.round(score[0]), { stats }));
-    else ctx.end(versusResult(ctx, lives.map((l, i) => (l > 0 ? 100000 : 0) + Math.round(score[i])), { display: (v) => String(v % 100000), stats }));
+    else
+      ctx.end(
+        versusResult(
+          ctx,
+          lives.map((l, i) => (l > 0 ? 100000 : 0) + Math.round(score[i])),
+          { display: (v) => String(v % 100000), stats },
+        ),
+      );
   };
 
   return {
@@ -95,14 +118,30 @@ export function createDodge(ctx: GameContext, ninja: boolean): GameInstance {
     },
     render(g) {
       field.render(g, (o) => ctx.zone(o), ctx.height);
-      scoreHeader(g, ctx, score.map((s) => Math.round(s)), { center: `${Math.floor(time)} s` });
+      scoreHeader(
+        g,
+        ctx,
+        score.map((s) => Math.round(s)),
+        { center: `${Math.floor(time)} s` },
+      );
       for (let i = 0; i < n; i++) {
         const z = ctx.zone(i);
         hearts(g, z.x + z.w / 2, 112, Math.max(0, lives[i]), 3, 24, 'center');
         if (!alive(i)) bubble(g, ctx.input(i), tx(ctx, 'out'), C.muted);
         else if (mult[i] > 1) bubble(g, ctx.input(i), `×${mult[i]}`, C.gold);
       }
-      if (time < 4) text(g, L(ctx, '⬇ duck high · ⬆ jump low · step away from shots', '⬇ menunduk (atas) · ⬆ lompat (bawah) · geser dari tembakan'), ctx.width / 2, ctx.height - 36, { size: 20, color: C.vanilla });
+      if (time < 4)
+        text(
+          g,
+          L(
+            ctx,
+            '⬇ duck high · ⬆ jump low · step away from shots',
+            '⬇ menunduk (atas) · ⬆ lompat (bawah) · geser dari tembakan',
+          ),
+          ctx.width / 2,
+          ctx.height - 36,
+          { size: 20, color: C.vanilla },
+        );
     },
     inspect: () => ({ lives: [...lives], pending: field.pending }),
   };

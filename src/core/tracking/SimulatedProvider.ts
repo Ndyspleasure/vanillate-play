@@ -134,7 +134,10 @@ export class SimBody {
     const legs = (side: -1 | 1, kickT: number, knee: boolean) => {
       const hip = { x: hipC.x + side * hipHalf, y: hipC.y };
       const spread = this.squat * 0.32 * T;
-      let ankle = { x: hip.x + side * (0.06 * T + spread * 0.6), y: Math.min(groundY - lift, hip.y + thigh + shin) };
+      let ankle = {
+        x: hip.x + side * (0.06 * T + spread * 0.6),
+        y: Math.min(groundY - lift, hip.y + thigh + shin),
+      };
       let kneeP = {
         x: hip.x + side * (0.04 * T + spread),
         y: hip.y + Math.sqrt(Math.max(0.0001, thigh ** 2 - (spread * 0.9) ** 2)) * (1 - this.squat * 0.35),
@@ -179,7 +182,8 @@ export class SimBody {
       const mirrorDeg = (deg: number) => (side === -1 ? 180 - deg : deg);
       if (a.punchT >= 0) {
         // Guard → extended forward → retract
-        const u = a.punchT < 0.1 ? a.punchT / 0.1 : a.punchT < 0.22 ? 1 : Math.max(0, 1 - (a.punchT - 0.22) / 0.2);
+        const u =
+          a.punchT < 0.1 ? a.punchT / 0.1 : a.punchT < 0.22 ? 1 : Math.max(0, 1 - (a.punchT - 0.22) / 0.2);
         const guardElbow = { x: sh.x + side * 0.12 * T, y: sh.y + 0.45 * T };
         const guardWrist = { x: sh.x - side * 0.05 * T, y: sh.y - 0.12 * T };
         const extElbow = { x: sh.x - side * 0.02 * T, y: sh.y + 0.08 * T };
@@ -279,7 +283,10 @@ export class SimBody {
       [LM.rightIndex, ra],
       [LM.rightThumb, ra],
     ] as const) {
-      const ext = { x: w.wrist.x + (w.wrist.x - w.elbow.x) * 0.15, y: w.wrist.y + (w.wrist.y - w.elbow.y) * 0.15 };
+      const ext = {
+        x: w.wrist.x + (w.wrist.x - w.elbow.x) * 0.15,
+        y: w.wrist.y + (w.wrist.y - w.elbow.y) * 0.15,
+      };
       set(i, ext, w.wz);
     }
     set(LM.leftHip, L.hip);

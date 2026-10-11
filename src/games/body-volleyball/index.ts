@@ -43,7 +43,13 @@ const factory: GameFactory = (ctx) => {
     score[winner]++;
     longest = Math.max(longest, rally);
     ctx.audio.play('coin');
-    ctx.fx.text(`${ctx.players[winner].name} +1`, ctx.width / 2, ctx.height * 0.35, ctx.players[winner].color, 44);
+    ctx.fx.text(
+      `${ctx.players[winner].name} +1`,
+      ctx.width / 2,
+      ctx.height * 0.35,
+      ctx.players[winner].color,
+      44,
+    );
     ctx.fx.burst(ball.x, floor(), ['#ffb703', '#fff'], 24);
     server = 1 - winner;
     serveIn = 1.4;
@@ -134,7 +140,14 @@ const factory: GameFactory = (ctx) => {
       }
       g.fillStyle = 'rgba(255,183,3,0.25)';
       g.fillRect(0, floor(), ctx.width, ctx.height - floor());
-      if (serveIn > 0 && ball.vy === 0) text(g, L(ctx, 'Serve!', 'Servis!'), server === 0 ? ctx.width * 0.25 : ctx.width * 0.75, ctx.height * 0.12, { size: 30, color: ctx.players[server].color });
+      if (serveIn > 0 && ball.vy === 0)
+        text(
+          g,
+          L(ctx, 'Serve!', 'Servis!'),
+          server === 0 ? ctx.width * 0.25 : ctx.width * 0.75,
+          ctx.height * 0.12,
+          { size: 30, color: ctx.players[server].color },
+        );
       g.fillStyle = 'rgba(0,0,0,0.25)';
       g.beginPath();
       g.ellipse(ball.x, floor() - 4, ball.r * 0.9, 8, 0, 0, Math.PI * 2);

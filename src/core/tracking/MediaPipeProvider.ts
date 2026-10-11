@@ -14,7 +14,10 @@ const INPUT_WIDTH: Record<InputQuality, number> = {
 };
 
 /** Downloads a file with progress reporting. */
-async function fetchWithProgress(url: string, onProgress: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
+async function fetchWithProgress(
+  url: string,
+  onProgress: (loaded: number, total: number) => void,
+): Promise<ArrayBuffer> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download ${url} (${res.status})`);
   const total = Number(res.headers.get('content-length')) || 0;
@@ -53,7 +56,10 @@ type Progress = (loaded: number, total: number) => void;
  * worker restart (or a second provider) never downloads them again. The service worker additionally
  * keeps both files in Cache Storage across visits.
  */
-const downloads = new Map<string, { promise: Promise<ArrayBuffer>; listeners: Set<Progress>; last: [number, number] }>();
+const downloads = new Map<
+  string,
+  { promise: Promise<ArrayBuffer>; listeners: Set<Progress>; last: [number, number] }
+>();
 
 function download(url: string, onProgress: Progress, required = true): Promise<ArrayBuffer | null> {
   let entry = downloads.get(url);
@@ -146,9 +152,16 @@ export class MediaPipeProvider implements PoseProvider {
     const update = () => {
       const loaded = sizes.model[0] + sizes.wasm[0];
       const total = sizes.model[1] + sizes.wasm[1];
-      report({ phase: 'loading', message: 'Downloading motion model', progress: Math.min(0.95, loaded / total) });
+      report({
+        phase: 'loading',
+        message: 'Downloading motion model',
+        progress: Math.min(0.95, loaded / total),
+      });
     };
-    const useWorker = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && 'createImageBitmap' in window;
+    const useWorker =
+      typeof Worker !== 'undefined' &&
+      typeof OffscreenCanvas !== 'undefined' &&
+      'createImageBitmap' in window;
     const wasmFile = useWorker ? 'vision_wasm_module_internal.wasm' : 'vision_wasm_internal.wasm';
     const [model] = await Promise.all([
       download(MODEL_URL, (l, t) => {

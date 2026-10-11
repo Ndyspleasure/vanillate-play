@@ -67,7 +67,14 @@ export function standing(inp: MutableInput, cx: number, height: number): void {
   inp.state.hipsVisible = true;
 }
 
-export function createHarness(meta: GameMeta, factory: (ctx: GameContext) => GameInstance, mode: ModeId, count: number, options: Record<string, string> = {}, seed = 42): Harness {
+export function createHarness(
+  meta: GameMeta,
+  factory: (ctx: GameContext) => GameInstance,
+  mode: ModeId,
+  count: number,
+  options: Record<string, string> = {},
+  seed = 42,
+): Harness {
   const width = 1280;
   const height = 720;
   const zones = playerZones(width, height, count);
@@ -108,7 +115,12 @@ export function createHarness(meta: GameMeta, factory: (ctx: GameContext) => Gam
     meta,
     mode,
     options: opts,
-    players: Array.from({ length: count }, (_, i) => ({ index: i, name: `P${i + 1}`, color: PLAYER_COLORS[i], tint: PLAYER_TINTS[i] })),
+    players: Array.from({ length: count }, (_, i) => ({
+      index: i,
+      name: `P${i + 1}`,
+      color: PLAYER_COLORS[i],
+      tint: PLAYER_TINTS[i],
+    })),
     width,
     height,
     rng: new Rng(seed),

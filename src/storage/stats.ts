@@ -42,7 +42,15 @@ export interface StatsData {
 }
 
 const KEY = 'vm.stats.v1';
-const EMPTY: StatsData = { version: 1, totalMatches: 0, totalPlayMs: 0, games: {}, wins: {}, bests: {}, history: [] };
+const EMPTY: StatsData = {
+  version: 1,
+  totalMatches: 0,
+  totalPlayMs: 0,
+  games: {},
+  wins: {},
+  bests: {},
+  history: [],
+};
 
 class StatsStore {
   private data: StatsData = load(KEY, structuredCloneSafe(EMPTY));
@@ -74,7 +82,8 @@ class StatsStore {
     g.playMs += durationMs;
     this.data.totalMatches++;
     this.data.totalPlayMs += durationMs;
-    const winnerName = result.winner !== null && result.winner !== undefined ? (players[result.winner] ?? null) : null;
+    const winnerName =
+      result.winner !== null && result.winner !== undefined ? (players[result.winner] ?? null) : null;
     if (winnerName) this.data.wins[winnerName] = (this.data.wins[winnerName] ?? 0) + 1;
     this.data.history.unshift({
       game: id,
@@ -94,7 +103,13 @@ class StatsStore {
       const better = !prev || (r.lowerIsBetter ? r.value < prev.value : r.value > prev.value);
       if (better) {
         best = !!prev;
-        this.data.bests[r.key] = { value: r.value, display: r.display, label: r.label, lowerIsBetter: r.lowerIsBetter, at: Date.now() };
+        this.data.bests[r.key] = {
+          value: r.value,
+          display: r.display,
+          label: r.label,
+          lowerIsBetter: r.lowerIsBetter,
+          at: Date.now(),
+        };
       }
     }
     save(KEY, this.data);

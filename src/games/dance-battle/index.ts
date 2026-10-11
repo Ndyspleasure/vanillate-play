@@ -28,18 +28,31 @@ const factory: GameFactory = (ctx) => {
   const n = ctx.players.length;
   const coop = ctx.mode === 'coop';
   const legs = ctx.players.every((p) => ctx.input(p.index).state.legsVisible);
-  const pool = (legs ? POSES : UPPER_BODY_POSES).filter((p) => !p.checks?.includes('kneeLeft') && !p.checks?.includes('kneeRight'));
+  const pool = (legs ? POSES : UPPER_BODY_POSES).filter(
+    (p) => !p.checks?.includes('kneeLeft') && !p.checks?.includes('kneeRight'),
+  );
   const moves: Move[] = [];
   let prev: PoseDef | null = null;
   for (let k = 0; k < MOVES; k++) {
     const pose: PoseDef = ctx.rng.pickNot(pool, prev);
     prev = pose;
-    moves.push({ beat: LEAD + k * 2, pose, judged: false, best: Array.from({ length: n }, () => ({ grade: 'MISS' as Grade, score: 0 })) });
+    moves.push({
+      beat: LEAD + k * 2,
+      pose,
+      judged: false,
+      best: Array.from({ length: n }, () => ({ grade: 'MISS' as Grade, score: 0 })),
+    });
   }
   const score = new Array(n).fill(0);
   const combo = new Array(n).fill(0);
   const maxCombo = new Array(n).fill(0);
-  const counts: Record<Grade, number>[] = Array.from({ length: n }, () => ({ PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0, FAIL: 0 }));
+  const counts: Record<Grade, number>[] = Array.from({ length: n }, () => ({
+    PERFECT: 0,
+    GREAT: 0,
+    GOOD: 0,
+    MISS: 0,
+    FAIL: 0,
+  }));
   let teamCombo = 0;
   let teamMax = 0;
   let time = -0.2;
@@ -85,7 +98,13 @@ const factory: GameFactory = (ctx) => {
       { label: tx(ctx, 'statBestCombo'), values: maxCombo.map(String) },
     ];
     const pct = (i: number) => (score[i] / (MOVES * 300 * 1.6)) * 100;
-    if (coop) ctx.end(coopResult(ctx, ((pct(0) + pct(1)) / 2) * 1.25, { stats: [...stats, { label: tx(ctx, 'statComboTeam'), values: [String(teamMax)] }], big: String(score[0] + score[1]) }));
+    if (coop)
+      ctx.end(
+        coopResult(ctx, ((pct(0) + pct(1)) / 2) * 1.25, {
+          stats: [...stats, { label: tx(ctx, 'statComboTeam'), values: [String(teamMax)] }],
+          big: String(score[0] + score[1]),
+        }),
+      );
     else if (n === 1) ctx.end(soloResult(ctx, score[0], { stats }));
     else ctx.end(versusResult(ctx, score, { stats }));
   };
@@ -118,7 +137,14 @@ const factory: GameFactory = (ctx) => {
             const inp = ctx.input(i);
             const sim = matchPose(m.pose, inp.state, inp.pose);
             const a = Math.abs(off);
-            const grade: Grade = sim >= 0.8 && a <= 0.14 ? 'PERFECT' : sim >= 0.72 && a <= 0.24 ? 'GREAT' : sim >= 0.62 ? 'GOOD' : 'MISS';
+            const grade: Grade =
+              sim >= 0.8 && a <= 0.14
+                ? 'PERFECT'
+                : sim >= 0.72 && a <= 0.24
+                  ? 'GREAT'
+                  : sim >= 0.62
+                    ? 'GOOD'
+                    : 'MISS';
             const val = GRADE_PTS[grade] + sim;
             if (val > m.best[i].score) m.best[i] = { grade, score: val };
           }
@@ -147,7 +173,11 @@ const factory: GameFactory = (ctx) => {
         ghost(g, m.pose, x, y - T * 0.6, T, m.judged ? '#9e9e9e' : '#ffe9b8', alpha * 0.95);
         text(g, poseName(m.pose, ctx.lang), x, y + T * 2.1, { size: 15, alpha, stroke: 3 });
       }
-      scoreHeader(g, ctx, score, { center: coop ? `${tx(ctx, 'statComboTeam')} ${teamCombo}` : L(ctx, 'Hit the pose on the beat!', 'Pose tepat di ketukan!') });
+      scoreHeader(g, ctx, score, {
+        center: coop
+          ? `${tx(ctx, 'statComboTeam')} ${teamCombo}`
+          : L(ctx, 'Hit the pose on the beat!', 'Pose tepat di ketukan!'),
+      });
       if (time - lastGradeT < 0.8) {
         for (let i = 0; i < n; i++) {
           const gr = lastGrade[i];
@@ -157,7 +187,11 @@ const factory: GameFactory = (ctx) => {
         }
       }
     },
-    inspect: () => ({ time, next: moves.find((m) => !m.judged)?.pose.id, beatTime: (moves.find((m) => !m.judged)?.beat ?? 0) * SPB }),
+    inspect: () => ({
+      time,
+      next: moves.find((m) => !m.judged)?.pose.id,
+      beatTime: (moves.find((m) => !m.judged)?.beat ?? 0) * SPB,
+    }),
   };
 };
 

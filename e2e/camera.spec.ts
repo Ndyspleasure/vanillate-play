@@ -36,16 +36,51 @@ async function duoClip(): Promise<string | null> {
     return null;
   }
   writeFileSync(join(dir, 'pose.jpg'), Buffer.from(buf));
-  execFileSync('convert', [join(dir, 'pose.jpg'), '-crop', '600x667+200+0', '+repage', '-resize', '640x712!', join(dir, 'l.png')]);
+  execFileSync('convert', [
+    join(dir, 'pose.jpg'),
+    '-crop',
+    '600x667+200+0',
+    '+repage',
+    '-resize',
+    '640x712!',
+    join(dir, 'l.png'),
+  ]);
   execFileSync('convert', [join(dir, 'l.png'), '-flop', join(dir, 'r.png')]);
-  execFileSync('convert', [join(dir, 'l.png'), join(dir, 'r.png'), '+append', '-resize', '1280x720!', join(dir, 'duo.png')]);
-  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-loop', '1', '-i', join(dir, 'duo.png'), '-t', '2', '-r', '15', '-pix_fmt', 'yuv420p', y4m]);
+  execFileSync('convert', [
+    join(dir, 'l.png'),
+    join(dir, 'r.png'),
+    '+append',
+    '-resize',
+    '1280x720!',
+    join(dir, 'duo.png'),
+  ]);
+  execFileSync('ffmpeg', [
+    '-loglevel',
+    'error',
+    '-y',
+    '-loop',
+    '1',
+    '-i',
+    join(dir, 'duo.png'),
+    '-t',
+    '2',
+    '-r',
+    '15',
+    '-pix_fmt',
+    'yuv420p',
+    y4m,
+  ]);
   return y4m;
 }
 
 async function cameraBrowser(y4m: string) {
   const browser = await chromium.launch({
-    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', `--use-file-for-fake-video-capture=${y4m}`, '--enable-unsafe-swiftshader'],
+    args: [
+      '--use-fake-ui-for-media-stream',
+      '--use-fake-device-for-media-stream',
+      `--use-file-for-fake-video-capture=${y4m}`,
+      '--enable-unsafe-swiftshader',
+    ],
   });
   const ctx = await browser.newContext({ permissions: ['camera'], viewport: { width: 1280, height: 760 } });
   const page = await ctx.newPage();
@@ -110,7 +145,10 @@ test('camera and tracking keep working across restarts and game changes (no refr
     await expect(page.locator('#pause-btn')).toBeVisible();
     await page.waitForTimeout(2500);
     await page.locator('#pause-btn').click();
-    await page.getByRole('button', { name: /Recalibrate|Kalibrasi/ }).last().click();
+    await page
+      .getByRole('button', { name: /Recalibrate|Kalibrasi/ })
+      .last()
+      .click();
     await expect(page.locator('.lobby__summary')).toContainText(/2 of 2/, { timeout: 15_000 });
     await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
   }

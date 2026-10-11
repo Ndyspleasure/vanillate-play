@@ -15,8 +15,18 @@ export function serviceWorker(): Plugin {
       const precache = Object.keys(bundle)
         .filter((f) => !f.startsWith('mediapipe/') && !f.endsWith('.map') && !f.endsWith('.wasm'))
         .map((f) => `/${f}`);
-      precache.push('/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/favicon.svg');
-      const version = createHash('sha256').update(precache.join('|')).update(String(Date.now())).digest('hex').slice(0, 12);
+      precache.push(
+        '/',
+        '/manifest.webmanifest',
+        '/icons/icon-192.png',
+        '/icons/icon-512.png',
+        '/favicon.svg',
+      );
+      const version = createHash('sha256')
+        .update(precache.join('|'))
+        .update(String(Date.now()))
+        .digest('hex')
+        .slice(0, 12);
       const template = readFileSync(resolve('build/sw-template.js'), 'utf8');
       const source = template
         .replace('__VERSION__', version)

@@ -127,7 +127,8 @@ export class LobbyView {
       ready,
       calibrating,
       issues,
-      lowLight: this.session.mode === 'camera' && this.session.brightness !== null && this.session.brightness < 0.17,
+      lowLight:
+        this.session.mode === 'camera' && this.session.brightness !== null && this.session.brightness < 0.17,
       extra: this.session.tracker.extraPeople,
       startProgress: this.hold.progress,
       startArmed: this.hold.armed,
@@ -252,7 +253,11 @@ export class LobbyView {
       const inp = this.hub.get(p.player);
       const u = p.t / 1.2;
       g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1;
-      text(g, p.text, inp.head.x, inp.head.y - inp.headRadius * 2.4 - 70 - u * 40, { size: 26, color: C.good, weight: 800 });
+      text(g, p.text, inp.head.x, inp.head.y - inp.headRadius * 2.4 - 70 - u * 40, {
+        size: 26,
+        color: C.good,
+        weight: 800,
+      });
       g.globalAlpha = 1;
     }
     // Hold-to-start meter

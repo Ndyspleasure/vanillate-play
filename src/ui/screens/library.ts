@@ -51,7 +51,11 @@ export function libraryScreen(m: RouteMatch): Screen {
       );
     }
     // For Two first, then by priority (featured) as the product requires duo to stand out.
-    list = [...list].sort((a, b) => Number(!!b.featured) - Number(!!a.featured) || Number(b.categories.includes('for-two')) - Number(a.categories.includes('for-two')));
+    list = [...list].sort(
+      (a, b) =>
+        Number(!!b.featured) - Number(!!a.featured) ||
+        Number(b.categories.includes('for-two')) - Number(a.categories.includes('for-two')),
+    );
     list.forEach((g) => grid.appendChild(gameCard(g)));
     empty.hidden = list.length > 0;
   };
@@ -77,7 +81,12 @@ export function libraryScreen(m: RouteMatch): Screen {
     h(
       'main',
       { id: 'main', class: 'section' },
-      h('div', { class: 'section__head section__head--row' }, h('div', null, h('h1', null, t('lib.title')), h('p', null, t('lib.lead'))), search),
+      h(
+        'div',
+        { class: 'section__head section__head--row' },
+        h('div', null, h('h1', null, t('lib.title')), h('p', null, t('lib.lead'))),
+        search,
+      ),
       chips,
       grid,
       empty,

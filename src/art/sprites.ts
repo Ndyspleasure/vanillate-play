@@ -29,7 +29,14 @@ export interface ArtOpts {
 }
 
 /** Draw art centered at (x, y). Returns false if the art is unknown (caller may fall back). */
-export function drawArt(g: CanvasRenderingContext2D, nameOrEmoji: string, x: number, y: number, size: number, o: ArtOpts = {}): boolean {
+export function drawArt(
+  g: CanvasRenderingContext2D,
+  nameOrEmoji: string,
+  x: number,
+  y: number,
+  size: number,
+  o: ArtOpts = {},
+): boolean {
   const name = artFor(nameOrEmoji);
   if (!name) return false;
   const img = image(name, o.color ?? '#ff4d8d');
@@ -45,7 +52,10 @@ export function drawArt(g: CanvasRenderingContext2D, nameOrEmoji: string, x: num
 }
 
 /** Inline SVG element for the DOM. */
-export function artEl(nameOrEmoji: string, opts: { size?: number; color?: string; className?: string; label?: string } = {}): HTMLSpanElement {
+export function artEl(
+  nameOrEmoji: string,
+  opts: { size?: number; color?: string; className?: string; label?: string } = {},
+): HTMLSpanElement {
   const span = document.createElement('span');
   span.className = `art ${opts.className ?? ''}`.trim();
   const name = artFor(nameOrEmoji);

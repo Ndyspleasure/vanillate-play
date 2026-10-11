@@ -35,7 +35,12 @@ export function createFlap(ctx: GameContext, mode: Mode): GameInstance {
     ];
     if (n === 1) ctx.end(soloResult(ctx, flyers[0].pipes, { stats }));
     else {
-      const scores = mode === 'race' ? flyers.map((f) => Math.round(f.dist * 10)) : mode === 'sudden' ? flyers.map((f, i) => (out[i] ? 0 : 1000) + f.pipes) : flyers.map((f) => f.pipes);
+      const scores =
+        mode === 'race'
+          ? flyers.map((f) => Math.round(f.dist * 10))
+          : mode === 'sudden'
+            ? flyers.map((f, i) => (out[i] ? 0 : 1000) + f.pipes)
+            : flyers.map((f) => f.pipes);
       ctx.end(versusResult(ctx, scores, { display: (v) => String(mode === 'sudden' ? v % 1000 : v), stats }));
     }
   };
@@ -77,7 +82,14 @@ export function createFlap(ctx: GameContext, mode: Mode): GameInstance {
       const w = (ctx.width - pad * (n + 1)) / n;
       for (let i = 0; i < n; i++) {
         const r: Rect = { x: pad + i * (w + pad), y: pad, w, h: ctx.height - pad * 2 };
-        renderFlight(g, r, flyers[i], tracks[i], ctx.players[i].color, `${ctx.players[i].name}${out[i] ? ` · ${tx(ctx, 'out')}` : ''}`);
+        renderFlight(
+          g,
+          r,
+          flyers[i],
+          tracks[i],
+          ctx.players[i].color,
+          `${ctx.players[i].name}${out[i] ? ` · ${tx(ctx, 'out')}` : ''}`,
+        );
       }
       if (duration < 900) {
         const left = Math.max(0, Math.ceil(duration - time));

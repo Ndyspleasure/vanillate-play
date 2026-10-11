@@ -117,7 +117,12 @@ export function renderShareCard(
   return c;
 }
 
-export function openShare(meta: GameMeta, result: MatchResult, players: readonly PlayerInfo[], photo: HTMLCanvasElement | null): void {
+export function openShare(
+  meta: GameMeta,
+  result: MatchResult,
+  players: readonly PlayerInfo[],
+  photo: HTMLCanvasElement | null,
+): void {
   let includePhoto = false;
   let vertical = false;
   const img = h('img', { class: 'share-preview', alt: 'Result card preview' });
@@ -127,7 +132,8 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
     img.src = current.toDataURL('image/png');
   };
   render();
-  const toBlob = () => new Promise<Blob | null>((res) => (current ? current.toBlob(res, 'image/png') : res(null)));
+  const toBlob = () =>
+    new Promise<Blob | null>((res) => (current ? current.toBlob(res, 'image/png') : res(null)));
   const fileName = `vanillate-${meta.id}-${Date.now()}.png`;
 
   const share = async () => {
@@ -140,7 +146,11 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
       if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], text: result.shareText, title: `${meta.name} — Vanillate Motion` });
       } else if (nav.share) {
-        await nav.share({ text: result.shareText, title: `${meta.name} — Vanillate Motion`, url: location.origin });
+        await nav.share({
+          text: result.shareText,
+          title: `${meta.name} — Vanillate Motion`,
+          url: location.origin,
+        });
       } else {
         download();
       }
@@ -205,7 +215,11 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
         'div',
         { class: 'share__buttons' },
         button(t('share.share'), { icon: 'share', onClick: () => void share() }),
-        button(t('share.download'), { icon: 'download', variant: 'secondary', onClick: () => void download() }),
+        button(t('share.download'), {
+          icon: 'download',
+          variant: 'secondary',
+          onClick: () => void download(),
+        }),
         button(t('share.copy'), { icon: 'copy', variant: 'ghost', onClick: () => void copy() }),
       ),
       h('p', { class: 'muted small' }, t('share.note')),

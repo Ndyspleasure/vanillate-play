@@ -32,11 +32,13 @@ export function buildTrack(rng: Rng, length: number, density = 1, start = 30): O
     else if (r < 0.48) out.push({ z, lane: -1, kind: 'bar' });
     else if (r < 0.8) {
       const free = rng.int(0, 2);
-      for (let l = 0; l < LANES; l++) if (l !== free) out.push({ z, lane: l, kind: 'cone', moving: rng.chance(0.15) && l !== 1 });
+      for (let l = 0; l < LANES; l++)
+        if (l !== free) out.push({ z, lane: l, kind: 'cone', moving: rng.chance(0.15) && l !== 1 });
       out.push({ z, lane: free, kind: 'coin' });
     } else if (r < 0.9) out.push({ z, lane: rng.int(0, 2), kind: 'boost' });
     else out.push({ z, lane: -1, kind: 'zone' });
-    for (let k = 1; k <= 3; k++) if (rng.chance(0.4)) out.push({ z: z + k * 3, lane: rng.int(0, 2), kind: 'coin' });
+    for (let k = 1; k <= 3; k++)
+      if (rng.chance(0.4)) out.push({ z: z + k * 3, lane: rng.int(0, 2), kind: 'coin' });
     z += rng.range(16, 26) / density;
   }
   return out;
@@ -75,10 +77,13 @@ export class Runner {
       // Tracked body: the lane follows where the player stands (left / centre / right), so moving
       // left always means the left lane and one movement can never shift two lanes.
       this.lane = 1 + inp.state.zone;
-    } else if (inp.any('MOVE_LEFT', 'LEAN_LEFT', 'STEP_LEFT', 'DODGE_LEFT')) this.lane = clamp(this.lane - 1, 0, LANES - 1);
-    else if (inp.any('MOVE_RIGHT', 'LEAN_RIGHT', 'STEP_RIGHT', 'DODGE_RIGHT')) this.lane = clamp(this.lane + 1, 0, LANES - 1);
+    } else if (inp.any('MOVE_LEFT', 'LEAN_LEFT', 'STEP_LEFT', 'DODGE_LEFT'))
+      this.lane = clamp(this.lane - 1, 0, LANES - 1);
+    else if (inp.any('MOVE_RIGHT', 'LEAN_RIGHT', 'STEP_RIGHT', 'DODGE_RIGHT'))
+      this.lane = clamp(this.lane + 1, 0, LANES - 1);
     if (inp.has('JUMP') && this.jumpT < 0) this.jumpT = 0;
-    if ((inp.any('SQUAT', 'DUCK') || inp.state.squatting) && this.slideT < 0 && this.jumpT < 0) this.slideT = 0;
+    if ((inp.any('SQUAT', 'DUCK') || inp.state.squatting) && this.slideT < 0 && this.jumpT < 0)
+      this.slideT = 0;
     this.energy = inp.state.energy;
   }
 
@@ -142,7 +147,14 @@ export function movingLane(o: Obstacle, time: number): number {
   return Math.round(1 + Math.sin(time * 1.6 + o.z) * 1);
 }
 
-const ART: Record<ObstacleKind, string> = { hurdle: 'hurdle', bar: 'bar', cone: 'cone', coin: 'coin', boost: 'boost', zone: 'boost' };
+const ART: Record<ObstacleKind, string> = {
+  hurdle: 'hurdle',
+  bar: 'bar',
+  cone: 'cone',
+  coin: 'coin',
+  boost: 'boost',
+  zone: 'boost',
+};
 
 /** Render one runner's view into a rect. */
 export function renderLane(
@@ -173,7 +185,7 @@ export function renderLane(
     const s = D / (D + Math.max(0, z));
     const y = horizon + (bottom - horizon) * s;
     const bend = curve * (1 - s) * (1 - s) * r.w * 0.35;
-    const x = cx + bend + (lanePos - 1) * (roadHalf * 2 / LANES) * s;
+    const x = cx + bend + (lanePos - 1) * ((roadHalf * 2) / LANES) * s;
     return { x, y, s };
   };
   // Road stripes
@@ -283,6 +295,12 @@ export function renderLane(
   g.stroke();
   if (opts.label) {
     panel(g, r.x + 10, r.y + 10, Math.min(r.w - 20, 220), 34, { fill: 'rgba(20,10,40,0.75)', r: 12 });
-    text(g, opts.label, r.x + 22, r.y + 28, { size: 17, align: 'left', color, stroke: 0, maxWidth: r.w - 40 });
+    text(g, opts.label, r.x + 22, r.y + 28, {
+      size: 17,
+      align: 'left',
+      color,
+      stroke: 0,
+      maxWidth: r.w - 40,
+    });
   }
 }

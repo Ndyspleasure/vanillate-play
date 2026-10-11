@@ -24,7 +24,10 @@ const T = {
   firstTo: ['First to {n}', 'Duluan {n}'],
   points: ['{n} points', '{n} poin'],
   oops: ['OOPS!', 'UPS!'],
-  oopsSub: ['This game hit a problem. Try a rematch or another game.', 'Game ini mengalami masalah. Coba rematch atau game lain.'],
+  oopsSub: [
+    'This game hit a problem. Try a rematch or another game.',
+    'Game ini mengalami masalah. Coba rematch atau game lain.',
+  ],
   starting: ['STARTING…', 'MULAI…'],
   keepPracticing: ['KEEP PRACTICING', 'TERUS BERLATIH'],
   perfectSync: ['PERFECT SYNC', 'SINKRON SEMPURNA'],
@@ -173,4 +176,5 @@ export function tx(ctx: { lang: 'en' | 'id' }, key: TxKey, vars?: Record<string,
 }
 
 /** Inline bilingual string for game-specific text. */
-export const L = (ctx: { lang: 'en' | 'id' }, en: string, id: string): string => (ctx.lang === 'id' ? id : en);
+export const L = (ctx: { lang: 'en' | 'id' }, en: string, id: string): string =>
+  ctx.lang === 'id' ? id : en;

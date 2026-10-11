@@ -77,8 +77,13 @@ export function detailScreen(m: RouteMatch): Screen {
       if (o.modes && !o.modes.includes(mode)) continue;
       const sel = h(
         'select',
-        { id: `opt-${o.id}`, onchange: (e: Event) => (options[o.id] = (e.target as HTMLSelectElement).value) },
-        o.choices.map((c) => h('option', { value: c.value, selected: options[o.id] === c.value }, loc(c.label))),
+        {
+          id: `opt-${o.id}`,
+          onchange: (e: Event) => (options[o.id] = (e.target as HTMLSelectElement).value),
+        },
+        o.choices.map((c) =>
+          h('option', { value: c.value, selected: options[o.id] === c.value }, loc(c.label)),
+        ),
       );
       optBox.appendChild(h('label', { class: 'field' }, h('span', null, loc(o.label)), sel));
     }
@@ -109,7 +114,17 @@ export function detailScreen(m: RouteMatch): Screen {
           'div',
           { class: 'detail__media' },
           thumb(meta, 'lg'),
-          h('div', { class: 'detail__chips' }, h('span', { class: 'chip' }, playerCountLabel(meta)), h('span', { class: 'chip' }, meta.duration), h('span', { class: `chip diff diff--${meta.difficulty}` }, t(`diff.${meta.difficulty}` as I18nKey))),
+          h(
+            'div',
+            { class: 'detail__chips' },
+            h('span', { class: 'chip' }, playerCountLabel(meta)),
+            h('span', { class: 'chip' }, meta.duration),
+            h(
+              'span',
+              { class: `chip diff diff--${meta.difficulty}` },
+              t(`diff.${meta.difficulty}` as I18nKey),
+            ),
+          ),
           meta.fullBody ? h('p', { class: 'note' }, '🦶 ', t('detail.fullBody')) : null,
           best ? h('p', { class: 'note' }, '🏆 ', t('result.prevBest', { v: best.display })) : null,
         ),
@@ -120,13 +135,26 @@ export function detailScreen(m: RouteMatch): Screen {
           h('p', { class: 'lead' }, text.tagline),
           h('p', null, text.description),
           h('h2', null, t('detail.howto')),
-          h('ol', { class: 'howto' }, text.howTo.map((s) => h('li', null, s))),
+          h(
+            'ol',
+            { class: 'howto' },
+            text.howTo.map((s) => h('li', null, s)),
+          ),
           h('h2', null, t('detail.moves')),
           h('div', { class: 'chips' }, meta.moves.map(moveChip)),
           h('h2', null, t('detail.mode')),
           modeBox,
           optBox,
-          h('div', { class: 'detail__cta' }, button(t('detail.start'), { size: 'lg', icon: 'play', onClick: start, attrs: { id: 'start-game' } })),
+          h(
+            'div',
+            { class: 'detail__cta' },
+            button(t('detail.start'), {
+              size: 'lg',
+              icon: 'play',
+              onClick: start,
+              attrs: { id: 'start-game' },
+            }),
+          ),
         ),
       ),
     ),

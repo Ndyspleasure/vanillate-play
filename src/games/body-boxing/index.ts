@@ -70,7 +70,15 @@ const factory: GameFactory = (ctx) => {
   const throwPunch = (from: number, side: 'left' | 'right', start: Point) => {
     const to = 1 - from;
     const tgt = head(to);
-    gloves.push({ from, to, start: { ...start }, target: { ...tgt }, t: 0, side, counter: time < counterUntil[from] });
+    gloves.push({
+      from,
+      to,
+      start: { ...start },
+      target: { ...tgt },
+      t: 0,
+      side,
+      counter: time < counterUntil[from],
+    });
     cooldown[from] = 0.33;
     ctx.audio.play('whoosh', { pan: from === 0 ? -0.4 : 0.4 });
   };
@@ -86,7 +94,8 @@ const factory: GameFactory = (ctx) => {
       if (dodged) ai.headOff = ctx.rng.chance(0.5) ? -90 : 90;
     } else {
       const inp: PlayerInput = ctx.input(d);
-      if (inp.health === 'lost') blocked = true; // never punish tracking loss
+      if (inp.health === 'lost')
+        blocked = true; // never punish tracking loss
       else {
         blocked = inp.state.blocking;
         dodged = !blocked && (dist(inp.head, gl.target) > inp.headRadius * 1.6 || inp.state.ducking);
@@ -131,7 +140,13 @@ const factory: GameFactory = (ctx) => {
     ctx.audio.play('hit', { pitch: crit ? 0.8 : 1 });
     ctx.fx.burst(at.x, at.y, [color(a), '#fff', C.gold], crit ? 36 : 20, { speed: 380 });
     ctx.fx.shake(crit ? 14 : 7, 0.25);
-    const label = gl.counter ? tx(ctx, 'counter') : crit ? tx(ctx, 'critical') : combo[a] > 1 ? tx(ctx, 'combo', { n: combo[a] }) : `-${dmg}`;
+    const label = gl.counter
+      ? tx(ctx, 'counter')
+      : crit
+        ? tx(ctx, 'critical')
+        : combo[a] > 1
+          ? tx(ctx, 'combo', { n: combo[a] })
+          : `-${dmg}`;
     ctx.fx.text(label, at.x, at.y - 80, crit || gl.counter ? C.gold : '#fff', crit ? 42 : 34);
     if (combo[a] > 1) ctx.audio.play('combo', { pitch: 1 + combo[a] * 0.05 });
     if (hp[d] <= 0) ko(a);
@@ -194,7 +209,22 @@ const factory: GameFactory = (ctx) => {
       );
     } else {
       const scores = rounds[0] === rounds[1] ? [dmgTotal[0], dmgTotal[1]] : rounds;
-      ctx.end(versusResult(ctx, scores, { display: () => '', stats, winner: rounds[0] === rounds[1] ? (dmgTotal[0] === dmgTotal[1] ? null : dmgTotal[0] > dmgTotal[1] ? 0 : 1) : rounds[0] > rounds[1] ? 0 : 1 }));
+      ctx.end(
+        versusResult(ctx, scores, {
+          display: () => '',
+          stats,
+          winner:
+            rounds[0] === rounds[1]
+              ? dmgTotal[0] === dmgTotal[1]
+                ? null
+                : dmgTotal[0] > dmgTotal[1]
+                  ? 0
+                  : 1
+              : rounds[0] > rounds[1]
+                ? 0
+                : 1,
+        }),
+      );
     }
   };
 
@@ -241,7 +271,10 @@ const factory: GameFactory = (ctx) => {
       for (let i = 0; i < (solo ? 1 : 2); i++) {
         const inp = ctx.input(i);
         cooldown[i] = Math.max(0, cooldown[i] - dt);
-        if (inp.any('DODGE_LEFT', 'DODGE_RIGHT', 'LEAN_LEFT', 'LEAN_RIGHT', 'DUCK', 'STEP_LEFT', 'STEP_RIGHT')) lastEvade[i] = time;
+        if (
+          inp.any('DODGE_LEFT', 'DODGE_RIGHT', 'LEAN_LEFT', 'LEAN_RIGHT', 'DUCK', 'STEP_LEFT', 'STEP_RIGHT')
+        )
+          lastEvade[i] = time;
         if (cooldown[i] > 0) continue;
         if (inp.has('PUNCH_LEFT')) throwPunch(i, 'left', inp.leftHand);
         else if (inp.has('PUNCH_RIGHT')) throwPunch(i, 'right', inp.rightHand);
@@ -259,20 +292,33 @@ const factory: GameFactory = (ctx) => {
       if (solo) {
         const h = aiHead();
         const shake = ai.hitT > 0 ? Math.sin(time * 60) * 8 : 0;
-        panel(g, h.x - 70 + shake, h.y + 50, 140, 190, { fill: '#7b2cff', r: 40, stroke: '#140b2e', lineWidth: 4 });
+        panel(g, h.x - 70 + shake, h.y + 50, 140, 190, {
+          fill: '#7b2cff',
+          r: 40,
+          stroke: '#140b2e',
+          lineWidth: 4,
+        });
         circle(g, h.x + shake, h.y, 54, '#ffcf9e', '#140b2e', 4);
         circle(g, h.x - 18 + shake, h.y - 6, 7, '#140b2e');
         circle(g, h.x + 18 + shake, h.y - 6, 7, '#140b2e');
         g.strokeStyle = '#140b2e';
         g.lineWidth = 4;
         g.beginPath();
-        g.arc(h.x + shake, h.y + 20, 16, ai.hitT > 0 ? Math.PI * 1.1 : 0.15 * Math.PI, ai.hitT > 0 ? Math.PI * 1.9 : 0.85 * Math.PI, ai.hitT > 0);
+        g.arc(
+          h.x + shake,
+          h.y + 20,
+          16,
+          ai.hitT > 0 ? Math.PI * 1.1 : 0.15 * Math.PI,
+          ai.hitT > 0 ? Math.PI * 1.9 : 0.85 * Math.PI,
+          ai.hitT > 0,
+        );
         g.stroke();
         g.fillStyle = '#e63946';
         g.fillRect(h.x - 54 + shake, h.y - 40, 108, 14);
         for (const side of ['left', 'right'] as const) {
           const p = aiGlove(side);
-          if (ai.state === 'windup' && ai.side === side) circle(g, p.x, p.y, 48 + Math.sin(time * 30) * 5, 'rgba(255,90,90,0.35)');
+          if (ai.state === 'windup' && ai.side === side)
+            circle(g, p.x, p.y, 48 + Math.sin(time * 30) * 5, 'rgba(255,90,90,0.35)');
           emoji(g, '🥊', p.x, p.y, 70, 1, '#ffb020');
         }
       }
@@ -297,14 +343,41 @@ const factory: GameFactory = (ctx) => {
       const bw = Math.min(420, w * 0.36);
       for (let i = 0; i < 2; i++) {
         const x = i === 0 ? 20 : w - bw - 20;
-        text(g, name(i), i === 0 ? x : x + bw, 30, { size: 22, align: i === 0 ? 'left' : 'right', color: color(i) });
+        text(g, name(i), i === 0 ? x : x + bw, 30, {
+          size: 22,
+          align: i === 0 ? 'left' : 'right',
+          color: color(i),
+        });
         bar(g, x, 48, bw, 22, hp[i] / MAX_HP, color(i), { reverse: i === 1, ghost: ghostHp[i] / MAX_HP });
-        for (let r = 0; r < 2; r++) circle(g, i === 0 ? x + 12 + r * 26 : x + bw - 12 - r * 26, 88, 9, r < rounds[i] ? C.gold : 'rgba(255,255,255,0.2)', '#140b2e', 2);
-        if (combo[i] > 1 && time - lastHit[i] < 1.3) text(g, tx(ctx, 'combo', { n: combo[i] }), i === 0 ? x : x + bw, 118, { size: 22, align: i === 0 ? 'left' : 'right', color: C.gold });
-        if (time < counterUntil[i]) text(g, tx(ctx, 'counter'), i === 0 ? x : x + bw, 146, { size: 20, align: i === 0 ? 'left' : 'right', color: C.gold });
+        for (let r = 0; r < 2; r++)
+          circle(
+            g,
+            i === 0 ? x + 12 + r * 26 : x + bw - 12 - r * 26,
+            88,
+            9,
+            r < rounds[i] ? C.gold : 'rgba(255,255,255,0.2)',
+            '#140b2e',
+            2,
+          );
+        if (combo[i] > 1 && time - lastHit[i] < 1.3)
+          text(g, tx(ctx, 'combo', { n: combo[i] }), i === 0 ? x : x + bw, 118, {
+            size: 22,
+            align: i === 0 ? 'left' : 'right',
+            color: C.gold,
+          });
+        if (time < counterUntil[i])
+          text(g, tx(ctx, 'counter'), i === 0 ? x : x + bw, 146, {
+            size: 20,
+            align: i === 0 ? 'left' : 'right',
+            color: C.gold,
+          });
       }
       panel(g, w / 2 - 60, 20, 120, 72, { fill: 'rgba(20,10,40,0.8)', r: 18 });
-      text(g, String(Math.max(0, Math.ceil(timer))), w / 2, 46, { size: 30, color: timer < 10 ? C.bad : C.ink, stroke: 0 });
+      text(g, String(Math.max(0, Math.ceil(timer))), w / 2, 46, {
+        size: 30,
+        color: timer < 10 ? C.bad : C.ink,
+        stroke: 0,
+      });
       text(g, tx(ctx, 'round', { n: round }), w / 2, 76, { size: 14, color: C.vanilla, stroke: 0 });
       if (koFlash > 0) {
         g.fillStyle = `rgba(255,255,255,${koFlash * 0.25})`;

@@ -13,7 +13,10 @@ test('landing → library → detail → play with keyboard → result → remat
   const errors = trackErrors(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/controller|controller-nya/);
-  await page.getByRole('link', { name: /Browse all games|Lihat semua game/ }).first().click();
+  await page
+    .getByRole('link', { name: /Browse all games|Lihat semua game/ })
+    .first()
+    .click();
   await expect(page.locator('.game-card')).toHaveCount(36);
   await page.locator('[data-game="target-battle"] a').click();
   await expect(page).toHaveURL(/\/games\/target-battle/);
@@ -35,7 +38,9 @@ test('every game loads and runs in keyboard mode', async ({ page }) => {
   test.setTimeout(600_000);
   const errors = trackErrors(page);
   await page.goto('/games');
-  const ids = await page.locator('.game-card').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.game!));
+  const ids = await page
+    .locator('.game-card')
+    .evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.game!));
   expect(ids.length).toBe(36);
   for (const id of ids) {
     await page.goto(`/play/${id}`);
@@ -61,7 +66,8 @@ test('camera denied path offers a keyboard fallback', async ({ browser }) => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   await page.addInitScript(() => {
-    navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
   });
   await page.goto('/play/reaction-battle');
   await page.locator('#safety-check').check();

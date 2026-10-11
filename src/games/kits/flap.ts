@@ -102,7 +102,14 @@ export function buildPipes(rng: Rng, count: number, start = 1.2): Pipe[] {
   return pipes;
 }
 
-export function renderFlight(g: CanvasRenderingContext2D, r: Rect, f: Flyer, track: Pipe[], color: string, label?: string): void {
+export function renderFlight(
+  g: CanvasRenderingContext2D,
+  r: Rect,
+  f: Flyer,
+  track: Pipe[],
+  color: string,
+  label?: string,
+): void {
   g.save();
   roundRect(g, r.x, r.y, r.w, r.h, 18);
   g.clip();

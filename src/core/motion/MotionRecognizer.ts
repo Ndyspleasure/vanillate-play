@@ -227,7 +227,9 @@ export class MotionRecognizer {
     s.velocity = { x: (f.center.x - prev.center.x) / dt / T, y: (f.center.y - prev.center.y) / dt / T };
 
     // Continuous measures
-    s.lean = f.hipsVisible ? (f.shC.x - f.hipC.x) / f.torso : ((f.rSh.y - f.lSh.y) / Math.max(f.shoulderWidth, 1e-3)) * 0.5;
+    s.lean = f.hipsVisible
+      ? (f.shC.x - f.hipC.x) / f.torso
+      : ((f.rSh.y - f.lSh.y) / Math.max(f.shoulderWidth, 1e-3)) * 0.5;
     s.leftHandHeight = (f.shC.y - f.lWr.y) / T;
     s.rightHandHeight = (f.shC.y - f.rWr.y) / T;
     s.leftArmExt = f.lArmExt;

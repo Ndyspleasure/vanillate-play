@@ -225,7 +225,9 @@ describe('pose matching', () => {
     rig.body(1).left.mode = 'up';
     rig.body(1).right.mode = 'up';
     await rig.step(0.5);
-    expect(comparePoses(poseVector(rig.session.state(0)), poseVector(rig.session.state(1)))).toBeGreaterThan(0.85);
+    expect(comparePoses(poseVector(rig.session.state(0)), poseVector(rig.session.state(1)))).toBeGreaterThan(
+      0.85,
+    );
   });
 
   it('requires state checks such as squatting', async () => {

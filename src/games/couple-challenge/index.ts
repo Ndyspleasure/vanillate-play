@@ -1,5 +1,13 @@
 import { clamp01, mean } from '../../core/math';
-import { comparePoses, matchPose, poseById, poseName, UPPER_BODY_POSES, type PoseDef, type PoseVector } from '../../core/motion/pose';
+import {
+  comparePoses,
+  matchPose,
+  poseById,
+  poseName,
+  UPPER_BODY_POSES,
+  type PoseDef,
+  type PoseVector,
+} from '../../core/motion/pose';
 import { C, ghost, text } from '../../engine/draw';
 import { coopResult, scoreHeader } from '../../engine/hud';
 import type { GameFactory } from '../../engine/types';
@@ -56,9 +64,16 @@ const factory: GameFactory = (ctx) => {
           headline: L(ctx, 'COUPLE SCORE', 'SKOR PASANGAN'),
           stats: [
             { label: L(ctx, 'Best sync', 'Sinkron terbaik'), values: [`${Math.round(best)}%`] },
-            ...ROUNDS.map((r, k) => ({ label: TITLES[r][ctx.lang === 'id' ? 1 : 0], values: [`${Math.round(results[k] * 100)}%`] })),
+            ...ROUNDS.map((r, k) => ({
+              label: TITLES[r][ctx.lang === 'id' ? 1 : 0],
+              values: [`${Math.round(results[k] * 100)}%`],
+            })),
           ],
-          shareLine: L(ctx, `COUPLE SCORE ${Math.round(pct)}% · BEST SYNC ${Math.round(best)}% 💑`, `SKOR PASANGAN ${Math.round(pct)}% · SINKRON TERBAIK ${Math.round(best)}% 💑`),
+          shareLine: L(
+            ctx,
+            `COUPLE SCORE ${Math.round(pct)}% · BEST SYNC ${Math.round(best)}% 💑`,
+            `SKOR PASANGAN ${Math.round(pct)}% · SINKRON TERBAIK ${Math.round(best)}% 💑`,
+          ),
         }),
       );
       return;
@@ -84,7 +99,8 @@ const factory: GameFactory = (ctx) => {
     t = 0;
     const pct = Math.round(roundScore * 100);
     ctx.audio.play(pct >= 80 ? 'perfect' : pct >= 50 ? 'success' : 'fail');
-    if (pct >= 80) ctx.fx.burst(ctx.width / 2, ctx.height * 0.4, ['#ff4d8d', '#ff9ec7', '#fff'], 36, { shape: 'star' });
+    if (pct >= 80)
+      ctx.fx.burst(ctx.width / 2, ctx.height * 0.4, ['#ff4d8d', '#ff9ec7', '#fff'], 36, { shape: 'star' });
   };
 
   const timingScore = () => {
@@ -119,9 +135,11 @@ const factory: GameFactory = (ctx) => {
       switch (id()) {
         case 'syncJump':
         case 'sameMove': {
-          for (let i = 0; i < 2; i++) if (times[i] === null && t > 0.15) times[i] = performed(cmd, ctx.input(i), now, t > 0.3);
+          for (let i = 0; i < 2; i++)
+            if (times[i] === null && t > 0.15) times[i] = performed(cmd, ctx.input(i), now, t > 0.3);
           if (times[0] !== null && times[1] !== null) samples.push(comparePoses(A.pose, B.pose));
-          if ((times[0] !== null && times[1] !== null && samples.length > 10) || t > 4) done(timingScore() * 0.75 + (samples.length ? mean(samples) : 0) * 0.25);
+          if ((times[0] !== null && times[1] !== null && samples.length > 10) || t > 4)
+            done(timingScore() * 0.75 + (samples.length ? mean(samples) : 0) * 0.25);
           break;
         }
         case 'reactionDuo': {
@@ -130,7 +148,8 @@ const factory: GameFactory = (ctx) => {
             shownAt = now;
             break;
           }
-          for (let i = 0; i < 2; i++) if (times[i] === null) times[i] = performed(cmd, ctx.input(i), now, t - waitFor > 0.15);
+          for (let i = 0; i < 2; i++)
+            if (times[i] === null) times[i] = performed(cmd, ctx.input(i), now, t - waitFor > 0.15);
           if ((times[0] !== null && times[1] !== null) || t - waitFor > 2.5) {
             const ms = times.map((x) => (x === null ? 2500 : Math.max(150, x - shownAt)));
             const speed = clamp01(1 - (mean(ms) - 300) / 1400);
@@ -153,7 +172,12 @@ const factory: GameFactory = (ctx) => {
           const sb = matchPose(pose, B.state, B.pose);
           samples.push(Math.min(sa, sb));
           if (sa > 0.7 && sb > 0.7) hold += dt;
-          if (hold >= 1 || t > 6) done(hold >= 1 ? Math.max(...samples.slice(-30)) * 0.7 + clamp01(1 - t / 6) * 0.3 : Math.max(0, ...samples) * 0.6);
+          if (hold >= 1 || t > 6)
+            done(
+              hold >= 1
+                ? Math.max(...samples.slice(-30)) * 0.7 + clamp01(1 - t / 6) * 0.3
+                : Math.max(0, ...samples) * 0.6,
+            );
           break;
         }
         case 'follow': {
@@ -168,9 +192,17 @@ const factory: GameFactory = (ctx) => {
       }
     },
     render(g) {
-      scoreHeader(g, ctx, [`${results.length ? Math.round(mean(results) * 100) : 0}%`, `${Math.min(ri + 1, ROUNDS.length)}/${ROUNDS.length}`], {
-        labels: [L(ctx, 'COUPLE', 'PASANGAN'), L(ctx, 'ROUND', 'RONDE')],
-      });
+      scoreHeader(
+        g,
+        ctx,
+        [
+          `${results.length ? Math.round(mean(results) * 100) : 0}%`,
+          `${Math.min(ri + 1, ROUNDS.length)}/${ROUNDS.length}`,
+        ],
+        {
+          labels: [L(ctx, 'COUPLE', 'PASANGAN'), L(ctx, 'ROUND', 'RONDE')],
+        },
+      );
       if (finished) return;
       const title = TITLES[id()][ctx.lang === 'id' ? 1 : 0];
       if (phase === 'intro') {
@@ -178,23 +210,38 @@ const factory: GameFactory = (ctx) => {
         return;
       }
       if (phase === 'result') {
-        bigCommand(g, ctx, tx(ctx, 'syncPct', { p: Math.round(roundScore * 100) }), roundScore >= 0.8 ? '💞' : '❤️', roundScore >= 0.8 ? C.gold : C.ink, 0.9);
+        bigCommand(
+          g,
+          ctx,
+          tx(ctx, 'syncPct', { p: Math.round(roundScore * 100) }),
+          roundScore >= 0.8 ? '💞' : '❤️',
+          roundScore >= 0.8 ? C.gold : C.ink,
+          0.9,
+        );
         return;
       }
       switch (id()) {
         case 'syncJump':
         case 'sameMove':
-          bigCommand(g, ctx, tx(ctx, 'together', { x: cmdLabel(ctx, cmd).replace('!', '') }), cmd.emoji, cmd.color);
+          bigCommand(
+            g,
+            ctx,
+            tx(ctx, 'together', { x: cmdLabel(ctx, cmd).replace('!', '') }),
+            cmd.emoji,
+            cmd.color,
+          );
           for (let i = 0; i < 2; i++) if (times[i] !== null) bubble(g, ctx.input(i), '✓', C.good);
           break;
         case 'reactionDuo':
           if (t < waitFor) bigCommand(g, ctx, tx(ctx, 'wait'), '⏱️', C.bad);
           else bigCommand(g, ctx, cmdLabel(ctx, cmd), cmd.emoji, cmd.color);
-          for (let i = 0; i < 2; i++) if (falseStart[i]) bubble(g, ctx.input(i), tx(ctx, 'falseStart'), C.bad);
+          for (let i = 0; i < 2; i++)
+            if (falseStart[i]) bubble(g, ctx.input(i), tx(ctx, 'falseStart'), C.bad);
           break;
         case 'freeze':
           bigCommand(g, ctx, tx(ctx, 'cmdFreeze'), '🧊', '#8be9ff');
-          for (let i = 0; i < 2; i++) bubble(g, ctx.input(i), caught[i] ? tx(ctx, 'caught') : '✓', caught[i] ? C.bad : C.good);
+          for (let i = 0; i < 2; i++)
+            bubble(g, ctx.input(i), caught[i] ? tx(ctx, 'caught') : '✓', caught[i] ? C.bad : C.good);
           break;
         case 'mirrorPose':
         case 'heart':

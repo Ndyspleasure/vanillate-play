@@ -100,11 +100,22 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
           caughtNow.push(i);
           const inp = ctx.input(i);
           ctx.audio.play(effects ? 'boing' : 'buzzer');
-          ctx.fx.text(lives[i] > 0 ? tx(ctx, 'caught') : tx(ctx, 'eliminated'), inp.head.x, inp.head.y - 70, C.bad, 40);
+          ctx.fx.text(
+            lives[i] > 0 ? tx(ctx, 'caught') : tx(ctx, 'eliminated'),
+            inp.head.x,
+            inp.head.y - 70,
+            C.bad,
+            40,
+          );
           ctx.fx.shake(8, 0.3);
           if (effects && !replay) {
             const half = inp.torsoPx * 1.6;
-            const img = ctx.snapshot({ x: inp.center.x - half, y: inp.head.y - half * 0.6, w: half * 2, h: half * 2.2 });
+            const img = ctx.snapshot({
+              x: inp.center.x - half,
+              y: inp.head.y - half * 0.6,
+              w: half * 2,
+              h: half * 2.2,
+            });
             replay = { player: i, img, t: 0 };
             ctx.setTimeScale(0.4, 0.6);
           }
@@ -112,7 +123,9 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
         if (t > 2.6 + Math.min(1, round * 0.1)) {
           phase = 'reveal';
           t = 0;
-          for (let i = 0; i < n; i++) if (alive(i) && !caughtNow.includes(i)) ctx.fx.text(tx(ctx, 'safe'), ctx.input(i).head.x, ctx.input(i).head.y - 70, C.good, 32);
+          for (let i = 0; i < n; i++)
+            if (alive(i) && !caughtNow.includes(i))
+              ctx.fx.text(tx(ctx, 'safe'), ctx.input(i).head.x, ctx.input(i).head.y - 70, C.good, 32);
           if (caughtNow.length === 0) ctx.audio.play('success');
         }
       } else if (t > 1.3) startDance();
@@ -127,7 +140,12 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
       ctx.audio.music.stop(100);
     },
     render(g) {
-      scoreHeader(g, ctx, dance.map((d) => Math.round(d)), { center: tx(ctx, 'round', { n: round }) });
+      scoreHeader(
+        g,
+        ctx,
+        dance.map((d) => Math.round(d)),
+        { center: tx(ctx, 'round', { n: round }) },
+      );
       ctx.players.forEach((_p, i) => {
         const z = ctx.zone(i);
         hearts(g, z.x + z.w / 2, 110, Math.max(0, lives[i]), cfg.lives, 22, 'center');
@@ -136,7 +154,15 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
         const beat = Math.abs(Math.sin(t * 7));
         bigCommand(g, ctx, tx(ctx, 'danceNow'), '🎵', '#ff6ec7', 0.8 + beat * 0.08, ctx.height * 0.24);
       } else if (phase === 'freeze') {
-        bigCommand(g, ctx, tx(ctx, 'cmdFreeze'), '🧊', '#8be9ff', 1 + Math.max(0, 0.3 - t), ctx.height * 0.24);
+        bigCommand(
+          g,
+          ctx,
+          tx(ctx, 'cmdFreeze'),
+          '🧊',
+          '#8be9ff',
+          1 + Math.max(0, 0.3 - t),
+          ctx.height * 0.24,
+        );
         g.fillStyle = 'rgba(160,230,255,0.10)';
         g.fillRect(0, 0, ctx.width, ctx.height);
       }
@@ -146,7 +172,12 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
         else if (phase === 'dance' && idle[i] > 1.2) bubble(g, inp, tx(ctx, 'keepDancing'), C.warn);
         else if (phase === 'freeze' && monitor.t > monitor.grace) {
           const still = monitor.stillness(inp);
-          bubble(g, inp, caughtNow.includes(i) ? tx(ctx, 'caught') : `${Math.round(still * 100)}%`, caughtNow.includes(i) ? C.bad : still > 0.6 ? C.good : C.warn);
+          bubble(
+            g,
+            inp,
+            caughtNow.includes(i) ? tx(ctx, 'caught') : `${Math.round(still * 100)}%`,
+            caughtNow.includes(i) ? C.bad : still > 0.6 ? C.good : C.warn,
+          );
         }
       }
       if (replay) {
@@ -166,7 +197,12 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
           g.fillStyle = ctx.players[replay.player].color;
           g.fillRect(x, y, w, h);
         }
-        text(g, `📸 ${tx(ctx, 'caught')}`, ctx.width / 2, y + h + 26, { size: 30, color: '#140b2e', stroke: 0, weight: 800 });
+        text(g, `📸 ${tx(ctx, 'caught')}`, ctx.width / 2, y + h + 26, {
+          size: 30,
+          color: '#140b2e',
+          stroke: 0,
+          weight: 800,
+        });
         g.restore();
       }
     },

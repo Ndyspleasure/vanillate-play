@@ -48,9 +48,40 @@ const factory: GameFactory = (ctx) => {
     const style = styleFor();
     const T = def.torsoPx;
     const warn = Math.max(0.65, 1.05 - turn * 0.06);
-    if (kind === 'high') field.add({ kind, owner: d, t: warn, warn, x: 0, y: def.head.y + T * 0.05, from: attacker === 0 ? -1 : 1, style });
-    else if (kind === 'low') field.add({ kind, owner: d, t: warn, warn, x: 0, y: (def.leftFoot.y + def.rightFoot.y) / 2 - T * 0.25, from: attacker === 0 ? -1 : 1, style });
-    else field.add({ kind: style === 'laser' ? 'wall' : 'body', owner: d, t: warn, warn, x: def.center.x, y: def.center.y, from: attacker === 0 ? -1 : 1, style, width: style === 'laser' ? 30 : 60 });
+    if (kind === 'high')
+      field.add({
+        kind,
+        owner: d,
+        t: warn,
+        warn,
+        x: 0,
+        y: def.head.y + T * 0.05,
+        from: attacker === 0 ? -1 : 1,
+        style,
+      });
+    else if (kind === 'low')
+      field.add({
+        kind,
+        owner: d,
+        t: warn,
+        warn,
+        x: 0,
+        y: (def.leftFoot.y + def.rightFoot.y) / 2 - T * 0.25,
+        from: attacker === 0 ? -1 : 1,
+        style,
+      });
+    else
+      field.add({
+        kind: style === 'laser' ? 'wall' : 'body',
+        owner: d,
+        t: warn,
+        warn,
+        x: def.center.x,
+        y: def.center.y,
+        from: attacker === 0 ? -1 : 1,
+        style,
+        width: style === 'laser' ? 30 : 60,
+      });
     shots++;
     cooldown = 1.1;
     ctx.audio.play(style === 'laser' ? 'laser' : 'shoot');
@@ -118,11 +149,23 @@ const factory: GameFactory = (ctx) => {
     },
     render(g) {
       field.render(g, (o) => ctx.zone(o), ctx.height);
-      scoreHeader(g, ctx, score, { center: `${L(ctx, 'Turn', 'Giliran')} ${Math.min(turn, TURNS)}/${TURNS} · ${SHOTS - shots} ${L(ctx, 'shots left', 'tembakan')}` });
+      scoreHeader(g, ctx, score, {
+        center: `${L(ctx, 'Turn', 'Giliran')} ${Math.min(turn, TURNS)}/${TURNS} · ${SHOTS - shots} ${L(ctx, 'shots left', 'tembakan')}`,
+      });
       bubble(g, ctx.input(attacker), `⚔️ ${tx(ctx, 'attacker')}`, C.bad);
       bubble(g, ctx.input(1 - attacker), `🛡️ ${tx(ctx, 'defender')}`, C.good);
       if (phase === 'attack' && shots === 0)
-        text(g, L(ctx, 'Fist high = high shot · Squat + punch = low shot', 'Kepalan tinggi = tembakan atas · Jongkok + pukul = tembakan bawah'), ctx.width / 2, ctx.height - 40, { size: 20, color: C.vanilla });
+        text(
+          g,
+          L(
+            ctx,
+            'Fist high = high shot · Squat + punch = low shot',
+            'Kepalan tinggi = tembakan atas · Jongkok + pukul = tembakan bawah',
+          ),
+          ctx.width / 2,
+          ctx.height - 40,
+          { size: 20, color: C.vanilla },
+        );
     },
     inspect: () => ({ attacker, shots, turn, score: [...score] }),
   };

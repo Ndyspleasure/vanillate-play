@@ -3,7 +3,19 @@ import type { MotionEvent } from './types';
 
 /** One "try this move" step of the pre-game tutorial. */
 export interface PracticeStep {
-  id: 'left' | 'right' | 'jump' | 'squat' | 'punch' | 'block' | 'hands' | 'reach' | 'kick' | 'flap' | 'dance' | 'run';
+  id:
+    | 'left'
+    | 'right'
+    | 'jump'
+    | 'squat'
+    | 'punch'
+    | 'block'
+    | 'hands'
+    | 'reach'
+    | 'kick'
+    | 'flap'
+    | 'dance'
+    | 'run';
   /** Any of these events completes the step. */
   events: readonly MotionEvent[];
 }

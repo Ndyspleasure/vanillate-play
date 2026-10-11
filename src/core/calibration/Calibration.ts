@@ -14,7 +14,8 @@ export interface BodyCalibration {
   t: number;
 }
 
-export type BodyIssue = 'too-close' | 'too-far' | 'feet-hidden' | 'head-hidden' | 'hips-hidden' | 'moving' | 'arms-up';
+export type BodyIssue =
+  'too-close' | 'too-far' | 'feet-hidden' | 'head-hidden' | 'hips-hidden' | 'moving' | 'arms-up';
 
 /** Wrist height above the shoulder line (torso units) that counts as "arms up" during setup. */
 const ARMS_UP = 0.3;
@@ -31,7 +32,11 @@ export function bodyIssues(f: BodyFrame, energy: number): BodyIssue[] {
   if (!f.hipsVisible) issues.push('hips-hidden');
   else if (!f.anklesVisible) issues.push('feet-hidden');
   if (energy > 0.9) issues.push('moving');
-  if ((f.lWristVisible && f.lWr.y < f.shC.y - f.torso * ARMS_UP) || (f.rWristVisible && f.rWr.y < f.shC.y - f.torso * ARMS_UP)) issues.push('arms-up');
+  if (
+    (f.lWristVisible && f.lWr.y < f.shC.y - f.torso * ARMS_UP) ||
+    (f.rWristVisible && f.rWr.y < f.shC.y - f.torso * ARMS_UP)
+  )
+    issues.push('arms-up');
   return issues;
 }
 
@@ -95,7 +100,8 @@ export class CalibrationTracker {
       shoulderY: median(samples.map((s) => s.shC.y)),
       hipY: median(samples.map((s) => s.hipC.y)),
       noseY: median(samples.map((s) => s.nose.y)),
-      ankleY: anklesOk.length > samples.length / 2 ? median(anklesOk.map((s) => (s.lAnk.y + s.rAnk.y) / 2)) : null,
+      ankleY:
+        anklesOk.length > samples.length / 2 ? median(anklesOk.map((s) => (s.lAnk.y + s.rAnk.y) / 2)) : null,
       torso: median(samples.map((s) => s.torso)),
       shoulderWidth: median(samples.map((s) => s.shoulderWidth)),
       fullBody: anklesOk.length > samples.length / 2,

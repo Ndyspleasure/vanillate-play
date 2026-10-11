@@ -37,11 +37,20 @@ const factory: GameFactory = (ctx) => {
     if (living <= 1 || round >= 20) {
       finished = true;
       ctx.end(
-        versusResult(ctx, lives.map((l, i) => Math.max(0, l) * 100 + survived[i]), {
-          display: (v) => `${Math.floor(v / 100)} ❤️`,
-          stats: [{ label: L(ctx, 'Challenges survived', 'Tantangan dilalui'), values: survived.map(String) }],
-          headline: living === 1 ? `👑 ${ctx.players[lives.findIndex((l) => l > 0)].name.toUpperCase()}` : undefined,
-        }),
+        versusResult(
+          ctx,
+          lives.map((l, i) => Math.max(0, l) * 100 + survived[i]),
+          {
+            display: (v) => `${Math.floor(v / 100)} ❤️`,
+            stats: [
+              { label: L(ctx, 'Challenges survived', 'Tantangan dilalui'), values: survived.map(String) },
+            ],
+            headline:
+              living === 1
+                ? `👑 ${ctx.players[lives.findIndex((l) => l > 0)].name.toUpperCase()}`
+                : undefined,
+          },
+        ),
       );
       return;
     }
@@ -60,7 +69,13 @@ const factory: GameFactory = (ctx) => {
     failed[i] = true;
     lives[i]--;
     ctx.audio.play('buzzer');
-    ctx.fx.text(lives[i] > 0 ? '-❤️' : tx(ctx, 'eliminated'), ctx.input(i).head.x, ctx.input(i).head.y - 70, C.bad, 34);
+    ctx.fx.text(
+      lives[i] > 0 ? '-❤️' : tx(ctx, 'eliminated'),
+      ctx.input(i).head.x,
+      ctx.input(i).head.y - 70,
+      C.bad,
+      34,
+    );
   };
 
   const close = () => {
@@ -87,8 +102,20 @@ const factory: GameFactory = (ctx) => {
             for (let i = 0; i < n; i++) {
               if (!alive(i)) continue;
               const inp = ctx.input(i);
-              const y = kind === 'duck' ? inp.head.y + inp.torsoPx * 0.05 : (inp.leftFoot.y + inp.rightFoot.y) / 2 - inp.torsoPx * 0.25;
-              hazards.add({ kind: kind === 'duck' ? 'high' : 'low', owner: i, t: 1.2, warn: 1.2, x: 0, y, from: -1, style: 'laser' });
+              const y =
+                kind === 'duck'
+                  ? inp.head.y + inp.torsoPx * 0.05
+                  : (inp.leftFoot.y + inp.rightFoot.y) / 2 - inp.torsoPx * 0.25;
+              hazards.add({
+                kind: kind === 'duck' ? 'high' : 'low',
+                owner: i,
+                t: 1.2,
+                warn: 1.2,
+                x: 0,
+                y,
+                from: -1,
+                style: 'laser',
+              });
             }
             ctx.audio.play('laser');
           } else ctx.audio.play('go');
@@ -106,7 +133,8 @@ const factory: GameFactory = (ctx) => {
           if (t > 2.6) close();
           break;
         case 'reaction': {
-          for (let i = 0; i < n; i++) if (alive(i) && !done[i] && performed(cmd, ctx.input(i), now, t > 0.15) !== null) done[i] = true;
+          for (let i = 0; i < n; i++)
+            if (alive(i) && !done[i] && performed(cmd, ctx.input(i), now, t > 0.15) !== null) done[i] = true;
           const waiting = ctx.players.filter((p) => alive(p.index) && !done[p.index]).length;
           if (t > 2.2 || waiting <= (n > 2 ? 1 : 0)) {
             for (let i = 0; i < n; i++) if (alive(i) && !done[i]) fail(i);
@@ -120,7 +148,9 @@ const factory: GameFactory = (ctx) => {
           if (hazards.pending === 0 && t > 1.3) close();
           break;
         case 'pose':
-          for (let i = 0; i < n; i++) if (alive(i) && !done[i] && matchPose(pose, ctx.input(i).state, ctx.input(i).pose) > 0.68) done[i] = true;
+          for (let i = 0; i < n; i++)
+            if (alive(i) && !done[i] && matchPose(pose, ctx.input(i).state, ctx.input(i).pose) > 0.68)
+              done[i] = true;
           if (t > 4 || done.every((d, i) => d || !alive(i))) {
             for (let i = 0; i < n; i++) if (alive(i) && !done[i]) fail(i);
             close();
@@ -130,12 +160,18 @@ const factory: GameFactory = (ctx) => {
     },
     render(g) {
       hazards.render(g, (o) => ctx.zone(o), ctx.height);
-      scoreHeader(g, ctx, lives.map((l) => (l > 0 ? '' : tx(ctx, 'out'))), { center: tx(ctx, 'round', { n: round }) });
+      scoreHeader(
+        g,
+        ctx,
+        lives.map((l) => (l > 0 ? '' : tx(ctx, 'out'))),
+        { center: tx(ctx, 'round', { n: round }) },
+      );
       for (let i = 0; i < n; i++) {
         const z = ctx.zone(i);
         hearts(g, z.x + z.w / 2, 62, Math.max(0, lives[i]), 3, 22, 'center');
         if (!alive(i)) bubble(g, ctx.input(i), tx(ctx, 'out'), C.muted);
-        else if (phase === 'reveal') bubble(g, ctx.input(i), failed[i] ? '✗' : '✓', failed[i] ? C.bad : C.good);
+        else if (phase === 'reveal')
+          bubble(g, ctx.input(i), failed[i] ? '✗' : '✓', failed[i] ? C.bad : C.good);
       }
       const title: Record<Kind, string> = {
         freeze: tx(ctx, 'cmdFreeze'),
@@ -147,7 +183,23 @@ const factory: GameFactory = (ctx) => {
       if (phase === 'intro') bigCommand(g, ctx, L(ctx, 'GET READY…', 'BERSIAP…'), '⏱️', C.vanilla, 0.8);
       else if (phase === 'run') {
         if (kind === 'pose') ghost(g, pose, ctx.width / 2, ctx.height * 0.35, 50, C.vanilla);
-        bigCommand(g, ctx, title[kind], kind === 'freeze' ? '🧊' : kind === 'reaction' ? cmd.emoji : kind === 'duck' ? '⬇️' : kind === 'jump' ? '⬆️' : '⭐', C.vanilla, 0.9, kind === 'pose' ? ctx.height * 0.62 : ctx.height * 0.3);
+        bigCommand(
+          g,
+          ctx,
+          title[kind],
+          kind === 'freeze'
+            ? '🧊'
+            : kind === 'reaction'
+              ? cmd.emoji
+              : kind === 'duck'
+                ? '⬇️'
+                : kind === 'jump'
+                  ? '⬆️'
+                  : '⭐',
+          C.vanilla,
+          0.9,
+          kind === 'pose' ? ctx.height * 0.62 : ctx.height * 0.3,
+        );
       }
     },
     inspect: () => ({ kind, phase, lives: [...lives] }),

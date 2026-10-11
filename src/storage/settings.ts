@@ -58,7 +58,8 @@ class SettingsStore {
     const prefersReduced =
       typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.value = load(KEY, { ...DEFAULT_SETTINGS, lang: defaultLang(), reducedMotion: prefersReduced });
-    if (!Array.isArray(this.value.names) || this.value.names.length !== 4) this.value.names = [...DEFAULT_SETTINGS.names];
+    if (!Array.isArray(this.value.names) || this.value.names.length !== 4)
+      this.value.names = [...DEFAULT_SETTINGS.names];
   }
 
   get(): Settings {
@@ -77,7 +78,11 @@ class SettingsStore {
   }
 
   reset(): void {
-    this.update({ ...DEFAULT_SETTINGS, lang: this.value.lang, safetyAcknowledged: this.value.safetyAcknowledged });
+    this.update({
+      ...DEFAULT_SETTINGS,
+      lang: this.value.lang,
+      safetyAcknowledged: this.value.safetyAcknowledged,
+    });
   }
 }
 

@@ -1,5 +1,12 @@
 import { mean } from '../../core/math';
-import { comparePoses, matchPose, poseName, POSES, UPPER_BODY_POSES, type PoseDef } from '../../core/motion/pose';
+import {
+  comparePoses,
+  matchPose,
+  poseName,
+  POSES,
+  UPPER_BODY_POSES,
+  type PoseDef,
+} from '../../core/motion/pose';
 import { C, ghost } from '../../engine/draw';
 import { coopResult, scoreHeader, versusResult } from '../../engine/hud';
 import type { GameFactory } from '../../engine/types';
@@ -39,7 +46,10 @@ const factory: GameFactory = (ctx) => {
     if (idx >= POSE_COUNT) return finish();
     const legs = ctx.players.every((p) => ctx.input(p.index).state.legsVisible);
     const pool = legs ? POSES : UPPER_BODY_POSES;
-    pose = ctx.rng.pickNot(pool, pool.find((p) => p.id === prev));
+    pose = ctx.rng.pickNot(
+      pool,
+      pool.find((p) => p.id === prev),
+    );
     prev = pose.id;
     phase = 'pose';
     t = 0;
@@ -106,7 +116,13 @@ const factory: GameFactory = (ctx) => {
             accs[i].push(acc);
             ctx.audio.play(acc > 0.9 ? 'perfect' : 'success');
             ctx.fx.burst(inp.head.x, inp.head.y, ctx.players[i].color, 22);
-            ctx.fx.text(acc > 0.9 ? tx(ctx, 'perfect') : tx(ctx, 'great'), inp.head.x, inp.head.y - 80, ctx.players[i].color, 34);
+            ctx.fx.text(
+              acc > 0.9 ? tx(ctx, 'perfect') : tx(ctx, 'great'),
+              inp.head.x,
+              inp.head.y - 80,
+              ctx.players[i].color,
+              34,
+            );
           }
         } else {
           hold[i] = Math.max(0, hold[i] - dt * 2);
@@ -134,15 +150,30 @@ const factory: GameFactory = (ctx) => {
         g.stroke();
         ghost(g, pose, cx, cy, size, '#ffe9b8', 0.95);
       }
-      scoreHeader(g, ctx, coop ? [`${Math.round(mean(teamSync.length ? teamSync : [0]) * 100)}%`, ''] : score, {
-        center: phase === 'pose' ? `${poseName(pose, ctx.lang)} · ${tx(ctx, 'poseOf', { n: idx + 1, m: POSE_COUNT })}` : tx(ctx, 'matchPose'),
-      });
+      scoreHeader(
+        g,
+        ctx,
+        coop ? [`${Math.round(mean(teamSync.length ? teamSync : [0]) * 100)}%`, ''] : score,
+        {
+          center:
+            phase === 'pose'
+              ? `${poseName(pose, ctx.lang)} · ${tx(ctx, 'poseOf', { n: idx + 1, m: POSE_COUNT })}`
+              : tx(ctx, 'matchPose'),
+        },
+      );
       for (let i = 0; i < n; i++) {
         const inp = ctx.input(i);
         if (locked[i] !== null) bubble(g, inp, `✓ +${locked[i]}`, C.good);
         else if (phase === 'pose') {
           const sim = matchPose(pose, inp.state, inp.pose);
-          zoneMeter(g, ctx, i, sim, `${Math.round(sim * 100)}%`, sim >= MATCH ? C.good : ctx.players[i].color);
+          zoneMeter(
+            g,
+            ctx,
+            i,
+            sim,
+            `${Math.round(sim * 100)}%`,
+            sim >= MATCH ? C.good : ctx.players[i].color,
+          );
         }
       }
     },

@@ -106,7 +106,13 @@ export class TargetField {
   }
 
   /** Check hands (and optionally head) against targets owned by `player` (or any owner if null). */
-  hits(player: number, inp: PlayerInput, now: number, owner: number | null = player, useHead = false): TargetHit[] {
+  hits(
+    player: number,
+    inp: PlayerInput,
+    now: number,
+    owner: number | null = player,
+    useHead = false,
+  ): TargetHit[] {
     if (inp.health === 'lost') return [];
     const out: TargetHit[] = [];
     const hr = Math.max(18, inp.torsoPx * 0.18);
@@ -139,7 +145,15 @@ export class TargetField {
         circle(g, t.x, t.y, r, 'rgba(40,10,20,0.85)', '#ff5a5a', 4);
         emoji(g, '💣', t.x, t.y, r * 1.1);
       } else {
-        circle(g, t.x, t.y, r, t.kind === 'bonus' ? 'rgba(255,210,61,0.35)' : 'rgba(20,10,40,0.45)', t.color, 5);
+        circle(
+          g,
+          t.x,
+          t.y,
+          r,
+          t.kind === 'bonus' ? 'rgba(255,210,61,0.35)' : 'rgba(20,10,40,0.45)',
+          t.color,
+          5,
+        );
         circle(g, t.x, t.y, r * 0.62, undefined, t.color, 4);
         circle(g, t.x, t.y, r * 0.25, t.color);
         if (t.label) text(g, t.label, t.x, t.y, { size: r * 0.8, weight: 800, color: '#fff' });

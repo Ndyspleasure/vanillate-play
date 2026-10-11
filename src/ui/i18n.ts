@@ -11,7 +11,8 @@ const en = {
 
   'home.kicker': 'Camera-powered party games',
   'home.title': 'Your body is the controller.',
-  'home.lead': 'Challenge your partner, friend, or anyone in front of the camera. No controllers, no downloads, no sign-up.',
+  'home.lead':
+    'Challenge your partner, friend, or anyone in front of the camera. No controllers, no downloads, no sign-up.',
   'home.cta': 'Play now',
   'home.cta2': 'Browse all games',
   'home.badges': 'Duo-first · Runs in your browser · Camera stays on your device',
@@ -85,7 +86,8 @@ const en = {
   'setup.loading': 'Loading motion engine…',
   'setup.starting': 'Starting camera…',
   'setup.err.denied': 'Camera access was blocked.',
-  'setup.err.denied.fix': 'Click the camera icon in your browser’s address bar, allow access, then try again.',
+  'setup.err.denied.fix':
+    'Click the camera icon in your browser’s address bar, allow access, then try again.',
   'setup.err.not-found': 'No camera found.',
   'setup.err.not-found.fix': 'Connect a camera, or play with the keyboard.',
   'setup.err.in-use': 'The camera is busy.',
@@ -245,11 +247,11 @@ const en = {
   'privacy.title': 'Privacy',
   'footer.privacy': 'Privacy',
   'footer.note': 'Camera video is processed on your device and never uploaded.',
-  'offline': 'You are offline — games you already played still work.',
-  'install': 'Install app',
-  'notfound': 'This page wandered out of frame.',
+  offline: 'You are offline — games you already played still work.',
+  install: 'Install app',
+  notfound: 'This page wandered out of frame.',
   'notfound.back': 'Back to games',
-  'rotate': 'Turn your device sideways for the best view.',
+  rotate: 'Turn your device sideways for the best view.',
 };
 
 export type I18nKey = keyof typeof en;
@@ -264,7 +266,8 @@ const id: Partial<Record<I18nKey, string>> = {
 
   'home.kicker': 'Party game berbasis kamera',
   'home.title': 'Tubuhmu adalah controller-nya.',
-  'home.lead': 'Tantang pasangan, teman, atau siapa saja di depan kamera. Tanpa controller, tanpa unduhan, tanpa daftar akun.',
+  'home.lead':
+    'Tantang pasangan, teman, atau siapa saja di depan kamera. Tanpa controller, tanpa unduhan, tanpa daftar akun.',
   'home.cta': 'Main sekarang',
   'home.cta2': 'Lihat semua game',
   'home.badges': 'Utamakan berdua · Jalan di browser · Kamera tetap di perangkatmu',

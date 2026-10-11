@@ -105,7 +105,12 @@ const factory: GameFactory = (ctx) => {
           const match = mine.find((p) => p.side === side);
           if (match) {
             match.dead = true;
-            fists.push({ from: { ...(side === 'L' ? inp.leftHand : inp.rightHand) }, pad: match, t: 0, color: ctx.players[i].color });
+            fists.push({
+              from: { ...(side === 'L' ? inp.leftHand : inp.rightHand) },
+              pad: match,
+              t: 0,
+              color: ctx.players[i].color,
+            });
             ctx.audio.play('whoosh');
             const age = time - match.born;
             streak[i]++;
@@ -135,7 +140,8 @@ const factory: GameFactory = (ctx) => {
         }
       }
       fists = fists.filter((f) => f.t < 1);
-      for (let k = pads.length - 1; k >= 0; k--) if (pads[k].dead && time - pads[k].born > pads[k].life + 1) pads.splice(k, 1);
+      for (let k = pads.length - 1; k >= 0; k--)
+        if (pads[k].dead && time - pads[k].born > pads[k].life + 1) pads.splice(k, 1);
       if (time >= DURATION || out.some(Boolean)) finish();
     },
     render(g) {
@@ -157,13 +163,19 @@ const factory: GameFactory = (ctx) => {
         const to = padPos(f.pad);
         emoji(g, '👊', lerp(f.from.x, to.x, f.t), lerp(f.from.y, to.y, f.t), 60 + 30 * f.t);
       }
-      scoreHeader(g, ctx, score, { timer: Math.max(0, DURATION - time), center: L(ctx, 'Punch the pads around your rival', 'Pukul pad di sekitar lawanmu') });
+      scoreHeader(g, ctx, score, {
+        timer: Math.max(0, DURATION - time),
+        center: L(ctx, 'Punch the pads around your rival', 'Pukul pad di sekitar lawanmu'),
+      });
       for (let i = 0; i < 2; i++) {
         if (out[i]) bubble(g, ctx.input(i), tx(ctx, 'out'), C.muted);
         else if (streak[i] > 2) bubble(g, ctx.input(i), tx(ctx, 'combo', { n: streak[i] }), C.gold);
       }
     },
-    inspect: () => ({ pads: pads.filter((p) => !p.dead).map((p) => ({ owner: p.owner, side: p.side })), score: [...score] }),
+    inspect: () => ({
+      pads: pads.filter((p) => !p.dead).map((p) => ({ owner: p.owner, side: p.side })),
+      score: [...score],
+    }),
   };
 };
 
