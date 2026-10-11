@@ -154,6 +154,7 @@ export function playScreen(m: RouteMatch): Screen {
       stage.prepend(session.camera.video);
     // Moving the video between screens pauses it in every browser; resume the same live stream.
     if (session.mode === 'camera') void session.camera.ensurePlaying();
+    else if (session.camera.video.parentElement === stage) session.camera.video.remove();
     stage.classList.toggle('stage--sim', session.mode === 'simulated');
   };
 
@@ -183,7 +184,15 @@ export function playScreen(m: RouteMatch): Screen {
     const enable = button(t('setup.enable'), {
       size: 'lg',
       icon: 'camera',
-      onClick: () => void startCamera(),
+      // Stays clickable before the safety box is ticked: a greyed-out camera button left
+      // "keyboard" as the only thing that responded, so players ended up in keyboard mode.
+      onClick: () => {
+        if (agreed) return void startCamera();
+        safety.classList.remove('is-nudged');
+        void safety.offsetWidth; // restart the nudge animation
+        safety.classList.add('is-nudged');
+        safety.querySelector('input')?.focus();
+      },
       attrs: { id: 'enable-camera' },
     });
     const kb = button(t('setup.keyboard'), {
@@ -193,7 +202,8 @@ export function playScreen(m: RouteMatch): Screen {
       attrs: { id: 'keyboard-mode' },
     });
     const sync = () => {
-      enable.toggleAttribute('disabled', !agreed || !!unsupported);
+      enable.toggleAttribute('disabled', !!unsupported);
+      if (agreed) safety.classList.remove('is-nudged');
     };
     const safety = h(
       'label',
@@ -378,6 +388,14 @@ export function playScreen(m: RouteMatch): Screen {
     if (!destroyed) showLobby();
   };
 
+  /** Back to the camera card (safety check, privacy note) with keyboard play switched off. */
+  const switchToCamera = () => {
+    lobby?.destroy();
+    lobby = null;
+    session.stop();
+    showSetup();
+  };
+
   // ── Lobby ──────────────────────────────────────────────
   const statusText = (st: LobbyStatus, crowdOnly = false): HTMLElement => {
     const msgs: string[] = [];
@@ -532,6 +550,22 @@ export function playScreen(m: RouteMatch): Screen {
       session.mode === 'simulated'
         ? button(t('lobby.keys'), { variant: 'ghost', size: 'sm', icon: 'keyboard', onClick: showKeys })
         : null,
+      // The chosen input sticks across games, so the lobby is where players switch it.
+      session.mode === 'simulated'
+        ? button(t('lobby.useCamera'), {
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'camera',
+            onClick: switchToCamera,
+            attrs: { id: 'switch-camera' },
+          })
+        : button(t('lobby.useKeyboard'), {
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'keyboard',
+            onClick: () => void startKeyboard(),
+            attrs: { id: 'switch-keyboard' },
+          }),
     );
     const panel = h(
       'div',
