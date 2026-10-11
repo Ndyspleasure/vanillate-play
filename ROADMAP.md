@@ -19,18 +19,25 @@
 - Single-fire left/right zones with hysteresis, position-based lanes, more reliable jumps, forgiving calibration.
 - Pre-game tutorial with live move practice; raise-a-hand start/rematch with confirmation hold.
 
-## Version 1.1 — polish & reach
+## ✅ Version 1.1 — polish & reach
 
-- Tune gesture thresholds with real-world play sessions (punch/kick detection across camera angles).
-- Optional higher-accuracy pose model download for fast devices.
-- Short replay clip capture (MediaRecorder) for the share card, with explicit consent.
-- Vertical "creator mode" layout for phone recording.
-- More pose libraries & dance charts; difficulty levels per game.
+- Difficulty levels (easy / normal / hard) for every game; personal bests per level.
+- Gestures across camera angles: horizontal moves measured against a pitch-robust body unit, front kicks from 3D foot travel. **Motion lab** (`/lab`) with live meters and a local session log for real-world tuning sessions.
+- Optional high-accuracy pose model (`full`), automatic on fast GPU devices, switchable live.
+- Opt-in replay clips (last 6–12 s of a match, recorded on the device) in the share dialog.
+- Creator mode: vertical 9:16 stage for phone-style recording on a laptop.
+- Pose library 33 poses; Dance Battle songs (Slow Jam, Robot Groove, Disco Fever, Pop Party, Power Mix).
 
-## Version 1.2 — more players
+## ✅ Version 1.2 — more players
 
-- Robust 3–4 player tracking on capable devices (larger detection input, zone hints).
-- More party collections and couple challenge packs.
+- Sturdier 3–4 player tracking: sharper model input for crowds, an extra pose slot so a passer-by never steals a player, zones laid out over the visible part of the frame (portrait phones, creator mode), lobby advice for crowded players.
+- Party collections (Party Night, Date Night, Duo Showdown, Family Fun, Sports Day) with one scoreboard.
+- Couple Challenge packs (Classic, Date Night, Quick Three, Couple Workout) with High Five and Sync Squat rounds.
+
+## Next — tuning with real players
+
+- Use motion-lab logs from real sessions (rooms, cameras, ages) to refine thresholds per gesture.
+- Collect feedback on difficulty balance and collection length.
 
 ## Version 2.0 — online (requires backend & privacy review)
 

@@ -12,11 +12,16 @@ Vanillate Motion runs entirely in the browser. Body tracking uses on-device AI (
 ## Highlights
 
 - **36 games** across For Two, Versus, Couple/Co-op, Party (3–4 players), Solo, Sports & Arcade and viral Challenges (full list below).
-- **Duo-first motion engine** — stable Player 1–4 identities, automatic calibration, semantic motion events (jump, squat, lean, step, dodge, punch, block, hands-up, kick, flap, freeze…), pose matching.
+- **Duo-first motion engine** — stable Player 1–4 identities, automatic calibration, semantic motion events (jump, squat, lean, step, dodge, punch, block, hands-up, kick, flap, freeze…), pose matching with a 33-pose library. Works with cameras placed high or low, and with front kicks towards the camera.
+- **Two pose models** — the light model everywhere, an optional high-accuracy model (automatic on fast devices).
+- **Motion lab** (`/lab`) — live gesture meters with thresholds and a local measurement log for tuning.
 - **Camera stays local** — MediaPipe WASM + model are self-hosted; no third-party requests during play.
 - **Fast path to fun** — Landing → choose game → camera check (camera, motion engine and body tracking load in parallel, with progress) → automatic player detection & calibration → quick "how to play" practice that checks off each move → raise a hand to start → result → raise a hand to play again (same camera and model, no refresh).
 - **Keyboard / touch fallback** — every game is playable without a camera (simulated bodies flow through the real motion engine).
-- **Shareable results** — locally generated result cards (optional camera photo, vertical stories format), Web Share / download / copy text.
+- **Difficulty levels** — easy / normal / hard for every game (reaction windows, speeds, CPU sharpness); personal bests are kept per level.
+- **Party collections** — Party Night, Date Night, Duo Showdown, Family Fun and Sports Day: several games back to back with one scoreboard.
+- **Shareable results** — locally generated result cards (optional camera photo, vertical stories format), opt-in **replay clips** of the last seconds of a match, Web Share / download / copy text.
+- **Creator mode** — a vertical 9:16 game screen for recording or streaming from a laptop.
 - **Hand-made SVG art set** — logo, 36 game icons and all in-game sprites are vector art, identical on every device.
 - **English + Bahasa Indonesia** everywhere, including in-game commands ("LOMPAT!", "TUNGGU…").
 - **PWA** — installable, offline app shell, cached tracking assets.
@@ -65,9 +70,9 @@ Choose **Play with keyboard instead** on the camera screen. Player 1: `A/D` step
 | **Party (2–4)** | Last Man Standing · Crazy Catch · Freeze Party · Reaction Party |
 | **Solo / Arcade** | Motion Runner · Motion Dodge · Motion Target Practice · Motion Pong · Body Flap · Motion Shooter · Motion Fitness · Ninja Dodge |
 | **Sports** | Motion Soccer · Motion Basketball · Motion Racing · Motion Space |
-| **Challenges (viral)** | Couple Challenge · Freeze Challenge · Body Flap Challenge (+ Mirror Challenge) |
+| **Challenges (viral)** | Couple Challenge (Classic / Date Night / Quick Three / Workout packs) · Freeze Challenge · Body Flap Challenge (+ Mirror Challenge) |
 
-Every game supports the modes listed in the GAMES.md mode matrix, plus variants (e.g. Reaction Battle: fastest / elimination / fake commands; Target Battle: 30 s / 60 s / sudden death / moving / fake targets).
+Every game supports the modes listed in the GAMES.md mode matrix, plus variants (e.g. Reaction Battle: fastest / elimination / fake commands; Target Battle: 30 s / 60 s / sudden death / moving / fake targets; Dance Battle: Freestyle or five songs from Slow Jam to Power Mix).
 
 ## Project structure
 
@@ -82,9 +87,9 @@ src/
 │   ├── input/            # Keyboard/pointer controls for simulated players
 │   └── session/          # Long-lived MotionSession (camera stays on across games)
 ├── engine/               # Game runtime: GameRunner, input hub, audio synth, fx, HUD, draw helpers
-├── games/                # 36 games (lazy-loaded) + shared kits (commands, targets, hazards, lanes, goal, flap…)
+├── games/                # 36 games (lazy-loaded) + shared kits (commands, targets, hazards, lanes, goal, flap…) + party collections
 ├── art/                  # SVG art set + canvas sprite renderer
-├── ui/                   # Screens (home, library, detail, play, settings, stats, privacy), i18n, share cards
+├── ui/                   # Screens (home, library, detail, collections, play, motion lab, settings, stats, privacy), i18n, share cards
 ├── storage/              # Settings & local statistics (localStorage)
 └── analytics.ts          # Privacy-conscious analytics hook
 build/                    # Vite plugins: self-hosted MediaPipe WASM, service worker, sitemap
@@ -99,6 +104,8 @@ Read more in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ADDING_A_GAM
 - Camera frames are processed in memory, on the device, and are never uploaded or stored.
 - Settings and statistics live only in the browser's local storage (can be reset in Settings).
 - The optional share photo is generated locally and only leaves the device if the player shares it.
+- Replay clips are off by default. When switched on, the last seconds of each match are recorded in memory (a REC badge shows it) and are dropped unless the player downloads or shares them.
+- Motion-lab logs contain numbers only (no images) and become a file only when downloaded.
 - See the in-app **Privacy** page (`/privacy`).
 
 ## Licenses
