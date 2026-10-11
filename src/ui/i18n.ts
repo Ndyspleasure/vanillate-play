@@ -177,6 +177,8 @@ const en = {
   'issue.moving': 'Stand still for a second',
   'issue.arms-up': 'Relax your arms by your sides',
   'issue.low-light': 'It’s dark — turn on more lights in front of you',
+  'issue.rotate': 'Turn the phone sideways (landscape) so everyone fits in the frame',
+  'issue.slow': 'This device is struggling to track everyone — try {n} players or a laptop',
   'issue.extra': 'Extra people detected — only {m} should be in frame',
 
   'game.pause': 'Pause',
@@ -517,6 +519,8 @@ const id: Partial<Record<I18nKey, string>> = {
   'issue.moving': 'Diam sebentar',
   'issue.arms-up': 'Turunkan tangan di samping badan',
   'issue.low-light': 'Terlalu gelap — nyalakan lampu di depanmu',
+  'issue.rotate': 'Miringkan HP (landscape) supaya semua pemain muat di layar',
+  'issue.slow': 'Perangkat ini kewalahan melacak semua pemain — coba {n} pemain atau pakai laptop',
   'issue.extra': 'Ada orang lain terdeteksi — hanya {m} orang yang boleh di frame',
 
   'game.pause': 'Jeda',

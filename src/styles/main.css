@@ -2516,3 +2516,75 @@ html.reduced-motion *::after {
 .run-panel p {
   margin: 4px 0 0;
 }
+
+/* ── On-screen buttons for keyboard mode on touch devices ── */
+.touchpad {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 0 max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+  pointer-events: none;
+  z-index: 6;
+}
+
+.touchpad[hidden] {
+  display: none;
+}
+
+.touchpad__pad {
+  display: grid;
+  grid-template-columns: repeat(2, 54px);
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.touchpad--solo .touchpad__pad--p2 {
+  display: none;
+}
+
+.touchpad__btn {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid var(--pad-color);
+  background: rgba(20, 11, 46, 0.55);
+  color: var(--ink);
+  font-size: 1.4rem;
+  line-height: 1;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  backdrop-filter: blur(4px);
+}
+
+.touchpad__btn small {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--pad-color);
+}
+
+.touchpad__btn.is-down {
+  background: var(--pad-color);
+  transform: scale(0.92);
+}
+
+@media (max-height: 420px) {
+  .touchpad__pad {
+    grid-template-columns: repeat(3, 46px);
+  }
+
+  .touchpad__btn {
+    width: 46px;
+    height: 46px;
+    font-size: 1.2rem;
+  }
+}

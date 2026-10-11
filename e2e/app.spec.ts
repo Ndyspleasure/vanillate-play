@@ -170,3 +170,40 @@ test('input mode can be switched from the lobby, and the camera button asks for 
   await expect(page.locator('#switch-camera')).toBeVisible({ timeout: 15_000 });
   expect(errors).toEqual([]);
 });
+
+test('keyboard mode on a phone shows touch pads that drive the players', async ({ browser }) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 844, height: 390 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await ctx.newPage();
+  const errors = trackErrors(page);
+  await page.goto('/play/body-boxing?mode=versus');
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  const pads = page.locator('.touchpad__pad');
+  await expect(pads).toHaveCount(2);
+  await expect(pads.first()).toBeVisible();
+  await expect(pads.nth(1)).toBeVisible();
+  // Body Boxing: punch, block, lean.
+  await expect(pads.first().locator('[data-action="punchL"]')).toBeVisible();
+  await page.locator('#lobby-start').click();
+  await expect(page.locator('#pause-btn')).toBeVisible({ timeout: 15_000 });
+  await expect(pads.first()).toBeVisible();
+  const block = pads.nth(1).locator('[data-action="block"]');
+  await block.dispatchEvent('pointerdown', { pointerId: 7, pointerType: 'touch', isPrimary: true });
+  await expect(block).toHaveClass(/is-down/);
+  await block.dispatchEvent('pointerup', { pointerId: 7, pointerType: 'touch', isPrimary: true });
+  await expect(block).not.toHaveClass(/is-down/);
+  await page.screenshot({ path: 'test-results/touchpad.png' });
+  expect(errors).toEqual([]);
+  await ctx.close();
+});
+
+test('touch pads stay hidden on desktop keyboard mode', async ({ page }) => {
+  await page.goto('/play/body-boxing?mode=versus');
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  await expect(page.locator('.touchpad')).toBeHidden();
+});
