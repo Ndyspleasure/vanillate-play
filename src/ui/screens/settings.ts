@@ -81,6 +81,14 @@ export function settingsScreen(): Screen {
     ),
   );
 
+  const modelNote = h('p', { class: 'small muted', id: 'model-note' });
+  const updateModelNote = () => {
+    const v = app.session.modelVariant;
+    modelNote.textContent = `${t('settings.model.hint')}${v ? ` ${t('settings.model.now', { m: t(`settings.model.${v}` as I18nKey) })}` : ''}`;
+  };
+  updateModelNote();
+  app.session.onModelChange = updateModelNote;
+
   const el = h(
     'div',
     { class: 'page page--settings' },
@@ -143,6 +151,17 @@ export function settingsScreen(): Screen {
             'set-tracking',
           ),
         ),
+        h(
+          'label',
+          { class: 'field' },
+          h('span', null, t('settings.model')),
+          select(
+            'poseModel',
+            (['auto', 'lite', 'full'] as const).map((v) => [v, t(`settings.model.${v}` as I18nKey)]),
+            'set-model',
+          ),
+        ),
+        modelNote,
         toggle('showPerf', t('settings.perf')),
       ),
       h(
@@ -198,5 +217,11 @@ export function settingsScreen(): Screen {
     ),
     footer(),
   );
-  return { el, title: `${t('settings.title')} — Vanillate Motion` };
+  return {
+    el,
+    title: `${t('settings.title')} — Vanillate Motion`,
+    destroy: () => {
+      if (app.session.onModelChange === updateModelNote) app.session.onModelChange = null;
+    },
+  };
 }

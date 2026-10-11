@@ -445,7 +445,7 @@ export class GameRunner {
     if (this.settings.showPerf) {
       text(
         g,
-        `${Math.round(this.fps)} fps · tracking ${Math.round(this.session.perf.trackFps)} fps · ${this.session.perf.inferMs.toFixed(0)} ms · fx ${this.fx.quality}`,
+        `${Math.round(this.fps)} fps · tracking ${Math.round(this.session.perf.trackFps)} fps · ${this.session.perf.inferMs.toFixed(0)} ms${this.session.modelVariant ? ` · ${this.session.modelVariant}` : ''} · fx ${this.fx.quality}`,
         12,
         h - 14,
         { size: 13, align: 'left', color: C.muted, stroke: 3 },

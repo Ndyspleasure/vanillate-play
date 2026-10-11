@@ -4,7 +4,14 @@ import { KeyboardController } from '../input/KeyboardController';
 import { MotionRecognizer } from '../motion/MotionRecognizer';
 import { SENSITIVITY_FACTOR, type MotionState, type Sensitivity, type TimedEvent } from '../motion/types';
 import { GRACE_MS, PlayerTracker, type PlayerSlot, type TrackedPose } from '../players/PlayerTracker';
-import { MediaPipeProvider, type InputQuality } from '../tracking/MediaPipeProvider';
+import { MediaPipeProvider, type InputQuality, type ModelVariant } from '../tracking/MediaPipeProvider';
+import {
+  autoModelStep,
+  fullRejected,
+  initialModel,
+  rememberFullModel,
+  type ModelPreference,
+} from '../tracking/modelPolicy';
 import { SimulatedProvider } from '../tracking/SimulatedProvider';
 import type { PoseFrame, PoseProvider, ProviderStatus } from '../tracking/types';
 
@@ -96,6 +103,14 @@ export class MotionSession {
   private statusListeners = new Set<(s: ProviderStatus) => void>();
   private lifecycleListeners = new Set<(l: SessionLifecycle) => void>();
   private sensitivity: Sensitivity = 'normal';
+  private modelPref: ModelPreference = 'auto';
+  /** Frames tracked on the current model (drives the automatic model policy). */
+  private framesOnModel = 0;
+  /** An automatic upgrade to `full` is being evaluated. */
+  private modelTrial = false;
+  private modelSwitching = false;
+  /** Called when the running pose model changes (for UI). */
+  onModelChange: ((v: ModelVariant) => void) | null = null;
 
   constructor() {
     this.players = Array.from({ length: MAX_PLAYERS }, (_, index) => ({
@@ -173,6 +188,66 @@ export class MotionSession {
     this.minInterval = q === 'performance' ? 1000 / 20 : 0;
   }
 
+  /** Pose model currently loaded (null before the first load). */
+  get modelVariant(): ModelVariant | null {
+    return this.mp?.variant ?? null;
+  }
+
+  /** Choose the pose model: auto (upgrade on fast devices), or force lite / full. */
+  setModelPreference(pref: ModelPreference): void {
+    if (pref === this.modelPref) return;
+    this.modelPref = pref;
+    this.modelTrial = false;
+    if (pref !== 'auto' && this.mp?.ready && this.mp.variant !== pref) void this.switchModel(pref, false);
+  }
+
+  private async switchModel(variant: ModelVariant, trial: boolean): Promise<void> {
+    const mp = this.mp;
+    if (!mp || this.modelSwitching) return;
+    this.modelSwitching = true;
+    try {
+      const ok = await mp.switchModel(variant);
+      if (ok) {
+        this.framesOnModel = 0;
+        this.modelTrial = trial;
+        if (this.mode === 'camera') this.setStatus({ phase: 'ready', backend: mp.backend, progress: 1 });
+        this.onModelChange?.(variant);
+      } else if (trial) rememberFullModel(false);
+    } finally {
+      this.modelSwitching = false;
+    }
+  }
+
+  /** Automatic model policy, evaluated on every tracked camera frame. */
+  private checkModel(): void {
+    const mp = this.mp;
+    if (!mp || this.modelPref !== 'auto' || this.modelSwitching || this.mode !== 'camera') return;
+    this.framesOnModel++;
+    const nav =
+      typeof navigator !== 'undefined'
+        ? (navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } })
+        : undefined;
+    const action = autoModelStep(
+      mp.variant,
+      this.framesOnModel,
+      { ...this.perf, backend: mp.backend },
+      {
+        trial: this.modelTrial,
+        saveData: !!nav?.connection?.saveData,
+        lowMemory: (nav?.deviceMemory ?? 8) < 4,
+        rejected: fullRejected(),
+      },
+    );
+    if (action === 'upgrade') void this.switchModel('full', true);
+    else if (action === 'downgrade') {
+      rememberFullModel(false);
+      void this.switchModel('lite', false);
+    } else if (action === 'confirm') {
+      this.modelTrial = false;
+      rememberFullModel(true);
+    }
+  }
+
   /** Number of players the current game needs. */
   configure(required: number): void {
     const prev = this.tracker.requiredPlayers;
@@ -226,11 +301,15 @@ export class MotionSession {
     this.setLifecycle({ model: 'loading', modelProgress: 0 });
     const poses = this.mode === 'camera' ? this.cameraPoses() : PRELOAD_POSES;
     this.modelLoad = provider
-      .init(poses, (st) => {
-        if (st.phase === 'loading')
-          this.setLifecycle({ modelProgress: st.progress ?? this.lifecycle.modelProgress });
-        if (this.mode === 'camera') this.setStatus(st);
-      })
+      .init(
+        poses,
+        (st) => {
+          if (st.phase === 'loading')
+            this.setLifecycle({ modelProgress: st.progress ?? this.lifecycle.modelProgress });
+          if (this.mode === 'camera') this.setStatus(st);
+        },
+        initialModel(this.modelPref),
+      )
       .then(() => {
         this.mp = provider;
         this.setLifecycle({ model: 'ready', modelProgress: 1 });
@@ -492,6 +571,7 @@ export class MotionSession {
     this.lastFrameAt = performance.now();
     this.framesProcessed++;
     if (this.lifecycle.tracking !== 'running') this.setLifecycle({ tracking: 'running' });
+    this.checkModel();
 
     this.tracker.update(frame);
     for (let i = 0; i < this.required; i++) {

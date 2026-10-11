@@ -288,6 +288,13 @@ const en = {
   'lab.m.kickL': 'Left foot lift (kick)',
   'lab.m.kickR': 'Right foot lift (kick)',
   'lab.m.energy': 'Movement energy',
+  'settings.model': 'Tracking model',
+  'settings.model.auto': 'Automatic',
+  'settings.model.lite': 'Light (fastest)',
+  'settings.model.full': 'High accuracy (+9 MB)',
+  'settings.model.hint':
+    'Automatic switches to high accuracy after a few seconds when your device is fast enough, and back if it slows down.',
+  'settings.model.now': 'Running now: {m}.',
 };
 
 export type I18nKey = keyof typeof en;
@@ -578,6 +585,13 @@ const id: Partial<Record<I18nKey, string>> = {
   'lab.m.kickL': 'Angkat kaki kiri (tendang)',
   'lab.m.kickR': 'Angkat kaki kanan (tendang)',
   'lab.m.energy': 'Energi gerak',
+  'settings.model': 'Model pelacakan',
+  'settings.model.auto': 'Otomatis',
+  'settings.model.lite': 'Ringan (tercepat)',
+  'settings.model.full': 'Akurasi tinggi (+9 MB)',
+  'settings.model.hint':
+    'Otomatis beralih ke akurasi tinggi setelah beberapa detik bila perangkatmu cukup cepat, dan kembali jika melambat.',
+  'settings.model.now': 'Sedang dipakai: {m}.',
 };
 
 const DICTS: Record<Lang, Partial<Record<I18nKey, string>>> = { en, id };

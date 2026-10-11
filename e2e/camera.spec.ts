@@ -203,3 +203,42 @@ test('a finished camera match can be replayed straight away with the same camera
   expect(errors).toEqual([]);
   await browser.close();
 });
+
+test('the high-accuracy model tracks both players and can be swapped live', async () => {
+  test.setTimeout(240_000);
+  const y4m = await duoClip();
+  test.skip(!y4m, 'ffmpeg/ImageMagick or the test photo are unavailable');
+  const { browser, page } = await cameraBrowser(y4m!);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const models: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/models/')) models.push(r.url().split('/').pop()!);
+  });
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('vm.settings.v1'))
+      localStorage.setItem('vm.settings.v1', JSON.stringify({ poseModel: 'full', safetyAcknowledged: true }));
+  });
+  await page.goto('http://localhost:4173/play/body-boxing?mode=versus');
+  await page.locator('#enable-camera').click();
+  await expect(page.locator('.lobby__summary')).toContainText(/2 of 2/, { timeout: 90_000 });
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 30_000 });
+  expect(models).toEqual(['pose_landmarker_full.task']);
+
+  // Switch to the light model in Settings while the camera stays on, then come back.
+  // In-app navigation (the play screen is full-bleed, so there is no header link to click).
+  await page.evaluate(() => {
+    history.pushState(null, '', '/settings');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page.locator('#model-note')).toContainText(/High accuracy/);
+  await page.locator('#set-model').selectOption('lite');
+  await expect(page.locator('#model-note')).toContainText(/Light/, { timeout: 30_000 });
+  expect(models).toContain('pose_landmarker_lite.task');
+  await page.goBack();
+  await expect(page.locator('#enable-camera')).toHaveCount(0);
+  await expect(page.locator('.lobby__summary')).toContainText(/2 of 2/, { timeout: 30_000 });
+  expect(await trackingFps(page)).toBeGreaterThan(2);
+  expect(errors).toEqual([]);
+  await browser.close();
+});

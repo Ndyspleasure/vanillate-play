@@ -13,6 +13,7 @@ export const app = {
 function apply(s: Settings): void {
   app.session.setSensitivity(s.sensitivity);
   app.session.setQuality(s.trackingQuality);
+  app.session.setModelPreference(s.poseModel ?? 'auto');
   app.audio.setVolumes(s.sfxVolume, s.musicVolume);
   document.documentElement.lang = s.lang;
   document.documentElement.classList.toggle('reduced-motion', s.reducedMotion);
