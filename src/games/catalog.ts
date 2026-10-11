@@ -340,11 +340,21 @@ export const GAMES: GameMeta[] = [
     difficulty: 2,
     colors: ['#ff4dd2', '#7b2cff'],
     moves: ['pose', 'dance', 'hands', 'lean', 'squat'],
+    options: [
+      opt('song', 'Song', 'Lagu', 'freestyle', [
+        ['freestyle', 'Freestyle (random moves)', 'Freestyle (gerakan acak)'],
+        ['slow-jam', 'Slow Jam · 92 BPM', 'Lagu Santai · 92 BPM'],
+        ['robot-groove', 'Robot Groove · 104 BPM', 'Goyang Robot · 104 BPM'],
+        ['disco-fever', 'Disco Fever · 112 BPM', 'Demam Disko · 112 BPM'],
+        ['pop-party', 'Pop Party · 124 BPM', 'Pesta Pop · 124 BPM'],
+        ['power-mix', 'Power Mix · 128 BPM (squats!)', 'Campuran Power · 128 BPM (jongkok!)'],
+      ]),
+    ],
     text: {
       en: {
         tagline: 'Hit the moves on the beat.',
         description:
-          'Move cards slide to the beat line. Strike each pose right on the beat for PERFECT. Versus: highest score wins. Co-op: keep the team combo alive together.',
+          'Move cards slide to the beat line. Strike each pose right on the beat for PERFECT. Pick a song — from a slow jam to a squat-heavy power mix — or freestyle. Versus: highest score wins. Co-op: keep the team combo alive together.',
         howTo: [
           'Watch the move cards slide towards the line.',
           'Strike the pose exactly when the card hits the line.',
@@ -354,7 +364,7 @@ export const GAMES: GameMeta[] = [
       id: {
         tagline: 'Lakukan gerakan tepat di ketukan.',
         description:
-          'Kartu gerakan meluncur ke garis ketukan. Lakukan pose tepat di ketukan untuk PERFECT. Versus: skor tertinggi menang. Co-op: jaga combo tim bersama.',
+          'Kartu gerakan meluncur ke garis ketukan. Lakukan pose tepat di ketukan untuk PERFECT. Pilih lagu — dari lagu santai sampai power mix penuh jongkok — atau freestyle. Versus: skor tertinggi menang. Co-op: jaga combo tim bersama.',
         howTo: [
           'Perhatikan kartu gerakan yang meluncur ke garis.',
           'Lakukan pose tepat saat kartu menyentuh garis.',

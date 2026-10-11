@@ -1,17 +1,18 @@
-import { matchPose, poseName, UPPER_BODY_POSES, POSES, type PoseDef } from '../../core/motion/pose';
+import { matchPose, poseById, poseName, UPPER_BODY_POSES, POSES, type PoseDef } from '../../core/motion/pose';
 import { C, ghost, panel, text } from '../../engine/draw';
 import { coopResult, scoreHeader, soloResult, versusResult } from '../../engine/hud';
 import type { GameFactory, Grade } from '../../engine/types';
 import { L, tx } from '../kits/text';
 import { bubble } from '../kits/ui';
+import { chartById, thinSteps, UPPER_BODY_SWAP } from './charts';
 
 /**
  * Dance Battle (GAMES.md 6.8) — move cards slide to the beat line; strike the pose on the beat.
  * Accuracy + timing + combo = score. Versus, co-op (shared combo) and solo.
+ * Songs: Freestyle (random moves every 2 beats) or a hand-made chart with its own tempo and rhythm.
  */
-const BPM = 112;
-const SPB = 60 / BPM;
-const MOVES = 24;
+const FREESTYLE_BPM = 112;
+const FREESTYLE_MOVES = 24;
 const LEAD = 4; // beats before the first move
 
 interface Move {
@@ -29,21 +30,38 @@ const factory: GameFactory = (ctx) => {
   const n = ctx.players.length;
   const coop = ctx.mode === 'coop';
   const legs = ctx.players.every((p) => ctx.input(p.index).state.legsVisible);
-  const pool = (legs ? POSES : UPPER_BODY_POSES).filter(
-    (p) => !p.checks?.includes('kneeLeft') && !p.checks?.includes('kneeRight'),
-  );
+  const chart = chartById(ctx.options.song ?? '');
+  const BPM = chart?.bpm ?? FREESTYLE_BPM;
+  const SPB = 60 / BPM;
+  // Similarity needed per grade (harder levels want cleaner shapes).
+  const simK = ctx.tune(-0.05, 0, 0.04);
+  const newMove = (beat: number, pose: PoseDef): Move => ({
+    beat: LEAD + beat,
+    pose,
+    judged: false,
+    best: Array.from({ length: n }, () => ({ grade: 'MISS' as Grade, score: 0 })),
+  });
   const moves: Move[] = [];
-  let prev: PoseDef | null = null;
-  for (let k = 0; k < MOVES; k++) {
-    const pose: PoseDef = ctx.rng.pickNot(pool, prev);
-    prev = pose;
-    moves.push({
-      beat: LEAD + k * 2,
-      pose,
-      judged: false,
-      best: Array.from({ length: n }, () => ({ grade: 'MISS' as Grade, score: 0 })),
-    });
+  if (chart) {
+    // Easy: no move closer than 2 beats to the previous one.
+    const steps = ctx.level === 'easy' ? thinSteps(chart.steps, 2) : chart.steps;
+    for (const [beat, id] of steps)
+      moves.push(newMove(beat, poseById(legs ? id : (UPPER_BODY_SWAP[id] ?? id))));
+  } else {
+    const pool = (legs ? POSES : UPPER_BODY_POSES).filter(
+      (p) => !p.checks?.includes('kneeLeft') && !p.checks?.includes('kneeRight'),
+    );
+    let prev: PoseDef | null = null;
+    for (let k = 0; k < FREESTYLE_MOVES; k++) {
+      const pose: PoseDef = ctx.rng.pickNot(pool, prev);
+      prev = pose;
+      moves.push(newMove(k * 2, pose));
+    }
   }
+  const MOVES = moves.length;
+  // Closest pair of moves (s): the card track is stretched so neighbouring cards never overlap.
+  let minGap = 2 * SPB;
+  for (let k = 1; k < moves.length; k++) minGap = Math.min(minGap, (moves[k].beat - moves[k - 1].beat) * SPB);
   const score = new Array(n).fill(0);
   const combo = new Array(n).fill(0);
   const maxCombo = new Array(n).fill(0);
@@ -125,7 +143,7 @@ const factory: GameFactory = (ctx) => {
       if (finished) return;
       if (!started) {
         started = true;
-        ctx.audio.music.play('dance', BPM);
+        ctx.audio.music.play(chart?.style ?? 'dance', BPM);
       }
       time += dt;
       for (const m of moves) {
@@ -139,11 +157,11 @@ const factory: GameFactory = (ctx) => {
             const sim = matchPose(m.pose, inp.state, inp.pose);
             const a = Math.abs(off);
             const grade: Grade =
-              sim >= 0.8 && a <= 0.14
+              sim >= 0.8 + simK && a <= 0.14
                 ? 'PERFECT'
-                : sim >= 0.72 && a <= 0.24
+                : sim >= 0.72 + simK && a <= 0.24
                   ? 'GREAT'
-                  : sim >= 0.62
+                  : sim >= 0.62 + simK
                     ? 'GOOD'
                     : 'MISS';
             const val = GRADE_PTS[grade] + sim;
@@ -156,8 +174,10 @@ const factory: GameFactory = (ctx) => {
     render(g) {
       const lineX = ctx.width * 0.5;
       const y = ctx.height * 0.3;
-      const pxPerSec = ctx.width * 0.22;
-      const T = Math.min(ctx.height * 0.055, 46);
+      const T = Math.min(ctx.height * 0.055, 46, ctx.width * 0.07);
+      // Wide enough that the closest two cards (and their names) never overlap.
+      const pxPerSec = Math.max(ctx.width * 0.22, (T * 3.2) / minGap);
+      const label = Math.max(11, Math.min(15, T * 0.4));
       panel(g, 0, y - T * 2.6, ctx.width, T * 5.2, { fill: 'rgba(20,10,40,0.55)', r: 0 });
       // Beat line pulses on the beat
       const beatPhase = (time / SPB) % 1;
@@ -172,12 +192,19 @@ const factory: GameFactory = (ctx) => {
         if (x < -100 || x > ctx.width + 100) continue;
         const alpha = m.judged ? 0.25 : 1;
         ghost(g, m.pose, x, y - T * 0.6, T, m.judged ? '#9e9e9e' : '#ffe9b8', alpha * 0.95);
-        text(g, poseName(m.pose, ctx.lang), x, y + T * 2.1, { size: 15, alpha, stroke: 3 });
+        text(g, poseName(m.pose, ctx.lang), x, y + T * 2.1, {
+          size: label,
+          alpha,
+          stroke: 3,
+          maxWidth: Math.max(40, minGap * pxPerSec - 8),
+        });
       }
       scoreHeader(g, ctx, score, {
         center: coop
           ? `${tx(ctx, 'statComboTeam')} ${teamCombo}`
-          : L(ctx, 'Hit the pose on the beat!', 'Pose tepat di ketukan!'),
+          : chart
+            ? `♪ ${chart.name[ctx.lang]}`
+            : L(ctx, 'Hit the pose on the beat!', 'Pose tepat di ketukan!'),
       });
       if (time - lastGradeT < 0.8) {
         for (let i = 0; i < n; i++) {
@@ -191,6 +218,8 @@ const factory: GameFactory = (ctx) => {
     inspect: () => ({
       time,
       next: moves.find((m) => !m.judged)?.pose.id,
+      moves: moves.length,
+      bpm: BPM,
       beatTime: (moves.find((m) => !m.judged)?.beat ?? 0) * SPB,
     }),
   };
