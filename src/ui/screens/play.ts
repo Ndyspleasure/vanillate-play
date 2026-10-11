@@ -183,7 +183,15 @@ export function playScreen(m: RouteMatch): Screen {
     const enable = button(t('setup.enable'), {
       size: 'lg',
       icon: 'camera',
-      onClick: () => void startCamera(),
+      // Stays clickable before the safety box is ticked: a greyed-out camera button left
+      // "keyboard" as the only thing that responded, so players ended up in keyboard mode.
+      onClick: () => {
+        if (agreed) return void startCamera();
+        safety.classList.remove('is-nudged');
+        void safety.offsetWidth; // restart the nudge animation
+        safety.classList.add('is-nudged');
+        safety.querySelector('input')?.focus();
+      },
       attrs: { id: 'enable-camera' },
     });
     const kb = button(t('setup.keyboard'), {
@@ -193,7 +201,8 @@ export function playScreen(m: RouteMatch): Screen {
       attrs: { id: 'keyboard-mode' },
     });
     const sync = () => {
-      enable.toggleAttribute('disabled', !agreed || !!unsupported);
+      enable.toggleAttribute('disabled', !!unsupported);
+      if (agreed) safety.classList.remove('is-nudged');
     };
     const safety = h(
       'label',

@@ -1085,6 +1085,28 @@ select {
 .safety {
   justify-content: center;
   font-weight: 700;
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.safety.is-nudged {
+  outline: 2px solid var(--pink);
+  animation: nudge 0.4s ease;
+}
+
+@keyframes nudge {
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .safety.is-nudged {
+    animation: none;
+  }
 }
 
 .error-text {
