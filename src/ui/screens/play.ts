@@ -154,6 +154,7 @@ export function playScreen(m: RouteMatch): Screen {
       stage.prepend(session.camera.video);
     // Moving the video between screens pauses it in every browser; resume the same live stream.
     if (session.mode === 'camera') void session.camera.ensurePlaying();
+    else if (session.camera.video.parentElement === stage) session.camera.video.remove();
     stage.classList.toggle('stage--sim', session.mode === 'simulated');
   };
 
@@ -387,6 +388,14 @@ export function playScreen(m: RouteMatch): Screen {
     if (!destroyed) showLobby();
   };
 
+  /** Back to the camera card (safety check, privacy note) with keyboard play switched off. */
+  const switchToCamera = () => {
+    lobby?.destroy();
+    lobby = null;
+    session.stop();
+    showSetup();
+  };
+
   // ── Lobby ──────────────────────────────────────────────
   const statusText = (st: LobbyStatus, crowdOnly = false): HTMLElement => {
     const msgs: string[] = [];
@@ -541,6 +550,22 @@ export function playScreen(m: RouteMatch): Screen {
       session.mode === 'simulated'
         ? button(t('lobby.keys'), { variant: 'ghost', size: 'sm', icon: 'keyboard', onClick: showKeys })
         : null,
+      // The chosen input sticks across games, so the lobby is where players switch it.
+      session.mode === 'simulated'
+        ? button(t('lobby.useCamera'), {
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'camera',
+            onClick: switchToCamera,
+            attrs: { id: 'switch-camera' },
+          })
+        : button(t('lobby.useKeyboard'), {
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'keyboard',
+            onClick: () => void startKeyboard(),
+            attrs: { id: 'switch-keyboard' },
+          }),
     );
     const panel = h(
       'div',

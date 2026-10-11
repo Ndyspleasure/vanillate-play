@@ -151,3 +151,22 @@ test('party collection: start from the home page and finish a run with standings
   expect(await page.evaluate(() => localStorage.getItem('vm.run.v1'))).toBeNull();
   expect(errors).toEqual([]);
 });
+
+test('input mode can be switched from the lobby, and the camera button asks for the safety check', async ({
+  page,
+}) => {
+  const errors = trackErrors(page);
+  await page.goto('/play/body-boxing?mode=versus');
+  // Enabled before the safety check, but it points at the checkbox instead of starting.
+  await page.locator('#enable-camera').click();
+  await expect(page.locator('.safety')).toHaveClass(/is-nudged/);
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  // Keyboard mode sticks across games; the lobby offers the way back to the camera.
+  await page.locator('#switch-camera').click();
+  await expect(page.locator('#enable-camera')).toBeVisible();
+  await expect(page.locator('#lobby-start')).toHaveCount(0);
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#switch-camera')).toBeVisible({ timeout: 15_000 });
+  expect(errors).toEqual([]);
+});

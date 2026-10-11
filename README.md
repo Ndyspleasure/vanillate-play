@@ -59,7 +59,7 @@ Every push to `main` deploys production; pull requests get preview URLs.
 
 ## How to play (no camera)
 
-Choose **Play with keyboard instead** on the camera screen. Player 1: `A/D` step, `Q/E` lean, `W` jump, `S` squat, `F/G` punch, `R` hands up, `C` block, `V/B` kick, `T` flap, `Y` dance; drag the mouse/touch to move a hand. Player 2: `J/L` or arrows, `U/O`, `I`, `K`, `N/M`, `P`, `H`, `[ ]`, `9`, `0`. The full list is in the lobby (**Keyboard controls**). Players 3–4 are CPU-driven in keyboard mode.
+Choose **Play with keyboard instead** on the camera screen. Player 1: `A/D` step, `Q/E` lean, `W` jump, `S` squat, `F/G` punch, `R` hands up, `C` block, `V/B` kick, `T` flap, `Y` dance; drag the mouse/touch to move a hand. Player 2: `J/L` or arrows, `U/O`, `I`, `K`, `N/M`, `P`, `H`, `[ ]`, `9`, `0`. The full list is in the lobby (**Keyboard controls**). Players 3–4 are CPU-driven in keyboard mode. The chosen input stays on across games; switch it any time from the lobby (**Use camera** / **Use keyboard**).
 
 ## Game catalog
 
