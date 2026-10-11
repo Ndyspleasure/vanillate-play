@@ -64,7 +64,12 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
   const times: number[][] = Array.from({ length: n }, () => []);
   const falseStarts = new Array(n).fill(0);
   const outcomes: (Outcome | null)[] = new Array(n).fill(null);
-  const freeze = new FreezeMonitor(n, 0.6, 0.4, 0.2);
+  const freeze = new FreezeMonitor(
+    n,
+    ctx.tune(0.6 * 1.25, 0.6, 0.6 * 0.82),
+    ctx.tune(0.4 * 1.3, 0.4, 0.4 * 0.75),
+    0.2,
+  );
   let round = 0;
   let phase: Phase = 'wait';
   let phaseT = 0;
@@ -250,7 +255,7 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
           }
           const pending = ctx.players.filter((p) => alive(p.index) && !outcomes[p.index]).length;
           const anyOk = outcomes.some((o) => o?.kind === 'ok');
-          const limit = fake ? 1.6 : 2.6;
+          const limit = (fake ? 1.6 : 2.6) * ctx.tune(1.25, 1, 0.8);
           if (pending === 0 || phaseT > limit || (anyOk && phaseT > 1.4 && n > 1)) {
             for (let i = 0; i < n; i++)
               if (alive(i) && !outcomes[i]) outcomes[i] = fake ? { kind: 'held' } : { kind: 'late' };

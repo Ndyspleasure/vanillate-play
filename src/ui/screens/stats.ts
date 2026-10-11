@@ -3,7 +3,7 @@ import { gameById } from '../../games/catalog';
 import { stats } from '../../storage/stats';
 import { button, footer, header, modeLabel } from '../components';
 import { h } from '../dom';
-import { t } from '../i18n';
+import { t, type I18nKey } from '../i18n';
 
 function fmtTime(ms: number): string {
   const m = Math.round(ms / 60000);
@@ -67,7 +67,7 @@ export function statsScreen(): Screen {
               'ul',
               { class: 'list' },
               bests.map(([key, b]) => {
-                const [id, mode] = key.split(':');
+                const [id, mode, level] = key.split(':');
                 const meta = gameById(id);
                 return h(
                   'li',
@@ -75,7 +75,7 @@ export function statsScreen(): Screen {
                   h(
                     'span',
                     null,
-                    `${meta?.emoji ?? ''} ${meta?.name ?? id} · ${modeLabel(mode as never)} — ${b.label}`,
+                    `${meta?.emoji ?? ''} ${meta?.name ?? id} · ${modeLabel(mode as never)}${level ? ` · ${t(`level.${level}` as I18nKey)}` : ''} — ${b.label}`,
                   ),
                   h('strong', null, b.display),
                 );

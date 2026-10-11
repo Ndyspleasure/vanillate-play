@@ -227,8 +227,8 @@ const factory: GameFactory = (ctx) => {
             spit.add({
               kind: 'body',
               owner: z.target,
-              t: 1.1,
-              warn: 1.1,
+              t: ctx.tune(1.4, 1.1, 0.85),
+              warn: ctx.tune(1.4, 1.1, 0.85),
               x: tgt.center.x,
               y: tgt.center.y,
               from: z.side,

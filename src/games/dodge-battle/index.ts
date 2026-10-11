@@ -47,7 +47,7 @@ const factory: GameFactory = (ctx) => {
     const def = ctx.input(d);
     const style = styleFor();
     const T = def.torsoPx;
-    const warn = Math.max(0.65, 1.05 - turn * 0.06);
+    const warn = Math.max(0.65, 1.05 - turn * 0.06) * ctx.tune(1.3, 1, 0.8);
     if (kind === 'high')
       field.add({
         kind,

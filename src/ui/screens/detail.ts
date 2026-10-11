@@ -3,7 +3,9 @@ import { app } from '../../app/context';
 import { artEl } from '../../art/sprites';
 import type { RouteMatch, Screen } from '../../app/router';
 import { cameraSupport } from '../../core/camera/CameraManager';
-import type { ModeId } from '../../engine/types';
+import { recordKey } from '../../engine/hud';
+import { LEVELS, type Level, type ModeId } from '../../engine/types';
+import { settings } from '../../storage/settings';
 import { gameById, playersForMode } from '../../games/catalog';
 import { stats } from '../../storage/stats';
 import { button, footer, header, modeLabel, moveChip, playerCountLabel, thumb } from '../components';
@@ -25,9 +27,52 @@ export function detailScreen(m: RouteMatch): Screen {
   let players = playersForMode(meta, mode);
   const options: Record<string, string> = {};
   for (const o of meta.options ?? []) options[o.id] = o.default;
+  const qLevel = m.query.get('level') as Level | null;
+  let level: Level = qLevel && LEVELS.includes(qLevel) ? qLevel : (settings.get().level ?? 'normal');
 
   const modeBox = h('div', { class: 'mode-list', role: 'radiogroup', 'aria-label': t('detail.mode') });
   const optBox = h('div', { class: 'options' });
+  const levelBox = h('div', {
+    class: 'mode-list mode-list--levels',
+    role: 'radiogroup',
+    'aria-label': t('detail.level'),
+  });
+  const bestBox = h('div');
+
+  const renderBest = () => {
+    clear(bestBox);
+    const best = stats.best(recordKey(meta.id, mode, level));
+    if (best)
+      bestBox.appendChild(h('p', { class: 'note' }, '🏆 ', t('result.prevBest', { v: best.display })));
+  };
+
+  const renderLevels = () => {
+    clear(levelBox);
+    for (const lv of LEVELS) {
+      const active = lv === level;
+      levelBox.appendChild(
+        h(
+          'button',
+          {
+            class: `mode-card mode-card--level level--${lv}${active ? ' is-active' : ''}`,
+            type: 'button',
+            role: 'radio',
+            'aria-checked': String(active),
+            dataset: { level: lv },
+            onclick: () => {
+              level = lv;
+              settings.update({ level });
+              track('level_selected', { game: meta.id, level });
+              renderLevels();
+              renderBest();
+            },
+          },
+          h('strong', null, t(`level.${lv}` as I18nKey)),
+          h('span', null, t(`level.${lv}.d` as I18nKey)),
+        ),
+      );
+    }
+  };
 
   const renderModes = () => {
     clear(modeBox);
@@ -48,6 +93,7 @@ export function detailScreen(m: RouteMatch): Screen {
               track('mode_selected', { game: meta.id, mode });
               renderModes();
               renderOptions();
+              renderBest();
             },
           },
           h('strong', null, modeLabel(md)),
@@ -91,14 +137,15 @@ export function detailScreen(m: RouteMatch): Screen {
 
   renderModes();
   renderOptions();
+  renderLevels();
+  renderBest();
 
   const start = () => {
-    const qs = new URLSearchParams({ mode, players: String(players) });
+    const qs = new URLSearchParams({ mode, players: String(players), level });
     for (const [k, v] of Object.entries(options)) qs.set(`o.${k}`, v);
     app.router.go(`/play/${meta.id}?${qs}`);
   };
 
-  const best = stats.best(`${meta.id}:${mode}`);
   const el = h(
     'div',
     { class: 'page page--detail' },
@@ -126,7 +173,7 @@ export function detailScreen(m: RouteMatch): Screen {
             ),
           ),
           meta.fullBody ? h('p', { class: 'note' }, '🦶 ', t('detail.fullBody')) : null,
-          best ? h('p', { class: 'note' }, '🏆 ', t('result.prevBest', { v: best.display })) : null,
+          bestBox,
         ),
         h(
           'div',
@@ -145,6 +192,8 @@ export function detailScreen(m: RouteMatch): Screen {
           h('h2', null, t('detail.mode')),
           modeBox,
           optBox,
+          h('h2', null, t('detail.level')),
+          levelBox,
           h(
             'div',
             { class: 'detail__cta' },

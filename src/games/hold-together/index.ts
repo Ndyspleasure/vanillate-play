@@ -43,11 +43,11 @@ const factory: GameFactory = (ctx) => {
         return inp.state.handsUp;
       case 'spots':
       case 'slide':
-        return Math.abs(inp.center.x - spotX(i)) < Math.max(50, inp.torsoPx * 0.6);
+        return Math.abs(inp.center.x - spotX(i)) < Math.max(50, inp.torsoPx * ctx.tune(0.8, 0.6, 0.45));
       case 'freeze':
-        return inp.state.energy < 0.4;
+        return inp.state.energy < ctx.tune(0.55, 0.4, 0.3);
       case 'tpose':
-        return matchPose(poseById('t-pose'), inp.state, inp.pose) > 0.7;
+        return matchPose(poseById('t-pose'), inp.state, inp.pose) > ctx.tune(0.62, 0.7, 0.78);
       case 'squat':
         return inp.state.squatting || inp.state.drop > 0.22;
     }

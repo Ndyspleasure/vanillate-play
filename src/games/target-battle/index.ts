@@ -38,13 +38,17 @@ export function createTargets(ctx: GameContext, variant: Variant): GameInstance 
   const spawned = new Array(n).fill(0);
   let finished = false;
 
-  const lifeFor = () => {
+  // Difficulty: how long a target stays up.
+  const lifeK = ctx.tune(1.3, 1, 0.75);
+  const lifeFor = () => lifeK * lifeBase();
+  const lifeBase = () => {
     if (variant === 'sudden') return Math.max(1.3, 2.4 - time * 0.02);
     if (variant === 'endless') return Math.max(1.2, 3 - time * 0.03);
     if (variant === 'accuracy') return 2.6;
     return 3;
   };
-  const radiusFor = () => (variant === 'accuracy' ? Math.max(18, 48 - spawned[0] * 1.2) : 42);
+  const radiusFor = () =>
+    (variant === 'accuracy' ? Math.max(18, 48 - spawned[0] * 1.2) : 42) * ctx.tune(1.15, 1, 0.88);
 
   const spawn = (i: number) => {
     const inp = ctx.input(i);

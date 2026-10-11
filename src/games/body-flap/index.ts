@@ -15,9 +15,9 @@ export function createFlap(ctx: GameContext, mode: Mode): GameInstance {
   const n = ctx.players.length;
   const glide = ctx.options.control === 'glide';
   // Same pipe layout for everyone (fair challenge), each with its own pass-state.
-  const layout = buildPipes(ctx.rng, 220);
+  const layout = buildPipes(ctx.rng, 220, 1.2, ctx.tune(1.2, 1, 0.86));
   const tracks: Pipe[][] = ctx.players.map(() => layout.map((p) => ({ ...p })));
-  const flyers = ctx.players.map(() => new Flyer(0.3, glide));
+  const flyers = ctx.players.map(() => new Flyer(ctx.tune(0.25, 0.3, 0.36), glide));
   const crashes = new Array(n).fill(0);
   const stun = new Array(n).fill(0);
   const out = new Array(n).fill(false);

@@ -19,7 +19,11 @@ export type AnalyticsEvent =
   | 'tracking_failure'
   | 'keyboard_mode'
   | 'tutorial'
-  | 'share_result';
+  | 'share_result'
+  | 'level_selected'
+  | 'collection_started'
+  | 'collection_completed'
+  | 'clip_shared';
 
 type Props = Record<string, string | number | boolean>;
 

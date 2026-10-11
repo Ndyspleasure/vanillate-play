@@ -13,7 +13,6 @@ const BPM = 112;
 const SPB = 60 / BPM;
 const MOVES = 24;
 const LEAD = 4; // beats before the first move
-const WINDOW = 0.38;
 
 interface Move {
   beat: number;
@@ -25,6 +24,8 @@ interface Move {
 const GRADE_PTS: Record<Grade, number> = { PERFECT: 300, GREAT: 200, GOOD: 100, MISS: 0, FAIL: 0 };
 
 const factory: GameFactory = (ctx) => {
+  // Difficulty-dependent tuning (easy, normal, hard).
+  const WINDOW = ctx.tune(0.48, 0.38, 0.3);
   const n = ctx.players.length;
   const coop = ctx.mode === 'coop';
   const legs = ctx.players.every((p) => ctx.input(p.index).state.legsVisible);

@@ -35,7 +35,7 @@ const factory: GameFactory = (ctx) => {
   };
 
   const serve = () => {
-    const speed = Math.max(380, ctx.width * 0.38);
+    const speed = Math.max(380, ctx.width * 0.38) * ctx.tune(0.82, 1, 1.18);
     const angle = ctx.rng.range(-0.5, 0.5);
     ball.x = ctx.width / 2;
     ball.y = (top() + bottom()) / 2;
@@ -94,7 +94,7 @@ const factory: GameFactory = (ctx) => {
           // AI: follow the ball with limited speed and a little human-like error.
           aiError += (ctx.rng.range(-1, 1) * 60 - aiError) * smoothFactor(dt, 0.8);
           const goal = ball.vx > 0 ? ball.y + aiError : (top() + bottom()) / 2;
-          const maxV = 420 + score[0] * 40;
+          const maxV = (420 + score[0] * 40) * ctx.tune(0.75, 1, 1.25);
           target = paddleY[1] + clamp(goal - paddleY[1], -maxV * dt, maxV * dt);
           paddleY[1] = target;
         } else {

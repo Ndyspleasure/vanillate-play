@@ -12,7 +12,7 @@ import { GestureHold } from '../../core/motion/gesture';
 import { PracticeTracker, practiceSteps } from '../../core/motion/practice';
 import { GameRunner, type RunnerPhase } from '../../engine/GameRunner';
 import { PLAYER_COLORS } from '../../engine/draw';
-import type { MatchResult, ModeId } from '../../engine/types';
+import { LEVELS, type Level, type MatchResult, type ModeId } from '../../engine/types';
 import { artEl } from '../../art/sprites';
 import { gameById, playersForMode } from '../../games/catalog';
 import { settings } from '../../storage/settings';
@@ -45,6 +45,8 @@ export function playScreen(m: RouteMatch): Screen {
     const v = m.query.get(`o.${o.id}`);
     options[o.id] = v && o.choices.some((c) => c.value === v) ? v : o.default;
   }
+  const qLevel = m.query.get('level') as Level | null;
+  const level: Level = qLevel && LEVELS.includes(qLevel) ? qLevel : 'normal';
   const session = app.session;
 
   const stage = h('div', { class: 'stage', id: 'stage' });
@@ -64,7 +66,11 @@ export function playScreen(m: RouteMatch): Screen {
       artEl(meta.emoji, { color: meta.colors[0] }),
       ' ',
       h('strong', null, meta.name),
-      h('span', { class: 'muted' }, ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}`),
+      h(
+        'span',
+        { class: 'muted' },
+        ` · ${modeLabel(mode)}${mode === 'party' ? ` · ${count}P` : ''}${level !== 'normal' ? ` · ${t(`level.${level}` as I18nKey)}` : ''}`,
+      ),
     ),
     topRight,
   );
@@ -627,6 +633,7 @@ export function playScreen(m: RouteMatch): Screen {
         fxQuality: s.fxQuality,
         showPerf: s.showPerf,
         lang: s.lang,
+        level,
         // The tutorial already introduced the game: go straight to the countdown.
         quickStart: quick || practicedNow,
       },

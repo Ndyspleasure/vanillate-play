@@ -104,7 +104,7 @@ const factory: GameFactory = (ctx) => {
   let t = 0;
   let phase: 'work' | 'rest' = 'work';
   let finished = false;
-  const goal = plan.length * 22;
+  const goal = plan.length * ctx.tune(16, 22, 30);
 
   const finish = () => {
     if (finished) return;

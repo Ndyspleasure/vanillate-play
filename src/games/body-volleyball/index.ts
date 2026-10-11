@@ -27,7 +27,8 @@ const factory: GameFactory = (ctx) => {
 
   const floor = () => ctx.height * 0.95;
   const netTop = () => ctx.height * 0.52;
-  const G = () => ctx.height * 1.05;
+  // Difficulty: gravity = how quickly the ball drops (hang time to get under it).
+  const G = () => ctx.height * 1.05 * ctx.tune(0.8, 1, 1.2);
 
   const serve = () => {
     ball.x = server === 0 ? ctx.width * 0.25 : ctx.width * 0.75;

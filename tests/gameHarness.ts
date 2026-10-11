@@ -7,7 +7,8 @@ import { Fx } from '../src/engine/fx';
 import { MutableInput } from '../src/engine/input';
 import { Rng } from '../src/engine/rng';
 import { playerZones } from '../src/engine/stage';
-import type { GameContext, GameInstance, GameMeta, MatchResult, ModeId } from '../src/engine/types';
+import { tuneFor } from '../src/engine/hud';
+import type { GameContext, GameInstance, GameMeta, Level, MatchResult, ModeId } from '../src/engine/types';
 
 /** A CanvasRenderingContext2D stand-in that accepts every call (render code runs headless). */
 export function fakeCanvas(): CanvasRenderingContext2D {
@@ -74,6 +75,7 @@ export function createHarness(
   count: number,
   options: Record<string, string> = {},
   seed = 42,
+  level: Level = 'normal',
 ): Harness {
   const width = 1280;
   const height = 720;
@@ -115,6 +117,8 @@ export function createHarness(
     meta,
     mode,
     options: opts,
+    level,
+    tune: (e, n, hd) => tuneFor(level, e, n, hd),
     players: Array.from({ length: count }, (_, i) => ({
       index: i,
       name: `P${i + 1}`,

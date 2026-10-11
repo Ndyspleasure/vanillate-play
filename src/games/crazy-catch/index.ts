@@ -71,14 +71,14 @@ const factory: GameFactory = (ctx) => {
       owner: i,
       x,
       y: 90,
-      vy: ctx.height * (0.16 + time * 0.004),
+      vy: ctx.height * (0.16 + time * 0.004) * ctx.tune(0.8, 1, 1.25),
       r: Math.max(26, 44 - time * 0.25),
       part: ctx.rng.pick(PARTS),
       bomb,
       fruit: ctx.rng.pick(FRUIT),
       dead: false,
     });
-    nextDrop[i] = Math.max(0.55, 1.6 - time * 0.018) + ctx.rng.range(0, 0.4);
+    nextDrop[i] = Math.max(0.55, 1.6 - time * 0.018) * ctx.tune(1.25, 1, 0.8) + ctx.rng.range(0, 0.4);
   };
 
   const finish = () => {

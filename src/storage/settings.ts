@@ -1,6 +1,7 @@
 import type { Sensitivity } from '../core/motion/types';
 import type { InputQuality } from '../core/tracking/MediaPipeProvider';
 import type { FxQuality } from '../engine/fx';
+import type { Level } from '../engine/types';
 import { load, save } from './store';
 
 export type Lang = 'en' | 'id';
@@ -20,6 +21,8 @@ export interface Settings {
   gestureControls: boolean;
   /** Allow anonymous, aggregated usage events (only sent if an endpoint is configured). */
   analytics: boolean;
+  /** Last chosen difficulty (pre-selected on game pages). */
+  level: Level;
 }
 
 const KEY = 'vm.settings.v1';
@@ -46,6 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   safetyAcknowledged: false,
   gestureControls: true,
   analytics: true,
+  level: 'normal',
 };
 
 type Listener = (s: Settings) => void;

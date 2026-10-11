@@ -128,7 +128,7 @@ const factory: GameFactory = (ctx) => {
         if (c.ai) {
           const look = curve(c.z + 30);
           steer = clamp((look * 0.55 - c.x) * 1.6 + Math.sin(time + i) * 0.1, -1, 1);
-          maxSpeed = 54 + i * 1.5;
+          maxSpeed = (54 + i * 1.5) * ctx.tune(0.88, 1, 1.1);
         } else {
           const inp = ctx.input(i);
           steer = steerFrom(inp);
@@ -151,7 +151,8 @@ const factory: GameFactory = (ctx) => {
         c.bump = Math.max(0, c.bump - dt);
         const offroad = Math.abs(c.x) > 1.05;
         let target = maxSpeed + (c.nitroT > 0 ? 22 : 0) + (isBoostZone(c.z) ? 15 : 0);
-        if (offroad) target = 22;
+        // Easy keeps more speed off-road so drifting wide isn't punished as hard.
+        if (offroad) target = ctx.tune(34, 22, 18);
         if (c.bump > 0) target *= 0.5;
         c.speed = lerp(c.speed, target, 1 - Math.exp(-dt / (target > c.speed ? 1.6 : 0.5)));
         const grip = c.drift ? 1.6 : 1;

@@ -10,7 +10,10 @@ const factory: GameFactory = (ctx) => {
   const runner = new Runner();
   runner.baseSpeed = 8;
   runner.maxSpeed = 22;
-  let track: Obstacle[] = buildTrack(ctx.rng, 400, 1);
+  // Difficulty: start/top speed and obstacle density.
+  const pace = ctx.tune(0.8, 1, 1.2);
+  const dense = ctx.tune(0.75, 1, 1.25);
+  let track: Obstacle[] = buildTrack(ctx.rng, 400, dense);
   let built = 400;
   let time = 0;
   let finished = false;
@@ -21,9 +24,9 @@ const factory: GameFactory = (ctx) => {
     update(dt) {
       if (finished) return;
       time += dt;
-      runner.baseSpeed = Math.min(18, 8 + time * 0.12);
+      runner.baseSpeed = Math.min(18, 8 + time * 0.12) * pace;
       if (runner.z > built - 120) {
-        const density = Math.min(1.8, 1 + time / 90);
+        const density = Math.min(1.8, 1 + time / 90) * dense;
         const more = buildTrack(ctx.rng, 400, density, 0).map((o) => ({ ...o, z: o.z + built }));
         track = track.filter((o) => o.z > runner.z - 5).concat(more);
         built += 400;
@@ -73,7 +76,7 @@ const factory: GameFactory = (ctx) => {
       text(g, String(runner.coins), ctx.width / 2 - 50, 92, { size: 22, align: 'left' });
       hearts(g, ctx.width / 2 + 20, 92, LIVES - runner.hits, LIVES, 24);
     },
-    inspect: () => ({ z: runner.z, hits: runner.hits }),
+    inspect: () => ({ z: runner.z, hits: runner.hits, baseSpeed: runner.baseSpeed }),
   };
 };
 

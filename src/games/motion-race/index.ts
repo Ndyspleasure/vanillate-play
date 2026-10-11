@@ -22,13 +22,14 @@ function aiControl(
   time: number,
   rngNext: () => number,
   out: MutableInput,
+  missRate = 0.12,
 ): void {
   out.clearEvents();
   out.state.energy = 0.9;
   for (const o of track) {
     const ahead = o.z - r.z;
     if (ahead < 2 || ahead > 7) continue;
-    if (rngNext() > 0.12) {
+    if (rngNext() > missRate) {
       if (o.kind === 'hurdle' && !r.airborne) out.push('JUMP');
       if (o.kind === 'bar' && !r.sliding) out.push('SQUAT');
       if (o.kind === 'cone' && (o.moving ? movingLane(o, time) : o.lane) === Math.round(r.x)) {
@@ -52,7 +53,8 @@ const factory: GameFactory = (ctx) => {
   const humans = ctx.players.length;
   const solo = humans === 1;
   const count = solo ? 2 : humans;
-  const track = buildTrack(ctx.rng, LENGTH, 1);
+  const track = buildTrack(ctx.rng, LENGTH, ctx.tune(0.7, 1, 1.35));
+  const aiMiss = ctx.tune(0.25, 0.12, 0.05);
   const runners = Array.from({ length: count }, () => new Runner());
   const aiInput = new MutableInput(9, emptyState());
   const order: number[] = [];
@@ -104,7 +106,7 @@ const factory: GameFactory = (ctx) => {
         if (r.finished) continue;
         let inp: PlayerInput;
         if (solo && i === 1) {
-          aiControl(r, track, time, () => ctx.rng.next(), aiInput);
+          aiControl(r, track, time, () => ctx.rng.next(), aiInput, aiMiss);
           inp = aiInput;
         } else inp = ctx.input(i);
         r.control(inp);

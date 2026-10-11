@@ -61,7 +61,9 @@ const factory: GameFactory = (ctx) => {
     const used = pads.filter((p) => !p.dead && p.owner === i).map((p) => p.slot);
     const free = [0, 1, 2, 3, 4].filter((s) => !used.includes(s));
     const slot = ctx.rng.pick(free);
-    const life = variant === 'sudden' ? Math.max(1.1, 2 - time * 0.015) : variant === 'combo' ? 1.6 : 2.3;
+    const life =
+      (variant === 'sudden' ? Math.max(1.1, 2 - time * 0.015) : variant === 'combo' ? 1.6 : 2.3) *
+      ctx.tune(1.3, 1, 0.78);
     pads.push({ owner: i, side: ctx.rng.chance(0.5) ? 'L' : 'R', slot, born: time, life, dead: false });
   };
 

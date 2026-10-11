@@ -19,7 +19,12 @@ const factory: GameFactory = (ctx) => {
   const n = ctx.players.length;
   const lives = new Array(n).fill(3);
   const survived = new Array(n).fill(0);
-  const freeze = new FreezeMonitor(n, 0.6, 0.4, 0.2);
+  const freeze = new FreezeMonitor(
+    n,
+    ctx.tune(0.6 * 1.25, 0.6, 0.6 * 0.82),
+    ctx.tune(0.4 * 1.3, 0.4, 0.4 * 0.75),
+    0.2,
+  );
   const hazards = new HazardField();
   let kind: Kind = 'reaction';
   let t = 0;
@@ -109,8 +114,8 @@ const factory: GameFactory = (ctx) => {
               hazards.add({
                 kind: kind === 'duck' ? 'high' : 'low',
                 owner: i,
-                t: 1.2,
-                warn: 1.2,
+                t: ctx.tune(1.5, 1.2, 0.95),
+                warn: ctx.tune(1.5, 1.2, 0.95),
                 x: 0,
                 y,
                 from: -1,

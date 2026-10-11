@@ -10,8 +10,6 @@ import { bubble, zoneMeter } from '../kits/ui';
  * accurately and hold steady takes the point. First to 5.
  */
 const WIN = 5;
-const MATCH = 0.75;
-const HOLD = 0.5;
 
 const ARMS: { en: string; id: string; a: PoseDef['angles'] }[] = [
   { en: 'HANDS UP', id: 'TANGAN NAIK', a: { lUpper: 100, lFore: 95, rUpper: 80, rFore: 85 } },
@@ -39,6 +37,9 @@ const LEGS: { en: string; id: string; checks: PoseDef['checks'] }[] = [
 ];
 
 const factory: GameFactory = (ctx) => {
+  // Difficulty-dependent tuning (easy, normal, hard).
+  const MATCH = ctx.tune(0.68, 0.75, 0.8);
+  const HOLD = ctx.tune(0.4, 0.5, 0.7);
   const n = ctx.players.length;
   const pts = new Array(n).fill(0);
   const sims: number[][] = Array.from({ length: n }, () => []);

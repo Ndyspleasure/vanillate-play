@@ -53,7 +53,7 @@ const factory: GameFactory = (ctx) => {
     const ivx = (h.x - from.x) / T;
     const ivy = (h.y - from.y - 0.5 * G() * T * T) / T;
     const err = clamp(power, 0.5, 1.6);
-    const assist = variant === 'three' ? 0.75 : 0.85;
+    const assist = (variant === 'three' ? 0.75 : 0.85) + ctx.tune(0.08, 0, -0.07);
     const vx = ivx * (assist + (1 - assist) * err) + drift * (1 - assist) * 600;
     const vy = ivy * (assist + (1 - assist) * err);
     balls.push({ x: from.x, y: from.y, vx, vy, owner: shooter, scored: false, dead: false, rimHits: 0 });

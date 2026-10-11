@@ -26,7 +26,7 @@ export function createDodge(ctx: GameContext, ninja: boolean): GameInstance {
   const alive = (i: number) => lives[i] > 0;
 
   const spawn = () => {
-    const warn = Math.max(ninja ? 0.5 : 0.65, (ninja ? 1.0 : 1.2) - time * 0.008);
+    const warn = Math.max(ninja ? 0.5 : 0.65, (ninja ? 1.0 : 1.2) - time * 0.008) * ctx.tune(1.3, 1, 0.8);
     const r = ctx.rng.next();
     const kind: Hazard['kind'] = r < 0.3 ? 'high' : r < 0.55 ? 'low' : ninja && r < 0.75 ? 'wall' : 'body';
     const from = ctx.rng.pick([-1, 1] as const);
@@ -143,7 +143,11 @@ export function createDodge(ctx: GameContext, ninja: boolean): GameInstance {
           { size: 20, color: C.vanilla },
         );
     },
-    inspect: () => ({ lives: [...lives], pending: field.pending }),
+    inspect: () => ({
+      lives: [...lives],
+      pending: field.pending,
+      warn: field.list.find((h) => !h.resolved)?.warn,
+    }),
   };
 }
 

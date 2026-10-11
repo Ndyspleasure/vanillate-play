@@ -18,11 +18,12 @@ import { bubble, zoneMeter } from '../kits/ui';
  * Versus: accuracy + speed points. Couple mode: both must nail it — scored as team sync.
  */
 const POSE_COUNT = 8;
-const POSE_TIME = 5.5;
-const MATCH = 0.72;
-const HOLD = 0.4;
 
 const factory: GameFactory = (ctx) => {
+  // Difficulty-dependent tuning (easy, normal, hard).
+  const POSE_TIME = ctx.tune(7, 5.5, 4.2);
+  const MATCH = ctx.tune(0.66, 0.72, 0.78);
+  const HOLD = ctx.tune(0.3, 0.4, 0.55);
   const coop = ctx.mode === 'coop';
   const n = ctx.players.length;
   const score = new Array(n).fill(0);

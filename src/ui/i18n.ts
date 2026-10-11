@@ -252,6 +252,13 @@ const en = {
   notfound: 'This page wandered out of frame.',
   'notfound.back': 'Back to games',
   rotate: 'Turn your device sideways for the best view.',
+  'detail.level': 'Difficulty',
+  'level.easy': 'Easy',
+  'level.normal': 'Normal',
+  'level.hard': 'Hard',
+  'level.easy.d': 'More time to react, bigger targets',
+  'level.normal.d': 'The standard challenge',
+  'level.hard.d': 'Faster, stricter, sharper CPU',
 };
 
 export type I18nKey = keyof typeof en;
@@ -506,6 +513,13 @@ const id: Partial<Record<I18nKey, string>> = {
   notfound: 'Halaman ini keluar dari frame.',
   'notfound.back': 'Kembali ke game',
   rotate: 'Putar perangkat ke posisi landscape untuk tampilan terbaik.',
+  'detail.level': 'Tingkat kesulitan',
+  'level.easy': 'Mudah',
+  'level.normal': 'Normal',
+  'level.hard': 'Sulit',
+  'level.easy.d': 'Waktu reaksi lebih lama, target lebih besar',
+  'level.normal.d': 'Tantangan standar',
+  'level.hard.d': 'Lebih cepat, lebih ketat, CPU lebih jago',
 };
 
 const DICTS: Record<Lang, Partial<Record<I18nKey, string>>> = { en, id };

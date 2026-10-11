@@ -19,11 +19,13 @@ import { Fx, type FxQuality } from './fx';
 import { InputHub } from './input';
 import { Rng } from './rng';
 import { StageMapper, playerZones } from './stage';
+import { tuneFor } from './hud';
 import { tx } from '../games/kits/text';
 import type {
   GameContext,
   GameInstance,
   GameMeta,
+  Level,
   MatchResult,
   ModeId,
   PlayerInfo,
@@ -40,6 +42,8 @@ export interface RunnerSettings {
   fxQuality: FxQuality | 'auto';
   showPerf: boolean;
   lang: 'en' | 'id';
+  /** Difficulty level (default normal). */
+  level?: Level;
   /** Skip the intro card (rematch). */
   quickStart?: boolean;
   seed?: number;
@@ -153,6 +157,9 @@ export class GameRunner {
       meta: this.meta,
       mode: this.mode,
       options: this.options,
+      level: this.settings.level ?? 'normal',
+      tune: <T>(easy: T, normal: T, hard: T): T =>
+        tuneFor(this.settings.level ?? 'normal', easy, normal, hard),
       players: this.players,
       get width() {
         return runner.width;

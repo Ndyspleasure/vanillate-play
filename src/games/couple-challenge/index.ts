@@ -46,7 +46,12 @@ const factory: GameFactory = (ctx) => {
   let falseStart = [false, false];
   let roundScore = 0;
   let hold = 0;
-  const freeze = new FreezeMonitor(2, 0.55, 0.4, 0.2);
+  const freeze = new FreezeMonitor(
+    2,
+    ctx.tune(0.55 * 1.25, 0.55, 0.55 * 0.82),
+    ctx.tune(0.4 * 1.3, 0.4, 0.4 * 0.75),
+    0.2,
+  );
   let caught = [false, false];
   let history: { t: number; v: PoseVector }[] = [];
   let finished = false;
@@ -106,7 +111,7 @@ const factory: GameFactory = (ctx) => {
   const timingScore = () => {
     const [a, b] = times;
     if (a === null || b === null) return 0;
-    return clamp01(1 - Math.max(0, Math.abs(a - b) - 60) / 700);
+    return clamp01(1 - Math.max(0, Math.abs(a - b) - 60) / ctx.tune(950, 700, 480));
   };
 
   next();

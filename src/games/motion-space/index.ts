@@ -41,8 +41,8 @@ const factory: GameFactory = (ctx) => {
   }));
   const score = new Array(n).fill(0);
   const kills = new Array(n).fill(0);
-  let lives = coop ? 5 : 3;
-  const livesEach = new Array(n).fill(3);
+  let lives = (coop ? 5 : 3) + ctx.tune(2, 0, -1);
+  const livesEach = new Array(n).fill(3 + ctx.tune(2, 0, -1));
   let ents: Ent[] = [];
   let shots: Shot[] = [];
   let wave = 0;
@@ -193,7 +193,7 @@ const factory: GameFactory = (ctx) => {
             x: ctx.rng.range(40, ctx.width - 40),
             y: -50,
             vx: ctx.rng.range(-40, 40),
-            vy: ctx.rng.range(120, 200) + time * 2,
+            vy: (ctx.rng.range(120, 200) + time * 2) * ctx.tune(0.8, 1, 1.2),
             hp: rock ? 2 : 1,
             kind: rock ? 'rock' : 'enemy',
             r: rock ? 36 : 28,

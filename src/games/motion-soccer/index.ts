@@ -98,7 +98,7 @@ const factory: GameFactory = (ctx) => {
         keeper.x = lerp(
           keeper.x,
           clamp(guess, -1, 1) * (aiTarget.x > 0.5 ? 0.7 : 1),
-          1 - Math.exp(-dt / 0.22),
+          1 - Math.exp(-dt / ctx.tune(0.32, 0.22, 0.15)),
         );
         keeper.reach = 0.8;
       } else keeper.x = lerp(keeper.x, Math.sin(time * 1.3) * 0.25, 0.05);
@@ -107,7 +107,13 @@ const factory: GameFactory = (ctx) => {
           aimX = aiTarget.x;
           aimY = aiTarget.y;
           if (t > aiKickAt) {
-            shot = { from: { ...Lg.spot }, to: aimPoint(Lg, aimX, aimY), t: 0, dur: 0.85, done: false };
+            shot = {
+              from: { ...Lg.spot },
+              to: aimPoint(Lg, aimX, aimY),
+              t: 0,
+              dur: ctx.tune(1.05, 0.85, 0.7),
+              done: false,
+            };
             phase = 'flight';
             t = 0;
             ctx.audio.play('kick');

@@ -95,7 +95,8 @@ const factory: GameFactory = (ctx) => {
             from: { ...Lg.spot },
             to: aimPoint(Lg, clamp(aimX + err, -1.1, 1.1), aimY),
             t: 0,
-            dur: 0.7,
+            // Difficulty: ball flight time = the keeper's reaction window.
+            dur: ctx.tune(0.88, 0.7, 0.56),
             done: false,
           };
           phase = 'flight';

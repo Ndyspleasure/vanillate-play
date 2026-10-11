@@ -95,7 +95,7 @@ const factory: GameFactory = (ctx) => {
         let best = 0;
         for (const h of history) {
           const lag = t - h.t;
-          const s = comparePoses(h.v, F.pose) * (1 - (lag / MAX_LAG) * 0.15);
+          const s = comparePoses(h.v, F.pose) * (1 - (lag / MAX_LAG) * ctx.tune(0.05, 0.15, 0.3));
           if (s > best) best = s;
         }
         live = live * 0.85 + best * 0.15;

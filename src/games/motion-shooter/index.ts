@@ -71,7 +71,7 @@ const factory: GameFactory = (ctx) => {
         vx: ctx.rng.range(-30, 30),
         vy: -ctx.rng.range(70, 120 + time * 2),
       });
-    nextSpawn = variant === 'range' ? 1.1 : Math.max(0.4, 1 - time * 0.01);
+    nextSpawn = (variant === 'range' ? 1.1 : Math.max(0.4, 1 - time * 0.01)) * ctx.tune(1.3, 1, 0.78);
   };
 
   const finish = () => {

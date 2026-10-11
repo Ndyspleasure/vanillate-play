@@ -12,7 +12,6 @@ import { bigCommand, bubble } from '../kits/ui';
  * Sync = timing (60%) + pose similarity (30%) + holding it together (10%).
  */
 const PROMPTS = 10;
-const WINDOW = 4;
 const POOL: CommandId[] = [
   'jump',
   'squat',
@@ -27,6 +26,8 @@ const POOL: CommandId[] = [
 const INSTANT: ReadonlySet<CommandId> = new Set(['jump']);
 
 const factory: GameFactory = (ctx) => {
+  // Difficulty-dependent tuning (easy, normal, hard).
+  const WINDOW = ctx.tune(5, 4, 3);
   const results: number[] = [];
   const timings: number[] = [];
   let idx = -1;
@@ -61,7 +62,7 @@ const factory: GameFactory = (ctx) => {
     if (a !== null && b !== null) {
       const dt = Math.abs(a - b);
       timings.push(dt);
-      const timing = clamp01(1 - Math.max(0, dt - 60) / 700);
+      const timing = clamp01(1 - Math.max(0, dt - 60) / ctx.tune(950, 700, 480));
       const pose = sims.length ? mean(sims) : 0.7;
       const dur = INSTANT.has(cmdId) ? 1 : clamp01(heldTogether / 0.8);
       s = timing * 0.6 + pose * 0.3 + dur * 0.1;

@@ -34,7 +34,7 @@ const factory: GameFactory = (ctx) => {
   let score = 0;
   let ok = 0;
   let finished = false;
-  const windowFor = () => Math.max(1.5, 2.8 - idx * 0.045);
+  const windowFor = () => Math.max(1.5, 2.8 - idx * 0.045) * ctx.tune(1.3, 1, 0.78);
 
   const finishStep = (success: boolean) => {
     if (success) {

@@ -23,7 +23,12 @@ export function createFreeze(ctx: GameContext, cfg: FreezeConfig): GameInstance 
   const dance = new Array(n).fill(0);
   const caughtCount = new Array(n).fill(0);
   const idle = new Array(n).fill(0);
-  const monitor = new FreezeMonitor(n, 0.55, 0.45, 0.2);
+  const monitor = new FreezeMonitor(
+    n,
+    ctx.tune(0.55 * 1.25, 0.55, 0.55 * 0.82),
+    ctx.tune(0.45 * 1.3, 0.45, 0.45 * 0.75),
+    0.2,
+  );
   const maxRounds = cfg.maxRounds ?? 8;
   const effects = cfg.viral && ctx.options.effects !== 'off';
   let round = 0;

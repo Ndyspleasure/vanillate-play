@@ -26,6 +26,10 @@ interface Glove {
 
 const factory: GameFactory = (ctx) => {
   const solo = ctx.players.length === 1;
+  // Difficulty: glove travel time (= time to block/dodge) and how sharp the CPU boxer is.
+  const travel = ctx.tune(0.46, TRAVEL, 0.28);
+  const aiPace = ctx.tune(1.35, 1, 0.75);
+  const aiDefense = ctx.tune(-0.06, 0, 0.08);
   const hp = [MAX_HP, MAX_HP];
   const ghostHp = [MAX_HP, MAX_HP];
   const rounds = [0, 0];
@@ -89,8 +93,8 @@ const factory: GameFactory = (ctx) => {
     let dodged = false;
     if (solo && d === 1) {
       const r = ctx.rng.next();
-      blocked = ai.guard > 0.5 || r < 0.12 + round * 0.06;
-      dodged = !blocked && r < 0.22 + round * 0.06;
+      blocked = ai.guard > 0.5 || r < 0.12 + round * 0.06 + aiDefense;
+      dodged = !blocked && r < 0.22 + round * 0.06 + aiDefense;
       if (dodged) ai.headOff = ctx.rng.chance(0.5) ? -90 : 90;
     } else {
       const inp: PlayerInput = ctx.input(d);
@@ -232,13 +236,13 @@ const factory: GameFactory = (ctx) => {
     ai.headOff = lerp(ai.headOff, 0, 1 - Math.exp(-dt / 0.35));
     ai.hitT = Math.max(0, ai.hitT - dt);
     ai.t -= dt;
-    const aggression = 0.9 - round * 0.12;
+    const aggression = (0.9 - round * 0.12) * aiPace;
     if (ai.state === 'idle') {
       ai.guard = lerp(ai.guard, ctx.rng.chance(0.01) ? 1 : ai.guard > 0.5 ? 1 : 0, 0.05);
       if (ai.t <= 0) {
         ai.state = 'windup';
         ai.side = ctx.rng.chance(0.5) ? 'left' : 'right';
-        ai.t = 0.55 - round * 0.06;
+        ai.t = (0.55 - round * 0.06) * aiPace;
         ai.guard = 0;
       }
     } else if (ai.state === 'windup') {
@@ -281,7 +285,7 @@ const factory: GameFactory = (ctx) => {
       }
       if (solo) updateAI(dt);
       for (const gl of gloves) {
-        gl.t += dt / TRAVEL;
+        gl.t += dt / travel;
         if (gl.t >= 1) resolve(gl);
       }
       gloves = gloves.filter((gl) => gl.t < 1);

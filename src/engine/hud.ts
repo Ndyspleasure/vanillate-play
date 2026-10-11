@@ -1,7 +1,17 @@
 import { formatTime } from '../core/math';
 import { bar, C, FONT, panel, text, topShade } from './draw';
 import { tx } from '../games/kits/text';
-import type { GameContext, Grade, MatchResult } from './types';
+import type { GameContext, Grade, Level, MatchResult, ModeId } from './types';
+
+/** Personal-best key: records on easy/hard are kept apart from normal (they aren't comparable). */
+export function recordKey(id: string, mode: ModeId, level: Level = 'normal'): string {
+  return level === 'normal' ? `${id}:${mode}` : `${id}:${mode}:${level}`;
+}
+
+/** Pick a value for a difficulty level. */
+export function tuneFor<T>(level: Level, easy: T, normal: T, hard: T): T {
+  return level === 'easy' ? easy : level === 'hard' ? hard : normal;
+}
 
 /** Shared HUD + result builders so every game looks and reports consistently. */
 
@@ -203,7 +213,12 @@ export function coopResult(
     shareText: `${ctx.meta.emoji} ${ctx.meta.name.toUpperCase()}\n${opts.shareLine ?? tx(ctx, 'inSync', { p })}\n${ctx.players
       .map((pl) => pl.name)
       .join(' + ')}\n— Vanillate Motion`,
-    record: { key: `${ctx.meta.id}:${ctx.mode}`, value: p, label: tx(ctx, 'bestSync'), display: `${p}%` },
+    record: {
+      key: recordKey(ctx.meta.id, ctx.mode, ctx.level),
+      value: p,
+      label: tx(ctx, 'bestSync'),
+      display: `${p}%`,
+    },
   };
 }
 
@@ -232,7 +247,7 @@ export function soloResult(
     stats: opts.stats ?? [],
     shareText: `${ctx.meta.emoji} ${ctx.meta.name.toUpperCase()}\n${name(ctx, 0)}: ${disp}\n${tx(ctx, 'canYouBeat')}\n— Vanillate Motion`,
     record: {
-      key: `${ctx.meta.id}:${ctx.mode}`,
+      key: recordKey(ctx.meta.id, ctx.mode, ctx.level),
       value: score,
       label: opts.recordLabel ?? tx(ctx, 'bestScore'),
       lowerIsBetter: opts.lowerIsBetter,
