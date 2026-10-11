@@ -32,6 +32,7 @@ import { t, type I18nKey } from '../i18n';
 import { LobbyView, type LobbyPhase, type LobbyStatus } from '../lobby';
 import { moveDemo } from '../moveDemo';
 import { openShare } from '../share';
+import { isTouchDevice, TouchPad } from '../touchpad';
 import { notFoundScreen } from './notfound';
 
 /** Simulated players stand this close together in creator mode (the 9:16 crop shows ~1/3 of the frame). */
@@ -118,7 +119,14 @@ export function playScreen(m: RouteMatch): Screen {
     creatorBtn,
     topRight,
   );
-  const root = h('div', { class: 'play' }, topbar, h('div', { class: 'stage-wrap' }, stage, overlay));
+  // Keyboard mode on a phone has no keyboard: on-screen buttons stand in during the lobby and match.
+  const touchpad = new TouchPad(meta.moves, PLAYER_COLORS);
+  const root = h(
+    'div',
+    { class: 'play' },
+    topbar,
+    h('div', { class: 'stage-wrap' }, stage, overlay, touchpad.el),
+  );
   const applyCreator = () => {
     const on = settings.get().creatorMode;
     root.classList.toggle('play--creator', on);
@@ -128,6 +136,11 @@ export function playScreen(m: RouteMatch): Screen {
   applyCreator();
 
   let view: View = 'setup';
+  const setView = (v: View) => {
+    view = v;
+    const pads = session.mode === 'simulated' && (v === 'lobby' || v === 'game') && isTouchDevice();
+    touchpad.show(pads ? session.keyboard : null, Math.min(2, count));
+  };
   let lobby: LobbyView | null = null;
   let runner: GameRunner | null = null;
   let startedAt = 0;
@@ -178,7 +191,7 @@ export function playScreen(m: RouteMatch): Screen {
 
   // ── Setup ──────────────────────────────────────────────
   const showSetup = () => {
-    view = 'setup';
+    setView('setup');
     const unsupported = cameraSupport();
     let agreed = settings.get().safetyAcknowledged;
     const enable = button(t('setup.enable'), {
@@ -272,7 +285,7 @@ export function playScreen(m: RouteMatch): Screen {
 
   /** Loading checklist: camera → motion engine → body tracking, driven by the session lifecycle. */
   const showLoading = () => {
-    view = 'loading';
+    setView('loading');
     const l = session.lifecycle;
     const cam = l.camera === 'live' ? 'done' : l.camera === 'error' ? 'error' : 'active';
     const model = l.model === 'ready' ? 'done' : l.model === 'error' ? 'error' : 'active';
@@ -310,7 +323,7 @@ export function playScreen(m: RouteMatch): Screen {
   };
 
   const showError = (code: ErrorCode) => {
-    view = 'error';
+    setView('error');
     track('camera_failure', { reason: code });
     lobby?.destroy();
     lobby = null;
@@ -397,8 +410,21 @@ export function playScreen(m: RouteMatch): Screen {
   };
 
   // ── Lobby ──────────────────────────────────────────────
+  /** Phone-specific advice for camera play with several people. */
+  const deviceHints = (): string[] => {
+    if (session.mode !== 'camera' || count < 2) return [];
+    const hints: string[] = [];
+    // Portrait crops the frame to a narrow strip: two people rarely fit side by side.
+    if (!settings.get().creatorMode && isTouchDevice() && innerHeight > innerWidth)
+      hints.push(t('issue.rotate'));
+    // 3–4 bodies on a slow phone: tracking falls behind and moves get missed.
+    const fps = session.perf.trackFps;
+    if (count >= 3 && fps > 0 && fps < 12) hints.push(t('issue.slow', { n: count - 1 }));
+    return hints;
+  };
+
   const statusText = (st: LobbyStatus, crowdOnly = false): HTMLElement => {
-    const msgs: string[] = [];
+    const msgs: string[] = deviceHints();
     if (settings.get().creatorMode && count > 1 && session.mode === 'camera') msgs.push(t('creator.duo'));
     if (st.lowLight) msgs.push(t('issue.low-light'));
     const names = settings.get().names;
@@ -441,7 +467,7 @@ export function playScreen(m: RouteMatch): Screen {
   };
 
   const showLobby = () => {
-    view = 'lobby';
+    setView('lobby');
     runner?.destroy();
     runner = null;
     clear(topRight);
@@ -601,6 +627,7 @@ export function playScreen(m: RouteMatch): Screen {
         st.startArmed,
         tutorialDone,
         st.crowd,
+        deviceHints(),
       ]);
       if (key === lastStatusKey) return;
       lastStatusKey = key;
@@ -659,7 +686,8 @@ export function playScreen(m: RouteMatch): Screen {
       );
       // Crowd hints matter in every phase (players drift together while practising).
       if (phase === 'detect') issuesBox.appendChild(statusText(st));
-      else if (st.crowd.crowded.length || st.crowd.tooBig.length) issuesBox.appendChild(statusText(st, true));
+      else if (st.crowd.crowded.length || st.crowd.tooBig.length || deviceHints().length)
+        issuesBox.appendChild(statusText(st, true));
       const ready = st.ready.every(Boolean);
       startBtn.toggleAttribute('disabled', !ready);
       const gestures = !!lobby?.gestures;
@@ -713,7 +741,7 @@ export function playScreen(m: RouteMatch): Screen {
     // Same camera, same model, same calibrated players — only per-match motion state is reset.
     session.resetMatch();
     attachVideo();
-    view = 'game';
+    setView('game');
     lostTracked = false;
     const s = settings.get();
     runner = new GameRunner(
@@ -801,13 +829,13 @@ export function playScreen(m: RouteMatch): Screen {
   const restart = () => {
     runner?.destroy();
     runner = null;
-    view = 'lobby';
+    setView('lobby');
     startGame(true);
   };
 
   // ── Result ─────────────────────────────────────────────
   const showResult = (result: MatchResult) => {
-    view = 'result';
+    setView('result');
     clear(topRight);
     const players = runner?.players ?? [];
     const names = players.map((p) => p.name);
@@ -1034,7 +1062,7 @@ export function playScreen(m: RouteMatch): Screen {
     track('rematch', { game: meta.id, mode });
     runner?.destroy();
     runner = null;
-    view = 'lobby';
+    setView('lobby');
     if (session.allReady()) startGame(true);
     else showLobby();
   };
@@ -1093,6 +1121,7 @@ export function playScreen(m: RouteMatch): Screen {
       lobby?.destroy();
       runner?.destroy();
       session.keyboard?.pointer(null);
+      touchpad.releaseAll();
       session.setSimSpread(1);
       if (session.camera.video.parentElement === stage) session.camera.video.remove();
     },

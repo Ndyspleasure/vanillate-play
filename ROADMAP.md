@@ -34,6 +34,12 @@
 - Party collections (Party Night, Date Night, Duo Showdown, Family Fun, Sports Day) with one scoreboard.
 - Couple Challenge packs (Classic, Date Night, Quick Three, Couple Workout) with High Five and Sync Squat rounds.
 
+## ✅ Version 1.3 — phones & input switching
+
+- Camera / keyboard switch in the lobby; the camera button no longer hides behind the safety check.
+- On-screen touch pads for keyboard mode on phones and tablets, built from each game's moves.
+- Lobby advice for phones: turn sideways for duo/party, and a warning when 3–4 player tracking is too slow.
+
 ## Next — tuning with real players
 
 - Use motion-lab logs from real sessions (rooms, cameras, ages) to refine thresholds per gesture.

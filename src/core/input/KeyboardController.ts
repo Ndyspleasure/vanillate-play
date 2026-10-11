@@ -6,7 +6,7 @@ import type { SimBody, SimulatedProvider } from '../tracking/SimulatedProvider';
  * is available: every key drives the virtual body, which then flows through the real motion engine.
  */
 
-type Action =
+export type Action =
   | 'stepL'
   | 'stepR'
   | 'leanL'
