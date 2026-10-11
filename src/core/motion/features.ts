@@ -36,6 +36,9 @@ export interface BodyFrame {
   /** Wrist position relative to its shoulder in world meters (view oriented), if available. */
   lWristRel: [number, number, number] | null;
   rWristRel: [number, number, number] | null;
+  /** Ankle position relative to the hip centre in world meters (view oriented), if available. */
+  lAnkleRel: [number, number, number] | null;
+  rAnkleRel: [number, number, number] | null;
   lKneeAngle: number | null;
   rKneeAngle: number | null;
   quality: number;
@@ -87,6 +90,8 @@ export function extractBody(pose: TrackedPose, torsoHint: number | null): BodyFr
   let rArmExt: number;
   let lWristRel: [number, number, number] | null = null;
   let rWristRel: [number, number, number] | null = null;
+  let lAnkleRel: [number, number, number] | null = null;
+  let rAnkleRel: [number, number, number] | null = null;
   if (w) {
     lArmExt = ext3(w[LM.leftShoulder], w[LM.leftElbow], w[LM.leftWrist]);
     rArmExt = ext3(w[LM.rightShoulder], w[LM.rightElbow], w[LM.rightWrist]);
@@ -100,6 +105,11 @@ export function extractBody(pose: TrackedPose, torsoHint: number | null): BodyFr
       w[LM.rightWrist].y - w[LM.rightShoulder].y,
       w[LM.rightWrist].z - w[LM.rightShoulder].z,
     ];
+    const hx = (w[LM.leftHip].x + w[LM.rightHip].x) / 2;
+    const hy = (w[LM.leftHip].y + w[LM.rightHip].y) / 2;
+    const hz = (w[LM.leftHip].z + w[LM.rightHip].z) / 2;
+    lAnkleRel = [w[LM.leftAnkle].x - hx, w[LM.leftAnkle].y - hy, w[LM.leftAnkle].z - hz];
+    rAnkleRel = [w[LM.rightAnkle].x - hx, w[LM.rightAnkle].y - hy, w[LM.rightAnkle].z - hz];
   } else {
     lArmExt = ext2(lSh, P(p[LM.leftElbow]), P(p[LM.leftWrist]));
     rArmExt = ext2(rSh, P(p[LM.rightElbow]), P(p[LM.rightWrist]));
@@ -141,6 +151,8 @@ export function extractBody(pose: TrackedPose, torsoHint: number | null): BodyFr
     rArmExt,
     lWristRel,
     rWristRel,
+    lAnkleRel,
+    rAnkleRel,
     lKneeAngle: hipsVisible && kneesVisible && anklesVisible ? jointAngle(lHip, lKnee, lAnk) : null,
     rKneeAngle: hipsVisible && kneesVisible && anklesVisible ? jointAngle(rHip, rKnee, rAnk) : null,
     // Body-tracking trust is dominated by the shoulders: a head leaving the top of the frame during a

@@ -9,6 +9,7 @@ import { h } from './ui/dom';
 import { t } from './ui/i18n';
 import { detailScreen } from './ui/screens/detail';
 import { homeScreen } from './ui/screens/home';
+import { labScreen } from './ui/screens/lab';
 import { libraryScreen } from './ui/screens/library';
 import { notFoundScreen } from './ui/screens/notfound';
 import { playScreen } from './ui/screens/play';
@@ -25,6 +26,7 @@ app.router
   .add('/games/:id', (m) => detailScreen(m))
   .add('/play/:id', (m) => playScreen(m))
   .add('/settings', () => settingsScreen())
+  .add('/lab', () => labScreen())
   .add('/stats', () => statsScreen())
   .add('/privacy', () => privacyScreen())
   .notFound(() => notFoundScreen());
@@ -40,7 +42,7 @@ app.router.onChange = (screen: Screen, path: string) => {
   // Keep the camera alive while choosing the next game; turn it off when the player wanders away.
   if (cameraIdleTimer) clearTimeout(cameraIdleTimer);
   cameraIdleTimer = null;
-  const inGameFlow = path.startsWith('/play') || path.startsWith('/games');
+  const inGameFlow = path.startsWith('/play') || path.startsWith('/games') || path === '/lab';
   if (!inGameFlow && app.session.mode !== 'off') {
     cameraIdleTimer = setTimeout(() => app.session.stop(), 60_000);
   }

@@ -107,6 +107,7 @@ export function settingsScreen(): Screen {
         toggle('reducedMotion', t('settings.reduced')),
         toggle('showSkeleton', t('settings.skeleton')),
         toggle('gestureControls', t('settings.gestures')),
+        button(t('lab.open'), { variant: 'secondary', size: 'sm', href: '/lab', attrs: { id: 'open-lab' } }),
       ),
       h(
         'section',

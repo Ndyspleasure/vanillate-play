@@ -46,6 +46,13 @@ export class SimBody {
   kickRightT = -1;
   kneeLeft = false;
   kneeRight = false;
+  /** 'front' kicks go towards the camera (small on-screen lift, large depth change). */
+  kickStyle: 'side' | 'front' = 'side';
+  /**
+   * Camera pitch 0..1: vertical foreshortening of the body in the image, like a camera placed high
+   * above or low below the player (0 = chest-height camera).
+   */
+  pitch = 0;
   flapT = -1;
   /** Small idle sway so the body never looks frozen; disabled for freeze games via `stillness`. */
   sway = 0;
@@ -145,9 +152,10 @@ export class SimBody {
       let ankleZ = 0;
       if (kickT >= 0) {
         const u = Math.sin((kickT / 0.5) * Math.PI);
-        kneeP = { x: hip.x + side * 0.1 * T, y: hip.y + thigh * (1 - 0.55 * u) };
-        ankle = { x: hip.x + side * 0.18 * T, y: hip.y + (thigh + shin) * (1 - 0.75 * u) };
-        ankleZ = -0.5 * u;
+        const front = this.kickStyle === 'front';
+        kneeP = { x: hip.x + side * 0.1 * T, y: hip.y + thigh * (1 - (front ? 0.2 : 0.55) * u) };
+        ankle = { x: hip.x + side * 0.18 * T, y: hip.y + (thigh + shin) * (1 - (front ? 0.22 : 0.75) * u) };
+        ankleZ = (front ? -0.85 : -0.5) * u;
       } else if (knee) {
         kneeP = { x: hip.x + side * 0.05 * T, y: hip.y + 0.15 * T };
         ankle = { x: hip.x + side * 0.08 * T, y: hip.y + 0.15 * T + shin * 0.95 };
@@ -309,6 +317,8 @@ export class SimBody {
       z: p.z,
       v: p.v,
     }));
+    // Camera pitch only changes the 2D image (world landmarks stay metric).
+    if (this.pitch > 0) for (const p of view) p.y = hipC.y + (p.y - hipC.y) * (1 - this.pitch);
     return { view, world };
   }
 }
