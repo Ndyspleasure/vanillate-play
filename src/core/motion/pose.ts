@@ -6,7 +6,17 @@ import type { MotionState } from './types';
  * segment in the mirrored view. Directions are scale- and position-invariant, so two people of
  * different heights standing anywhere in frame can be compared fairly.
  */
-export const SEGMENTS = ['lUpper', 'lFore', 'rUpper', 'rFore', 'lThigh', 'lShin', 'rThigh', 'rShin', 'torso'] as const;
+export const SEGMENTS = [
+  'lUpper',
+  'lFore',
+  'rUpper',
+  'rFore',
+  'lThigh',
+  'lShin',
+  'rThigh',
+  'rShin',
+  'torso',
+] as const;
 export type Segment = (typeof SEGMENTS)[number];
 
 export interface PoseVector {
@@ -113,67 +123,270 @@ export function comparePoses(a: PoseVector, b: PoseVector): number {
 export function poseActivity(v: PoseVector): number {
   const neutral = NEUTRAL.angles;
   let d = 0;
-  for (const seg of ['lUpper', 'lFore', 'rUpper', 'rFore', 'torso'] as const) d += angleDiff(neutral[seg]!, v.angles[seg]);
+  for (const seg of ['lUpper', 'lFore', 'rUpper', 'rFore', 'torso'] as const)
+    d += angleDiff(neutral[seg]!, v.angles[seg]);
   return clamp01(d / 220);
 }
 
 const ARMS_DOWN = { lUpper: -100, lFore: -95, rUpper: -80, rFore: -85 };
 const LEGS_STAND = { lThigh: -95, lShin: -92, rThigh: -85, rShin: -88 };
 
-export const NEUTRAL: PoseDef = { id: 'neutral', name: 'STAND', nameId: 'BERDIRI', emoji: '🧍', angles: { ...ARMS_DOWN, torso: 90 } };
+export const NEUTRAL: PoseDef = {
+  id: 'neutral',
+  name: 'STAND',
+  nameId: 'BERDIRI',
+  emoji: '🧍',
+  angles: { ...ARMS_DOWN, torso: 90 },
+};
 
 export const POSES: PoseDef[] = [
-  { id: 'hands-up', name: 'HANDS UP', nameId: 'ANGKAT TANGAN', emoji: '🙌', angles: { lUpper: 100, lFore: 95, rUpper: 80, rFore: 85, torso: 90 } },
-  { id: 't-pose', name: 'T-POSE', nameId: 'POSE T', emoji: '✈️', angles: { lUpper: 180, lFore: 180, rUpper: 0, rFore: 0, torso: 90 } },
-  { id: 'left-up', name: 'LEFT HAND UP', nameId: 'TANGAN KIRI NAIK', emoji: '🤚', angles: { lUpper: 100, lFore: 95, rUpper: -80, rFore: -85, torso: 90 } },
-  { id: 'right-up', name: 'RIGHT HAND UP', nameId: 'TANGAN KANAN NAIK', emoji: '✋', angles: { lUpper: -100, lFore: -95, rUpper: 80, rFore: 85, torso: 90 } },
-  { id: 'victory', name: 'VICTORY V', nameId: 'POSE V', emoji: '✌️', angles: { lUpper: 135, lFore: 132, rUpper: 45, rFore: 48, torso: 90 } },
-  { id: 'flex', name: 'FLEX', nameId: 'OTOT', emoji: '💪', angles: { lUpper: 180, lFore: 90, rUpper: 0, rFore: 90, torso: 90 } },
-  { id: 'hero', name: 'SUPERHERO', nameId: 'SUPERHERO', emoji: '🦸', angles: { lUpper: -135, lFore: -45, rUpper: -45, rFore: -135, torso: 90 } },
-  { id: 'disco', name: 'DISCO', nameId: 'DISKO', emoji: '🕺', angles: { lUpper: -135, lFore: -135, rUpper: 45, rFore: 45, torso: 90 } },
-  { id: 'disco-2', name: 'DISCO FLIP', nameId: 'DISKO BALIK', emoji: '🪩', angles: { lUpper: 135, lFore: 135, rUpper: -45, rFore: -45, torso: 90 } },
+  {
+    id: 'hands-up',
+    name: 'HANDS UP',
+    nameId: 'ANGKAT TANGAN',
+    emoji: '🙌',
+    angles: { lUpper: 100, lFore: 95, rUpper: 80, rFore: 85, torso: 90 },
+  },
+  {
+    id: 't-pose',
+    name: 'T-POSE',
+    nameId: 'POSE T',
+    emoji: '✈️',
+    angles: { lUpper: 180, lFore: 180, rUpper: 0, rFore: 0, torso: 90 },
+  },
+  {
+    id: 'left-up',
+    name: 'LEFT HAND UP',
+    nameId: 'TANGAN KIRI NAIK',
+    emoji: '🤚',
+    angles: { lUpper: 100, lFore: 95, rUpper: -80, rFore: -85, torso: 90 },
+  },
+  {
+    id: 'right-up',
+    name: 'RIGHT HAND UP',
+    nameId: 'TANGAN KANAN NAIK',
+    emoji: '✋',
+    angles: { lUpper: -100, lFore: -95, rUpper: 80, rFore: 85, torso: 90 },
+  },
+  {
+    id: 'victory',
+    name: 'VICTORY V',
+    nameId: 'POSE V',
+    emoji: '✌️',
+    angles: { lUpper: 135, lFore: 132, rUpper: 45, rFore: 48, torso: 90 },
+  },
+  {
+    id: 'flex',
+    name: 'FLEX',
+    nameId: 'OTOT',
+    emoji: '💪',
+    angles: { lUpper: 180, lFore: 90, rUpper: 0, rFore: 90, torso: 90 },
+  },
+  {
+    id: 'hero',
+    name: 'SUPERHERO',
+    nameId: 'SUPERHERO',
+    emoji: '🦸',
+    angles: { lUpper: -135, lFore: -45, rUpper: -45, rFore: -135, torso: 90 },
+  },
+  {
+    id: 'disco',
+    name: 'DISCO',
+    nameId: 'DISKO',
+    emoji: '🕺',
+    angles: { lUpper: -135, lFore: -135, rUpper: 45, rFore: 45, torso: 90 },
+  },
+  {
+    id: 'disco-2',
+    name: 'DISCO FLIP',
+    nameId: 'DISKO BALIK',
+    emoji: '🪩',
+    angles: { lUpper: 135, lFore: 135, rUpper: -45, rFore: -45, torso: 90 },
+  },
   {
     id: 'star',
-    name: 'STAR', nameId: 'BINTANG',
+    name: 'STAR',
+    nameId: 'BINTANG',
     emoji: '⭐',
-    angles: { lUpper: 140, lFore: 140, rUpper: 40, rFore: 40, lThigh: -118, lShin: -118, rThigh: -62, rShin: -62, torso: 90 },
+    angles: {
+      lUpper: 140,
+      lFore: 140,
+      rUpper: 40,
+      rFore: 40,
+      lThigh: -125,
+      lShin: -125,
+      rThigh: -55,
+      rShin: -55,
+      torso: 90,
+    },
   },
-  { id: 'lean-left', name: 'LEAN LEFT', nameId: 'CONDONG KIRI', emoji: '↖️', angles: { lUpper: 140, lFore: 140, rUpper: 95, rFore: 110, torso: 112 } },
-  { id: 'lean-right', name: 'LEAN RIGHT', nameId: 'CONDONG KANAN', emoji: '↗️', angles: { lUpper: 85, lFore: 70, rUpper: 40, rFore: 40, torso: 68 } },
-  { id: 'head', name: 'HANDS ON HEAD', nameId: 'TANGAN DI KEPALA', emoji: '🤯', angles: { lUpper: 150, lFore: -25, rUpper: 30, rFore: -155, torso: 90 } },
-  { id: 'point-left', name: 'POINT LEFT', nameId: 'TUNJUK KIRI', emoji: '👈', angles: { lUpper: 180, lFore: 180, rUpper: -80, rFore: -85, torso: 90 } },
-  { id: 'point-right', name: 'POINT RIGHT', nameId: 'TUNJUK KANAN', emoji: '👉', angles: { lUpper: -100, lFore: -95, rUpper: 0, rFore: 0, torso: 90 } },
-  { id: 'robot', name: 'ROBOT', nameId: 'ROBOT', emoji: '🤖', angles: { lUpper: -100, lFore: 180, rUpper: -80, rFore: 0, torso: 90 } },
-  { id: 'heart', name: 'BIG HEART', nameId: 'HATI BESAR', emoji: '❤️', angles: { lUpper: 130, lFore: 30, rUpper: 50, rFore: 150, torso: 90 } },
-  { id: 'teapot', name: 'TEAPOT', nameId: 'TEKO', emoji: '🫖', angles: { lUpper: -135, lFore: -45, rUpper: 45, rFore: 45, torso: 90 } },
-  { id: 'sky', name: 'SKY REACH', nameId: 'GAPAI LANGIT', emoji: '☝️', angles: { lUpper: -135, lFore: -45, rUpper: 85, rFore: 88, torso: 90 } },
+  {
+    id: 'lean-left',
+    name: 'LEAN LEFT',
+    nameId: 'CONDONG KIRI',
+    emoji: '↖️',
+    angles: { lUpper: 140, lFore: 140, rUpper: 95, rFore: 110, torso: 112 },
+  },
+  {
+    id: 'lean-right',
+    name: 'LEAN RIGHT',
+    nameId: 'CONDONG KANAN',
+    emoji: '↗️',
+    angles: { lUpper: 85, lFore: 70, rUpper: 40, rFore: 40, torso: 68 },
+  },
+  {
+    id: 'head',
+    name: 'HANDS ON HEAD',
+    nameId: 'TANGAN DI KEPALA',
+    emoji: '🤯',
+    angles: { lUpper: 150, lFore: -25, rUpper: 30, rFore: -155, torso: 90 },
+  },
+  {
+    id: 'point-left',
+    name: 'POINT LEFT',
+    nameId: 'TUNJUK KIRI',
+    emoji: '👈',
+    angles: { lUpper: 180, lFore: 180, rUpper: -80, rFore: -85, torso: 90 },
+  },
+  {
+    id: 'point-right',
+    name: 'POINT RIGHT',
+    nameId: 'TUNJUK KANAN',
+    emoji: '👉',
+    angles: { lUpper: -100, lFore: -95, rUpper: 0, rFore: 0, torso: 90 },
+  },
+  {
+    id: 'robot',
+    name: 'ROBOT',
+    nameId: 'ROBOT',
+    emoji: '🤖',
+    angles: { lUpper: -100, lFore: 180, rUpper: -80, rFore: 0, torso: 90 },
+  },
+  {
+    id: 'heart',
+    name: 'BIG HEART',
+    nameId: 'HATI BESAR',
+    emoji: '❤️',
+    angles: { lUpper: 130, lFore: 30, rUpper: 50, rFore: 150, torso: 90 },
+  },
+  {
+    id: 'teapot',
+    name: 'TEAPOT',
+    nameId: 'TEKO',
+    emoji: '🫖',
+    angles: { lUpper: -135, lFore: -45, rUpper: 45, rFore: 45, torso: 90 },
+  },
+  {
+    id: 'sky',
+    name: 'SKY REACH',
+    nameId: 'GAPAI LANGIT',
+    emoji: '☝️',
+    angles: { lUpper: -135, lFore: -45, rUpper: 85, rFore: 88, torso: 90 },
+  },
   { id: 'squat', name: 'SQUAT', nameId: 'JONGKOK', emoji: '🏋️', angles: { torso: 90 }, checks: ['squat'] },
   {
     id: 'flamingo-left',
-    name: 'FLAMINGO LEFT', nameId: 'FLAMINGO KIRI',
+    name: 'FLAMINGO LEFT',
+    nameId: 'FLAMINGO KIRI',
     emoji: '🦩',
     angles: { lUpper: 180, lFore: 180, rUpper: 0, rFore: 0, torso: 90 },
     checks: ['kneeLeft'],
   },
   {
     id: 'flamingo-right',
-    name: 'FLAMINGO RIGHT', nameId: 'FLAMINGO KANAN',
+    name: 'FLAMINGO RIGHT',
+    nameId: 'FLAMINGO KANAN',
     emoji: '🦩',
     angles: { lUpper: 180, lFore: 180, rUpper: 0, rFore: 0, torso: 90 },
     checks: ['kneeRight'],
   },
   {
     id: 'squat-up',
-    name: 'POWER SQUAT', nameId: 'JONGKOK SUPER',
+    name: 'POWER SQUAT',
+    nameId: 'JONGKOK SUPER',
     emoji: '🔥',
     angles: { lUpper: 100, lFore: 95, rUpper: 80, rFore: 85 },
+    checks: ['squat'],
+  },
+  // ── Pose pack 2 (v1.1): more variety for Mirror/Pose/Dance Battle and the couple games ──
+  {
+    id: 'cactus',
+    name: 'CACTUS',
+    nameId: 'KAKTUS',
+    emoji: '🌵',
+    angles: { lUpper: 180, lFore: -90, rUpper: 0, rFore: -90, torso: 90 },
+  },
+  {
+    id: 'clock-left',
+    name: 'CLOCK 9:00',
+    nameId: 'JAM 9',
+    emoji: '🕘',
+    angles: { lUpper: 180, lFore: 180, rUpper: 80, rFore: 85, torso: 90 },
+  },
+  {
+    id: 'clock-right',
+    name: 'CLOCK 3:00',
+    nameId: 'JAM 3',
+    emoji: '🕒',
+    angles: { lUpper: 100, lFore: 95, rUpper: 0, rFore: 0, torso: 90 },
+  },
+  {
+    id: 'low-v',
+    name: 'LOW V',
+    nameId: 'V BAWAH',
+    emoji: '🔻',
+    angles: { lUpper: -135, lFore: -135, rUpper: -45, rFore: -45, torso: 90 },
+  },
+  {
+    id: 'bend-left',
+    name: 'SIDE BEND LEFT',
+    nameId: 'TEKUK KIRI',
+    emoji: '🌙',
+    angles: { lUpper: -100, lFore: -95, rUpper: 140, rFore: 150, torso: 112 },
+  },
+  {
+    id: 'bend-right',
+    name: 'SIDE BEND RIGHT',
+    nameId: 'TEKUK KANAN',
+    emoji: '🌛',
+    angles: { lUpper: 40, lFore: 30, rUpper: -80, rFore: -85, torso: 68 },
+  },
+  {
+    id: 'salute',
+    name: 'SALUTE',
+    nameId: 'HORMAT',
+    emoji: '🫡',
+    angles: { lUpper: -100, lFore: -95, rUpper: 30, rFore: 160, torso: 90 },
+  },
+  {
+    id: 'dab-left',
+    name: 'DAB LEFT',
+    nameId: 'DAB KIRI',
+    emoji: '😎',
+    angles: { lUpper: 145, lFore: 145, rUpper: 165, rFore: 30, torso: 90 },
+  },
+  {
+    id: 'dab-right',
+    name: 'DAB RIGHT',
+    nameId: 'DAB KANAN',
+    emoji: '🕶️',
+    angles: { lUpper: 15, lFore: 150, rUpper: 35, rFore: 35, torso: 90 },
+  },
+  {
+    id: 'sumo',
+    name: 'SUMO',
+    nameId: 'SUMO',
+    emoji: '🤼',
+    angles: { lUpper: 180, lFore: 180, rUpper: 0, rFore: 0 },
     checks: ['squat'],
   },
 ];
 
 /** Poses that only need the upper body (safe for laptop cameras that can't see feet). */
 export const UPPER_BODY_POSES = POSES.filter(
-  (p) => !p.checks?.some((c) => c === 'kneeLeft' || c === 'kneeRight') && !Object.keys(p.angles).some((k) => LEG_SEGMENTS.has(k as Segment)),
+  (p) =>
+    !p.checks?.some((c) => c === 'kneeLeft' || c === 'kneeRight') &&
+    !Object.keys(p.angles).some((k) => LEG_SEGMENTS.has(k as Segment)),
 );
 
 export function poseById(id: string): PoseDef {

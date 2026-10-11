@@ -34,7 +34,7 @@ const factory: GameFactory = (ctx) => {
   let score = 0;
   let ok = 0;
   let finished = false;
-  const windowFor = () => Math.max(1.5, 2.8 - idx * 0.045);
+  const windowFor = () => Math.max(1.5, 2.8 - idx * 0.045) * ctx.tune(1.3, 1, 0.78);
 
   const finishStep = (success: boolean) => {
     if (success) {
@@ -86,7 +86,10 @@ const factory: GameFactory = (ctx) => {
       else if (t > windowFor()) finishStep(false);
     },
     render(g) {
-      scoreHeader(g, ctx, [score, `×${combo}`], { labels: [L(ctx, 'TEAM SCORE', 'SKOR TIM'), 'COMBO'], center: `${Math.min(idx + 1, STEPS)}/${STEPS}` });
+      scoreHeader(g, ctx, [score, `×${combo}`], {
+        labels: [L(ctx, 'TEAM SCORE', 'SKOR TIM'), 'COMBO'],
+        center: `${Math.min(idx + 1, STEPS)}/${STEPS}`,
+      });
       if (finished) return;
       // Upcoming steps strip
       const cw = Math.min(150, ctx.width / 6);
@@ -97,15 +100,35 @@ const factory: GameFactory = (ctx) => {
         const color = s.who === 2 ? C.gold : ctx.players[s.who].color;
         const big = k === 0;
         const w = big ? cw * 1.25 : cw * 0.9;
-        panel(g, x - w / 2, y - w / 2, w, w * 1.15, { fill: big ? 'rgba(20,10,40,0.9)' : 'rgba(20,10,40,0.6)', stroke: color, lineWidth: big ? 5 : 2, r: 18 });
+        panel(g, x - w / 2, y - w / 2, w, w * 1.15, {
+          fill: big ? 'rgba(20,10,40,0.9)' : 'rgba(20,10,40,0.6)',
+          stroke: color,
+          lineWidth: big ? 5 : 2,
+          r: 18,
+        });
         emoji(g, COMMANDS[s.cmd].emoji, x, y - w * 0.08, w * 0.45);
-        text(g, cmdLabel(ctx, COMMANDS[s.cmd]), x, y + w * 0.33, { size: big ? 16 : 12, maxWidth: w - 10, stroke: 0 });
-        text(g, s.who === 2 ? tx(ctx, 'both') : ctx.players[s.who].name, x, y + w * 0.52, { size: big ? 15 : 11, color, stroke: 0, maxWidth: w - 10 });
+        text(g, cmdLabel(ctx, COMMANDS[s.cmd]), x, y + w * 0.33, {
+          size: big ? 16 : 12,
+          maxWidth: w - 10,
+          stroke: 0,
+        });
+        text(g, s.who === 2 ? tx(ctx, 'both') : ctx.players[s.who].name, x, y + w * 0.52, {
+          size: big ? 15 : 11,
+          color,
+          stroke: 0,
+          maxWidth: w - 10,
+        });
         if (big) timerRing(g, x + w / 2, y - w / 2, 16, 1 - t / windowFor(), color);
       }
       const s = steps[idx];
       for (const p of [0, 1] as const) {
-        if (s.who === p || s.who === 2) bubble(g, ctx.input(p), s.done[p] ? '✓' : cmdLabel(ctx, COMMANDS[s.cmd]), s.done[p] ? C.good : ctx.players[p].color);
+        if (s.who === p || s.who === 2)
+          bubble(
+            g,
+            ctx.input(p),
+            s.done[p] ? '✓' : cmdLabel(ctx, COMMANDS[s.cmd]),
+            s.done[p] ? C.good : ctx.players[p].color,
+          );
       }
     },
     inspect: () => ({ idx, who: steps[idx]?.who, cmd: steps[idx]?.cmd, combo }),

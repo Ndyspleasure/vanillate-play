@@ -32,9 +32,30 @@ export interface Command {
 }
 
 export const COMMANDS: Record<CommandId, Command> = {
-  jump: { id: 'jump', key: 'cmdJump', emoji: '⬆️', color: '#7dff6b', events: ['JUMP'], state: (i) => i.state.airborne },
-  squat: { id: 'squat', key: 'cmdSquat', emoji: '⬇️', color: '#3dd6ff', events: ['SQUAT', 'DUCK'], state: (i) => i.state.squatting || i.state.ducking },
-  handsUp: { id: 'handsUp', key: 'cmdHandsUp', emoji: '🙌', color: '#ffd23d', events: ['HANDS_UP'], state: (i) => i.state.handsUp },
+  jump: {
+    id: 'jump',
+    key: 'cmdJump',
+    emoji: '⬆️',
+    color: '#7dff6b',
+    events: ['JUMP'],
+    state: (i) => i.state.airborne,
+  },
+  squat: {
+    id: 'squat',
+    key: 'cmdSquat',
+    emoji: '⬇️',
+    color: '#3dd6ff',
+    events: ['SQUAT', 'DUCK'],
+    state: (i) => i.state.squatting || i.state.ducking,
+  },
+  handsUp: {
+    id: 'handsUp',
+    key: 'cmdHandsUp',
+    emoji: '🙌',
+    color: '#ffd23d',
+    events: ['HANDS_UP'],
+    state: (i) => i.state.handsUp,
+  },
   left: {
     id: 'left',
     key: 'cmdLeft',
@@ -51,9 +72,29 @@ export const COMMANDS: Record<CommandId, Command> = {
     events: ['MOVE_RIGHT', 'STEP_RIGHT', 'LEAN_RIGHT', 'DODGE_RIGHT'],
     state: (i) => i.state.steppedRight || i.state.leaningRight,
   },
-  punch: { id: 'punch', key: 'cmdPunch', emoji: '👊', color: '#ff4d6d', events: ['PUNCH_LEFT', 'PUNCH_RIGHT'] },
-  leanLeft: { id: 'leanLeft', key: 'cmdLeanLeft', emoji: '↖️', color: '#b98cff', events: ['LEAN_LEFT'], state: (i) => i.state.leaningLeft },
-  leanRight: { id: 'leanRight', key: 'cmdLeanRight', emoji: '↗️', color: '#b98cff', events: ['LEAN_RIGHT'], state: (i) => i.state.leaningRight },
+  punch: {
+    id: 'punch',
+    key: 'cmdPunch',
+    emoji: '👊',
+    color: '#ff4d6d',
+    events: ['PUNCH_LEFT', 'PUNCH_RIGHT'],
+  },
+  leanLeft: {
+    id: 'leanLeft',
+    key: 'cmdLeanLeft',
+    emoji: '↖️',
+    color: '#b98cff',
+    events: ['LEAN_LEFT'],
+    state: (i) => i.state.leaningLeft,
+  },
+  leanRight: {
+    id: 'leanRight',
+    key: 'cmdLeanRight',
+    emoji: '↗️',
+    color: '#b98cff',
+    events: ['LEAN_RIGHT'],
+    state: (i) => i.state.leaningRight,
+  },
   leftHand: {
     id: 'leftHand',
     key: 'cmdLeftHand',
@@ -70,9 +111,23 @@ export const COMMANDS: Record<CommandId, Command> = {
     events: ['HAND_RIGHT_UP'],
     state: (i) => i.state.rightHandUp && !i.state.leftHandUp,
   },
-  kick: { id: 'kick', key: 'cmdKick', emoji: '🦵', color: '#06d6a0', events: ['KICK_LEFT', 'KICK_RIGHT', 'KNEE_LEFT', 'KNEE_RIGHT'], legs: true },
+  kick: {
+    id: 'kick',
+    key: 'cmdKick',
+    emoji: '🦵',
+    color: '#06d6a0',
+    events: ['KICK_LEFT', 'KICK_RIGHT', 'KNEE_LEFT', 'KNEE_RIGHT'],
+    legs: true,
+  },
   clap: { id: 'clap', key: 'cmdClap', emoji: '👏', color: '#ffbe0b', events: ['CLAP'] },
-  block: { id: 'block', key: 'cmdBlock', emoji: '🛡️', color: '#8ecae6', events: ['BLOCK'], state: (i) => i.state.blocking },
+  block: {
+    id: 'block',
+    key: 'cmdBlock',
+    emoji: '🛡️',
+    color: '#8ecae6',
+    events: ['BLOCK'],
+    state: (i) => i.state.blocking,
+  },
 };
 
 /** Did the player perform the command this frame? Returns the capture time or null. */
@@ -93,8 +148,17 @@ export function performedAny(inp: PlayerInput, list: readonly Command[]): Comman
 /** Significant movement during a "wait" phase (false start). */
 export function isFalseStart(inp: PlayerInput): boolean {
   return (
-    inp.any('JUMP', 'SQUAT', 'HANDS_UP', 'PUNCH_LEFT', 'PUNCH_RIGHT', 'MOVE_LEFT', 'MOVE_RIGHT', 'KICK_LEFT', 'KICK_RIGHT') ||
-    inp.state.energy > 1.6
+    inp.any(
+      'JUMP',
+      'SQUAT',
+      'HANDS_UP',
+      'PUNCH_LEFT',
+      'PUNCH_RIGHT',
+      'MOVE_LEFT',
+      'MOVE_RIGHT',
+      'KICK_LEFT',
+      'KICK_RIGHT',
+    ) || inp.state.energy > 1.6
   );
 }
 

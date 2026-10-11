@@ -14,7 +14,13 @@ import { bigCommand, bubble, hearts } from '../kits/ui';
  */
 
 type Phase = 'wait' | 'go' | 'freeze' | 'reveal';
-type Outcome = { kind: 'ok'; ms: number } | { kind: 'wrong' } | { kind: 'late' } | { kind: 'false' } | { kind: 'held' } | { kind: 'moved' };
+type Outcome =
+  | { kind: 'ok'; ms: number }
+  | { kind: 'wrong' }
+  | { kind: 'late' }
+  | { kind: 'false' }
+  | { kind: 'held' }
+  | { kind: 'moved' };
 
 export interface ReactionConfig {
   party?: boolean;
@@ -58,7 +64,12 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
   const times: number[][] = Array.from({ length: n }, () => []);
   const falseStarts = new Array(n).fill(0);
   const outcomes: (Outcome | null)[] = new Array(n).fill(null);
-  const freeze = new FreezeMonitor(n, 0.6, 0.4, 0.2);
+  const freeze = new FreezeMonitor(
+    n,
+    ctx.tune(0.6 * 1.25, 0.6, 0.6 * 0.82),
+    ctx.tune(0.4 * 1.3, 0.4, 0.4 * 0.75),
+    0.2,
+  );
   let round = 0;
   let phase: Phase = 'wait';
   let phaseT = 0;
@@ -74,7 +85,10 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
 
   const nextRound = () => {
     round++;
-    if (round > totalRounds || (variant === 'elimination' && lives.filter((l) => l > 0).length <= (solo ? 0 : 1))) {
+    if (
+      round > totalRounds ||
+      (variant === 'elimination' && lives.filter((l) => l > 0).length <= (solo ? 0 : 1))
+    ) {
       finish();
       return;
     }
@@ -113,14 +127,16 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
       const o = outcomes[0];
       if (o?.kind === 'ok') points[0] += Math.max(50, Math.round(1000 - o.ms));
       else if (o?.kind === 'held') points[0] += 500;
-      else if (o?.kind === 'false' || o?.kind === 'wrong' || o?.kind === 'moved') points[0] = Math.max(0, points[0] - 200);
+      else if (o?.kind === 'false' || o?.kind === 'wrong' || o?.kind === 'moved')
+        points[0] = Math.max(0, points[0] - 200);
       return;
     }
     if (variant === 'elimination') {
       for (let i = 0; i < n; i++) {
         if (!alive(i)) continue;
         const o = outcomes[i];
-        if (!o || o.kind === 'wrong' || o.kind === 'false' || o.kind === 'late' || o.kind === 'moved') lives[i]--;
+        if (!o || o.kind === 'wrong' || o.kind === 'false' || o.kind === 'late' || o.kind === 'moved')
+          lives[i]--;
       }
       // Slowest correct player also loses a life (only if someone was faster).
       if (ok.length > 1 && phase !== 'freeze') lives[ok[ok.length - 1].i]--;
@@ -167,7 +183,13 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
     }
     if (variant === 'elimination') {
       // Most lives left wins (a tie is a draw); times break nothing — it's about survival.
-      ctx.end(versusResult(ctx, lives.map((l) => Math.max(0, l)), { display: (v) => `${v} ❤️`, stats }));
+      ctx.end(
+        versusResult(
+          ctx,
+          lives.map((l) => Math.max(0, l)),
+          { display: (v) => `${v} ❤️`, stats },
+        ),
+      );
       return;
     }
     const fastest = avg.indexOf(Math.min(...avg));
@@ -220,7 +242,9 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
               const ms = Math.max(80, t - shownAt);
               outcomes[i] = { kind: 'ok', ms };
               times[i].push(ms);
-              ctx.audio.play('success', { pitch: 1 + (outcomes.filter((o) => o?.kind === 'ok').length === 1 ? 0.2 : 0) });
+              ctx.audio.play('success', {
+                pitch: 1 + (outcomes.filter((o) => o?.kind === 'ok').length === 1 ? 0.2 : 0),
+              });
               continue;
             }
             const wrong = wrongEvents(cmd.id).some((e) => inp.has(e));
@@ -231,9 +255,10 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
           }
           const pending = ctx.players.filter((p) => alive(p.index) && !outcomes[p.index]).length;
           const anyOk = outcomes.some((o) => o?.kind === 'ok');
-          const limit = fake ? 1.6 : 2.6;
+          const limit = (fake ? 1.6 : 2.6) * ctx.tune(1.25, 1, 0.8);
           if (pending === 0 || phaseT > limit || (anyOk && phaseT > 1.4 && n > 1)) {
-            for (let i = 0; i < n; i++) if (alive(i) && !outcomes[i]) outcomes[i] = fake ? { kind: 'held' } : { kind: 'late' };
+            for (let i = 0; i < n; i++)
+              if (alive(i) && !outcomes[i]) outcomes[i] = fake ? { kind: 'held' } : { kind: 'late' };
             award();
             phase = 'reveal';
             phaseT = 0;
@@ -271,7 +296,8 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
       );
       if (showLives) {
         ctx.players.forEach((_p, i) => {
-          const x = n === 2 ? (i === 0 ? 36 : ctx.width - 36) : 36 + i * ((ctx.width - 72) / Math.max(1, n - 1));
+          const x =
+            n === 2 ? (i === 0 ? 36 : ctx.width - 36) : 36 + i * ((ctx.width - 72) / Math.max(1, n - 1));
           hearts(g, x, 58, Math.max(0, lives[i]), 3, 24, n === 2 && i === 1 ? 'right' : 'left');
         });
       }
@@ -279,7 +305,8 @@ export function createReaction(ctx: GameContext, cfg: ReactionConfig = {}): Game
         const pulse = 1 + Math.sin(phaseT * 6) * 0.04;
         centerText(g, ctx, tx(ctx, 'wait'), tx(ctx, 'stayStill'), C.bad, pulse, ctx.height * 0.32);
       } else if (phase === 'go') {
-        if (fake) bigCommand(g, ctx, tx(ctx, 'cmdDont', { x: cmdLabel(ctx, cmd).replace('!', '') }), '🚫', C.bad);
+        if (fake)
+          bigCommand(g, ctx, tx(ctx, 'cmdDont', { x: cmdLabel(ctx, cmd).replace('!', '') }), '🚫', C.bad);
         else bigCommand(g, ctx, cmdLabel(ctx, cmd), cmd.emoji, cmd.color, 1 + Math.max(0, 0.25 - phaseT));
       } else if (phase === 'freeze') {
         bigCommand(g, ctx, tx(ctx, 'cmdFreeze'), '🧊', '#8be9ff');

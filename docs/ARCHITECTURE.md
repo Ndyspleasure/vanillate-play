@@ -62,6 +62,27 @@ Games never read raw landmarks. They receive `PlayerInput`: events since the las
 ### Smoothing
 Landmarks pass through a One-Euro filter (low jitter at rest, low lag when moving); low-visibility landmarks are additionally limited in how far they may move per frame. Tracking arrives at 15–30 fps while rendering runs at 60+, so `InputHub` predicts each skeleton up to 60 ms ahead from the last two samples and eases the drawn pose towards it every render frame (35 ms time constant), snapping only when a player is (re)acquired far away.
 
+### Camera angles
+A camera on a high shelf or on the floor foreshortens the torso but not the shoulders. Vertical moves (jump, squat) are measured in torso units, horizontal ones (steps, leans, dodges, body offset) against `max(torso, shoulderWidth / 0.85)`, so a pitched camera can't turn a weight shift into a lane change. Kicks fire on a side-on foot lift *or* on 3D foot travel towards the camera (world landmarks), which catches front kicks that barely move on screen. The simulator has `pitch` and `kickStyle: 'front'` to test both. The **motion lab** (`/lab`) shows every gesture meter against its threshold and can record a local, numbers-only session log for tuning with real players.
+
+### Visible part of the frame
+The stage crops the camera with `object-fit: cover`; on a portrait phone or in creator mode (9:16) only the middle of the frame is on screen. `StageMapper.visibleRange()` feeds `PlayerTracker.setVisibleRange()`, so player zones are laid out over what players can actually see — two people standing close together in a vertical crop are both assigned.
+
+### Pose models
+`lite` (default) and `full` are both self-hosted. `MediaPipeProvider.switchModel` swaps the model without touching the camera. In **auto** mode (`core/tracking/modelPolicy.ts`) a device that runs `lite` on the GPU in under 14 ms at ≥ 22 fps for ~8 s upgrades to `full`; a trial that gets slower than 38 ms drops back. The outcome is remembered per device. No upgrade on data saver, < 4 GB memory or with 3–4 players (they get a sharper 960 px input on `lite` instead).
+
+### Groups of 3–4
+The model looks for one more person than the game needs, so a passer-by is reported ("extra people") instead of taking a slot. `core/players/crowd.ts` gives lobby advice: arrows between neighbours standing shoulder to shoulder, STEP BACK over a player too big for their strip.
+
+### Difficulty
+Each game reads `ctx.level` / `ctx.tune(easy, normal, hard)` for its own pacing levers. Personal bests on easy/hard use their own record keys (`recordKey`).
+
+### Party collections
+`games/collections.ts` defines playlists of games with modes per player count. A run (one at a time, in localStorage) records placement points per game (n−1 for first, ties share; co-op games feed a team score). The play screen recognises the run from `?set=` and swaps Rematch for "Next game" with standings.
+
+### Replay clips (opt-in)
+`engine/clip.ts` composites camera + game canvas (+ game sound from the audio master bus) into a ≤ 960 px canvas at 24 fps. MediaRecorder can't keep a rolling buffer, so two recorders run staggered by half a window and restart every 12 s: whichever is older at the finish holds 6–12 s ending on the final moment. A REC badge (not burned into the clip) shows while recording.
+
 ### Tutorial & practice
 Before the first match of a game, calibrated players see "How to play": the game's tips and up to four practice moves derived from its move list (`practiceSteps`), each with an animated demo. The live recognizer checks each move off per player; when everyone is done (or Skip / Start is pressed) the lobby switches to "raise a hand to start". Rematches skip the tutorial; "Practice moves" replays it.
 
@@ -92,6 +113,9 @@ Before the first match of a game, calibrated players see "How to play": the game
 | Landmarks / motion state | memory | Never |
 | Settings, stats, personal bests | localStorage | Never |
 | Share image (optional photo) | generated locally | Only if the player shares/downloads |
+| Replay clip (opt-in) | memory | Only if the player shares/downloads |
+| Motion-lab log (numbers only) | memory | Only if the player downloads it |
+| Collection run, device model memo | localStorage | Never |
 | Analytics events (game id, mode, durations, failures) | batched | Only if `VITE_ANALYTICS_URL` is set and the player hasn't opted out (DNT respected) |
 
 ## Testing
@@ -99,6 +123,9 @@ Before the first match of a game, calibrated players see "How to play": the game
 - `tests/motion.test.ts` — the real pipeline on simulated bodies: calibration, every gesture, identity locking, grace period, pose matching.
 - `tests/controls.test.ts` — start gesture (hold, grace, release), tutorial practice steps, single-fire left/right zones and lane mapping, jump guards, rematch reset, landmark outlier limiting.
 - `tests/games.smoke.test.ts` — every game × every mode runs 4 simulated minutes with random input (update + render) without errors; guards against placeholder implementations.
-- `tests/mvp.test.ts` — rules of the MVP games (winners, blocking, freeze catching, sync scoring, race speed).
-- `e2e/app.spec.ts` — full app flow to result + rematch, every game in a real browser, language switch, camera-denied fallback.
-- `e2e/camera.spec.ts` — production build + MediaPipe with a fake camera showing two people: both detected and calibrated; then restart, recalibrate and change game repeatedly without a refresh, asserting one video element, an unpaused camera and frames still flowing to the pose worker (also after the browser pauses the video); and a finished camera match replayed via Play again with the same camera.
+- `tests/mvp.test.ts` — rules of the MVP games (winners, blocking, freeze catching, sync scoring, race speed), couple challenge packs and the high five.
+- `tests/angles.test.ts` — pitched cameras, front kicks, close pairs in a narrow crop.
+- `tests/crowd.test.ts` — four simulated players: calibration order, identities while moving, leave and return; crowd advice.
+- `tests/difficulty.test.ts`, `tests/model.test.ts`, `tests/poses.test.ts`, `tests/collections.test.ts` — level tuning, the auto model policy, pose distinctness and dance charts, collection rules.
+- `e2e/app.spec.ts` — full app flow to result + rematch, every game in a real browser, language switch, camera-denied fallback, replay clip, creator mode, a party collection to the final standings.
+- `e2e/camera.spec.ts` — production build + MediaPipe with a fake camera showing two people: both detected and calibrated; then restart, recalibrate and change game repeatedly without a refresh, asserting one video element, an unpaused camera and frames still flowing to the pose worker (also after the browser pauses the video); a finished camera match replayed via Play again with the same camera; and the high-accuracy model tracking both players, then swapped to the light model live.

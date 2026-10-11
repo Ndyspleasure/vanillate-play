@@ -85,7 +85,11 @@ export class HazardField {
     this.list = [];
   }
 
-  render(g: CanvasRenderingContext2D, zoneOf: (owner: number) => { x: number; w: number }, height: number): void {
+  render(
+    g: CanvasRenderingContext2D,
+    zoneOf: (owner: number) => { x: number; w: number },
+    height: number,
+  ): void {
     const now = performance.now() / 1000;
     for (const h of this.list) {
       const z = zoneOf(h.owner);
@@ -103,7 +107,8 @@ export class HazardField {
           g.setLineDash([]);
           emoji(g, h.kind === 'high' ? '⬇️' : '⬆️', z.x + 40, h.y - 34, 34);
           if (h.style !== 'laser') {
-            const sx = h.from < 0 ? z.x - 40 + (z.w * 0.5 + 40) * prog : z.x + z.w + 40 - (z.w * 0.5 + 40) * prog;
+            const sx =
+              h.from < 0 ? z.x - 40 + (z.w * 0.5 + 40) * prog : z.x + z.w + 40 - (z.w * 0.5 + 40) * prog;
             emoji(g, h.style === 'star' ? '✴️' : h.style === 'fist' ? '👊' : '🔥', sx, h.y, 54);
           }
         } else {
@@ -124,8 +129,16 @@ export class HazardField {
           }
           const size = 40 + 50 * prog;
           const sy = h.from === 0 ? 60 + (height * 0.45 - 60) * prog : height * 0.45;
-          const sx = h.from === 0 ? h.x : h.from < 0 ? z.x + (h.x - z.x) * prog : z.x + z.w - (z.x + z.w - h.x) * prog;
-          if (h.kind === 'body') emoji(g, h.style === 'fist' ? '👊' : h.style === 'star' ? '✴️' : h.style === 'meteor' ? '☄️' : '🔥', sx, sy, size);
+          const sx =
+            h.from === 0 ? h.x : h.from < 0 ? z.x + (h.x - z.x) * prog : z.x + z.w - (z.x + z.w - h.x) * prog;
+          if (h.kind === 'body')
+            emoji(
+              g,
+              h.style === 'fist' ? '👊' : h.style === 'star' ? '✴️' : h.style === 'meteor' ? '☄️' : '🔥',
+              sx,
+              sy,
+              size,
+            );
         } else {
           const a = 1 - h.after / 0.5;
           g.fillStyle = withAlpha(h.hit ? C.bad : '#ffffff', a * 0.6);

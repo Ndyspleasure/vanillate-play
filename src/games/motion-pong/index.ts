@@ -35,7 +35,7 @@ const factory: GameFactory = (ctx) => {
   };
 
   const serve = () => {
-    const speed = Math.max(380, ctx.width * 0.38);
+    const speed = Math.max(380, ctx.width * 0.38) * ctx.tune(0.82, 1, 1.18);
     const angle = ctx.rng.range(-0.5, 0.5);
     ball.x = ctx.width / 2;
     ball.y = (top() + bottom()) / 2;
@@ -50,7 +50,13 @@ const factory: GameFactory = (ctx) => {
     longestRally = Math.max(longestRally, rally);
     ctx.audio.play(solo && scorer === 1 ? 'fail' : 'coin');
     ctx.fx.flash(ctx.players[scorer]?.color ?? C.bad, 0.25);
-    ctx.fx.text(scorer === 1 && solo ? 'CPU +1' : `${ctx.players[scorer].name} +1`, ctx.width / 2, ctx.height / 2, ctx.players[scorer]?.color ?? C.bad, 44);
+    ctx.fx.text(
+      scorer === 1 && solo ? 'CPU +1' : `${ctx.players[scorer].name} +1`,
+      ctx.width / 2,
+      ctx.height / 2,
+      ctx.players[scorer]?.color ?? C.bad,
+      44,
+    );
     serveDir = scorer === 0 ? 1 : -1;
     serveIn = 1.2;
     ball.vx = 0;
@@ -88,7 +94,7 @@ const factory: GameFactory = (ctx) => {
           // AI: follow the ball with limited speed and a little human-like error.
           aiError += (ctx.rng.range(-1, 1) * 60 - aiError) * smoothFactor(dt, 0.8);
           const goal = ball.vx > 0 ? ball.y + aiError : (top() + bottom()) / 2;
-          const maxV = 420 + score[0] * 40;
+          const maxV = (420 + score[0] * 40) * ctx.tune(0.75, 1, 1.25);
           target = paddleY[1] + clamp(goal - paddleY[1], -maxV * dt, maxV * dt);
           paddleY[1] = target;
         } else {
@@ -123,7 +129,10 @@ const factory: GameFactory = (ctx) => {
         const x = px(i);
         const dir = i === 0 ? -1 : 1;
         if (Math.sign(ball.vx) !== dir) continue;
-        const within = i === 0 ? ball.x - ball.r <= x + 12 && ball.x > x - 30 : ball.x + ball.r >= x - 12 && ball.x < x + 30;
+        const within =
+          i === 0
+            ? ball.x - ball.r <= x + 12 && ball.x > x - 30
+            : ball.x + ball.r >= x - 12 && ball.x < x + 30;
         if (within && Math.abs(ball.y - paddleY[i]) <= half + ball.r) {
           const off = clamp((ball.y - paddleY[i]) / half, -1, 1);
           const speed = Math.min(Math.hypot(ball.vx, ball.vy) * 1.06, ctx.width * 1.2);
@@ -134,8 +143,12 @@ const factory: GameFactory = (ctx) => {
           hits[i]++;
           rally++;
           ctx.audio.play('hit', { pitch: 1 + rally * 0.03, pan: dir * 0.6 });
-          ctx.fx.burst(ball.x, ball.y, solo && i === 1 ? '#ffffff' : ctx.players[i].color, 12, { speed: 220, gravity: 0 });
-          if (rally > 0 && rally % 5 === 0) ctx.fx.text(tx(ctx, 'rally', { n: rally }), ctx.width / 2, ctx.height * 0.3, C.vanilla, 36);
+          ctx.fx.burst(ball.x, ball.y, solo && i === 1 ? '#ffffff' : ctx.players[i].color, 12, {
+            speed: 220,
+            gravity: 0,
+          });
+          if (rally > 0 && rally % 5 === 0)
+            ctx.fx.text(tx(ctx, 'rally', { n: rally }), ctx.width / 2, ctx.height * 0.3, C.vanilla, 36);
         }
       }
       if (ball.x < -ball.r * 2) point(1);
@@ -163,7 +176,9 @@ const factory: GameFactory = (ctx) => {
         g.shadowBlur = 0;
       }
       // Ball + trail
-      trail.forEach((p, i) => circle(g, p.x, p.y, ball.r * (i / trail.length), withAlpha('#ffe9b8', (i / trail.length) * 0.5)));
+      trail.forEach((p, i) =>
+        circle(g, p.x, p.y, ball.r * (i / trail.length), withAlpha('#ffe9b8', (i / trail.length) * 0.5)),
+      );
       circle(g, ball.x, ball.y, ball.r, '#fff7e8', '#ffd23d', 4);
       scoreHeader(g, ctx, [score[0], score[1]], {
         labels: solo ? [ctx.players[0].name, 'CPU'] : undefined,

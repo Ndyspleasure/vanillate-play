@@ -3,15 +3,38 @@ import { clamp, easeOutBack } from '../core/math';
 import type { MotionSession } from '../core/session/MotionSession';
 import { SIM_ASPECT } from '../core/tracking/SimulatedProvider';
 import type { AudioEngine } from './audio';
-import { C, FONT, emoji, PLAYER_COLORS, PLAYER_TINTS, handCursor, panel, playerTag, skeleton, text } from './draw';
+import {
+  C,
+  FONT,
+  emoji,
+  PLAYER_COLORS,
+  PLAYER_TINTS,
+  handCursor,
+  panel,
+  playerTag,
+  skeleton,
+  text,
+} from './draw';
+import { ClipRecorder, clipSupported, type Clip } from './clip';
 import { Fx, type FxQuality } from './fx';
 import { InputHub } from './input';
 import { Rng } from './rng';
 import { StageMapper, playerZones } from './stage';
+import { tuneFor } from './hud';
 import { tx } from '../games/kits/text';
-import type { GameContext, GameInstance, GameMeta, MatchResult, ModeId, PlayerInfo, PlayerInput } from './types';
+import type {
+  GameContext,
+  GameInstance,
+  GameMeta,
+  Level,
+  MatchResult,
+  ModeId,
+  PlayerInfo,
+  PlayerInput,
+} from './types';
 
-export type RunnerPhase = 'loading' | 'intro' | 'countdown' | 'play' | 'paused' | 'lost' | 'resuming' | 'ended';
+export type RunnerPhase =
+  'loading' | 'intro' | 'countdown' | 'play' | 'paused' | 'lost' | 'resuming' | 'ended';
 
 export interface RunnerSettings {
   names: string[];
@@ -20,6 +43,10 @@ export interface RunnerSettings {
   fxQuality: FxQuality | 'auto';
   showPerf: boolean;
   lang: 'en' | 'id';
+  /** Difficulty level (default normal). */
+  level?: Level;
+  /** Record a replay clip of the match (player opted in). */
+  recordClip?: boolean;
   /** Skip the intro card (rematch). */
   quickStart?: boolean;
   seed?: number;
@@ -62,6 +89,8 @@ export class GameRunner {
   readonly count: number;
   private pausedFrom: RunnerPhase = 'play';
   private ctx!: GameContext;
+  private clip: ClipRecorder | null = null;
+  private clipResult: Promise<Clip | null> | null = null;
 
   constructor(
     private container: HTMLElement,
@@ -121,18 +150,22 @@ export class GameRunner {
     this.canvas.style.height = `${h}px`;
     const aspect = this.hasCamera ? this.session.camera.aspect : SIM_ASPECT;
     this.mapper.set(w, h, aspect);
+    this.session.tracker.setVisibleRange(...this.mapper.visibleRange());
   }
 
   async start(): Promise<void> {
     const mod = await this.meta.load();
     const factory = mod.default;
-    const rng = new Rng(this.settings.seed ?? (Date.now() & 0x7fffffff));
+    const rng = new Rng(this.settings.seed ?? Date.now() & 0x7fffffff);
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- getters on the context read live runner state
     const runner = this;
     this.ctx = {
       meta: this.meta,
       mode: this.mode,
       options: this.options,
+      level: this.settings.level ?? 'normal',
+      tune: <T>(easy: T, normal: T, hard: T): T =>
+        tuneFor(this.settings.level ?? 'normal', easy, normal, hard),
       players: this.players,
       get width() {
         return runner.width;
@@ -166,6 +199,15 @@ export class GameRunner {
     this.game = factory(this.ctx);
     this.container.classList.toggle('stage--pip', this.game.view.camera === 'pip');
     this.setPhase(this.settings.quickStart ? 'countdown' : 'intro');
+    if (this.settings.recordClip && clipSupported()) {
+      try {
+        this.clip = new ClipRecorder(this.width, this.height, this.audio.recordStream());
+        this.clip.start();
+      } catch (err) {
+        console.warn('[clip] disabled', err);
+        this.clip = null;
+      }
+    }
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -177,7 +219,12 @@ export class GameRunner {
   }
 
   pause(): void {
-    if (this.phase === 'play' || this.phase === 'countdown' || this.phase === 'intro' || this.phase === 'resuming') {
+    if (
+      this.phase === 'play' ||
+      this.phase === 'countdown' ||
+      this.phase === 'intro' ||
+      this.phase === 'resuming'
+    ) {
       this.pausedFrom = this.phase === 'resuming' ? 'play' : this.phase;
       this.setPhase('paused');
       this.game?.onPause?.();
@@ -200,6 +247,8 @@ export class GameRunner {
   destroy(): void {
     cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
+    this.clip?.cancel();
+    this.clip = null;
     this.game?.destroy?.();
     this.game = null;
     this.audio.music.stop(200);
@@ -213,6 +262,16 @@ export class GameRunner {
     this.result = r;
     this.endPhoto = this.snapshot();
     this.setPhase('ended');
+  }
+
+  /** The replay clip of the finished match (null when not recording or unsupported). */
+  takeClip(): Promise<Clip | null> {
+    return this.clipResult ?? Promise.resolve(null);
+  }
+
+  /** True while a replay clip is being recorded (shown as a REC badge). */
+  get recording(): boolean {
+    return !!this.clip;
   }
 
   /** Camera frame captured at the final moment of the match (for the optional share photo). */
@@ -349,6 +408,10 @@ export class GameRunner {
         if (this.phaseT >= 1.6 && this.result) {
           const r = this.result;
           this.result = null;
+          if (this.clip) {
+            this.clipResult = this.clip.finish();
+            this.clip = null;
+          }
           this.cb.onEnd(r);
         }
         break;
@@ -413,12 +476,52 @@ export class GameRunner {
     if (this.settings.showPerf) {
       text(
         g,
-        `${Math.round(this.fps)} fps · tracking ${Math.round(this.session.perf.trackFps)} fps · ${this.session.perf.inferMs.toFixed(0)} ms · fx ${this.fx.quality}`,
+        `${Math.round(this.fps)} fps · tracking ${Math.round(this.session.perf.trackFps)} fps · ${this.session.perf.inferMs.toFixed(0)} ms${this.session.modelVariant ? ` · ${this.session.modelVariant}` : ''} · fx ${this.fx.quality}`,
         12,
         h - 14,
         { size: 13, align: 'left', color: C.muted, stroke: 3 },
       );
     }
+    if (this.clip) {
+      // The clip gets the frame first, so the REC badge below isn't burned into the video.
+      this.clip.frame((cg, cw, ch) => this.composeClip(cg, cw, ch));
+      // REC badge so players always know a clip is being recorded (it never leaves the device).
+      if (this.phase !== 'ended') {
+        const blink = Math.sin(performance.now() / 300) > -0.3;
+        g.fillStyle = 'rgba(20,10,40,0.7)';
+        g.beginPath();
+        g.roundRect?.(w - 84, h - 40, 72, 28, 14);
+        g.fill();
+        if (blink) {
+          g.fillStyle = '#ff3b5c';
+          g.beginPath();
+          g.arc(w - 68, h - 26, 6, 0, Math.PI * 2);
+          g.fill();
+        }
+        text(g, 'REC', w - 54, h - 25, { size: 13, align: 'left', stroke: 0 });
+      }
+    }
+  }
+
+  /** Camera (when it's behind the game) + the game canvas, scaled into the clip frame. */
+  private composeClip(g: CanvasRenderingContext2D, cw: number, ch: number): void {
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = '#140b2e';
+    g.fillRect(0, 0, cw, ch);
+    const video = this.session.camera.video;
+    if (this.hasCamera && this.game?.view.camera !== 'pip' && video.readyState >= 2) {
+      const m = this.mapper;
+      const s = cw / this.width;
+      g.setTransform(-s, 0, 0, s, (m.offX + m.scale * m.aspect) * s, m.offY * s);
+      g.drawImage(video, 0, 0, m.scale * m.aspect, m.scale);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    g.drawImage(this.canvas, 0, 0, cw, ch);
+    g.font = `700 ${Math.round(ch * 0.03)}px ${FONT}`;
+    g.textAlign = 'right';
+    g.textBaseline = 'alphabetic';
+    g.fillStyle = 'rgba(255,247,232,0.75)';
+    g.fillText('VANILLATE MOTION', cw - ch * 0.025, ch - ch * 0.025);
   }
 
   private arenaBackground(g: CanvasRenderingContext2D): void {
@@ -440,7 +543,7 @@ export class GameRunner {
       g.stroke();
     }
     for (let j = 0; j < 6; j++) {
-      const y = floorY + (h - floorY) * ((j / 6) ** 1.6);
+      const y = floorY + (h - floorY) * (j / 6) ** 1.6;
       g.beginPath();
       g.moveTo(0, y);
       g.lineTo(w, y);
@@ -513,7 +616,13 @@ export class GameRunner {
       for (let i = 0; i < this.count; i++) {
         const inp = this.hub.get(i);
         if (inp.health === 'lost') continue;
-        playerTag(g, this.players[i].name, inp.head.x, inp.head.y - inp.headRadius * 2.2, this.players[i].color);
+        playerTag(
+          g,
+          this.players[i].name,
+          inp.head.x,
+          inp.head.y - inp.headRadius * 2.2,
+          this.players[i].color,
+        );
       }
     }
 
@@ -527,7 +636,11 @@ export class GameRunner {
       emoji(g, this.meta.emoji, w / 2 - Math.min(w * 0.3, 380), h * 0.4, big * 0.08, 1, this.meta.colors[0]);
       text(g, this.meta.name.toUpperCase(), w / 2, h * 0.4, { size: big * 0.06, weight: 800 });
       const tip = this.meta.text[this.settings.lang].howTo[0] ?? '';
-      text(g, tip, w / 2, h * 0.52, { size: Math.max(16, big * 0.026), color: C.vanilla, maxWidth: w * 0.78 });
+      text(g, tip, w / 2, h * 0.52, {
+        size: Math.max(16, big * 0.026),
+        color: C.vanilla,
+        maxWidth: w * 0.78,
+      });
       g.globalAlpha = 1;
     } else if (this.phase === 'countdown') {
       const step = Math.floor(t);
@@ -549,8 +662,13 @@ export class GameRunner {
       g.fillRect(0, 0, w, h);
       if (this.phase === 'lost') {
         const missing = [];
-        for (let i = 0; i < this.count; i++) if (this.session.health(i) === 'lost') missing.push(this.players[i].name.toUpperCase());
-        text(g, tx(this.settings, 'notDetected', { names: missing.join(' & ') }), w / 2, h * 0.42, { size: big * 0.05, color: C.warn, weight: 800 });
+        for (let i = 0; i < this.count; i++)
+          if (this.session.health(i) === 'lost') missing.push(this.players[i].name.toUpperCase());
+        text(g, tx(this.settings, 'notDetected', { names: missing.join(' & ') }), w / 2, h * 0.42, {
+          size: big * 0.05,
+          color: C.warn,
+          weight: 800,
+        });
         text(g, tx(this.settings, 'moveIntoFrame'), w / 2, h * 0.52, { size: big * 0.035, color: C.ink });
         // Zone hints
         const zones = playerZones(w, h, this.count);
@@ -564,7 +682,11 @@ export class GameRunner {
           g.setLineDash([]);
         }
       } else if (this.phase === 'resuming') {
-        text(g, tx(this.settings, 'ready'), w / 2, h * 0.45, { size: big * 0.09, color: C.good, weight: 800 });
+        text(g, tx(this.settings, 'ready'), w / 2, h * 0.45, {
+          size: big * 0.09,
+          color: C.good,
+          weight: 800,
+        });
       } else {
         text(g, tx(this.settings, 'paused'), w / 2, h * 0.45, { size: big * 0.08, weight: 800 });
       }
@@ -586,7 +708,10 @@ export class GameRunner {
         if (this.session.health(i) === 'weak') {
           const inp = this.hub.get(i);
           g.font = `700 14px ${FONT}`;
-          text(g, tx(this.settings, 'tracking'), inp.head.x, inp.head.y - inp.headRadius * 2, { size: 14, color: C.warn });
+          text(g, tx(this.settings, 'tracking'), inp.head.x, inp.head.y - inp.headRadius * 2, {
+            size: 14,
+            color: C.warn,
+          });
         }
       }
     }

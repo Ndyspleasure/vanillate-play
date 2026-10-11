@@ -36,7 +36,8 @@ function nextT(t: number): number {
  */
 function softwareGl(): boolean {
   try {
-    const gl = new OffscreenCanvas(1, 1).getContext('webgl2') ?? new OffscreenCanvas(1, 1).getContext('webgl');
+    const gl =
+      new OffscreenCanvas(1, 1).getContext('webgl2') ?? new OffscreenCanvas(1, 1).getContext('webgl');
     if (!gl) return true;
     const info = gl.getExtension('WEBGL_debug_renderer_info');
     const renderer = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
@@ -116,10 +117,10 @@ async function handle(msg: WorkerRequest): Promise<void> {
         const ms = performance.now() - start;
         const image = packLandmarks(res.landmarks);
         const world = packLandmarks(res.worldLandmarks);
-        post(
-          { type: 'result', t: msg.t, count: res.landmarks.length, image, world, ms, width, height },
-          [image.buffer, world.buffer],
-        );
+        post({ type: 'result', t: msg.t, count: res.landmarks.length, image, world, ms, width, height }, [
+          image.buffer,
+          world.buffer,
+        ]);
         break;
       }
       case 'close':
@@ -129,7 +130,11 @@ async function handle(msg: WorkerRequest): Promise<void> {
         break;
     }
   } catch (err) {
-    post({ type: 'error', message: err instanceof Error ? err.message : String(err), fatal: msg.type === 'init' });
+    post({
+      type: 'error',
+      message: err instanceof Error ? err.message : String(err),
+      fatal: msg.type === 'init',
+    });
   }
 }
 

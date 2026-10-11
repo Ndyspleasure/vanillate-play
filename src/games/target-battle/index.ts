@@ -24,18 +24,31 @@ export function createTargets(ctx: GameContext, variant: Variant): GameInstance 
   const best = new Array(n).fill(0);
   const reactions: number[][] = Array.from({ length: n }, () => []);
   const out = new Array(n).fill(false);
-  const duration = variant === '60s' ? 60 : variant === 'sudden' ? 90 : variant === 'timed' ? 30 : variant === 'endless' || variant === 'speed' || variant === 'accuracy' ? 999 : 30;
+  const duration =
+    variant === '60s'
+      ? 60
+      : variant === 'sudden'
+        ? 90
+        : variant === 'timed'
+          ? 30
+          : variant === 'endless' || variant === 'speed' || variant === 'accuracy'
+            ? 999
+            : 30;
   let time = 0;
   const spawned = new Array(n).fill(0);
   let finished = false;
 
-  const lifeFor = () => {
+  // Difficulty: how long a target stays up.
+  const lifeK = ctx.tune(1.3, 1, 0.75);
+  const lifeFor = () => lifeK * lifeBase();
+  const lifeBase = () => {
     if (variant === 'sudden') return Math.max(1.3, 2.4 - time * 0.02);
     if (variant === 'endless') return Math.max(1.2, 3 - time * 0.03);
     if (variant === 'accuracy') return 2.6;
     return 3;
   };
-  const radiusFor = () => (variant === 'accuracy' ? Math.max(18, 48 - spawned[0] * 1.2) : 42);
+  const radiusFor = () =>
+    (variant === 'accuracy' ? Math.max(18, 48 - spawned[0] * 1.2) : 42) * ctx.tune(1.15, 1, 0.88);
 
   const spawn = (i: number) => {
     const inp = ctx.input(i);
@@ -57,22 +70,43 @@ export function createTargets(ctx: GameContext, variant: Variant): GameInstance 
     if (!fake) spawned[i]++;
   };
 
-  const active = (i: number) => field.targets.filter((t) => !t.dead && t.owner === i && t.kind !== 'fake').length;
+  const active = (i: number) =>
+    field.targets.filter((t) => !t.dead && t.owner === i && t.kind !== 'fake').length;
 
   const finish = () => {
     if (finished) return;
     finished = true;
-    const acc = (i: number) => (hits[i] + misses[i] ? Math.round((hits[i] / (hits[i] + misses[i])) * 100) : 0);
+    const acc = (i: number) =>
+      hits[i] + misses[i] ? Math.round((hits[i] / (hits[i] + misses[i])) * 100) : 0;
     const stats = [
       { label: tx(ctx, 'statHits'), values: hits.map(String) },
       { label: tx(ctx, 'statAccuracy'), values: ctx.players.map((p) => `${acc(p.index)}%`) },
       { label: tx(ctx, 'statBestCombo'), values: best.map(String) },
-      { label: L(ctx, 'Avg reaction', 'Rata-rata reaksi'), values: reactions.map((r) => (r.length ? `${Math.round(mean(r) * 1000)}ms` : '—')) },
+      {
+        label: L(ctx, 'Avg reaction', 'Rata-rata reaksi'),
+        values: reactions.map((r) => (r.length ? `${Math.round(mean(r) * 1000)}ms` : '—')),
+      },
     ];
     if (variant === 'fake') stats.push({ label: tx(ctx, 'statBombs'), values: bombs.map(String) });
     if (n === 1) {
-      if (variant === 'speed') ctx.end(soloResult(ctx, Math.round(time * 10) / 10, { display: formatDuration(time), headline: L(ctx, '20 TARGETS', '20 TARGET'), stats, lowerIsBetter: true, recordLabel: tx(ctx, 'statTime') }));
-      else if (variant === 'accuracy') ctx.end(soloResult(ctx, acc(0), { display: `${acc(0)}%`, headline: tx(ctx, 'statAccuracy').toUpperCase(), stats }));
+      if (variant === 'speed')
+        ctx.end(
+          soloResult(ctx, Math.round(time * 10) / 10, {
+            display: formatDuration(time),
+            headline: L(ctx, '20 TARGETS', '20 TARGET'),
+            stats,
+            lowerIsBetter: true,
+            recordLabel: tx(ctx, 'statTime'),
+          }),
+        );
+      else if (variant === 'accuracy')
+        ctx.end(
+          soloResult(ctx, acc(0), {
+            display: `${acc(0)}%`,
+            headline: tx(ctx, 'statAccuracy').toUpperCase(),
+            stats,
+          }),
+        );
       else ctx.end(soloResult(ctx, score[0], { stats }));
       return;
     }
@@ -124,26 +158,49 @@ export function createTargets(ctx: GameContext, variant: Variant): GameInstance 
           score[i] += pts;
           ctx.audio.play('pop', { pitch: 1 + Math.min(0.6, streak[i] * 0.05) });
           ctx.fx.burst(t.x, t.y, [ctx.players[i].color, '#fff', C.gold], 18, { gravity: 200 });
-          ctx.fx.text(streak[i] > 2 ? `+${pts} ×${streak[i]}` : `+${pts}`, t.x, t.y - 20, streak[i] > 2 ? C.gold : '#fff', 30);
+          ctx.fx.text(
+            streak[i] > 2 ? `+${pts} ×${streak[i]}` : `+${pts}`,
+            t.x,
+            t.y - 20,
+            streak[i] > 2 ? C.gold : '#fff',
+            30,
+          );
         }
         const want = variant === 'fake' ? 2 : 1 + (time > 20 && variant !== 'accuracy' ? 1 : 0);
-        if (active(i) < want && !(variant === 'speed' && spawned[i] >= 20) && !(variant === 'accuracy' && spawned[i] >= 25)) spawn(i);
+        if (
+          active(i) < want &&
+          !(variant === 'speed' && spawned[i] >= 20) &&
+          !(variant === 'accuracy' && spawned[i] >= 25)
+        )
+          spawn(i);
         if (variant === 'fake' && ctx.rng.chance(dt * 0.3)) spawn(i);
       }
       const doneSpeed = variant === 'speed' && hits[0] + misses[0] >= 20;
       const doneAcc = variant === 'accuracy' && hits[0] + misses[0] >= 25;
       const alive = out.filter((o) => !o).length;
-      if (time >= duration || doneSpeed || doneAcc || (out.some(Boolean) && alive <= (n > 1 ? 1 : 0))) finish();
+      if (time >= duration || doneSpeed || doneAcc || (out.some(Boolean) && alive <= (n > 1 ? 1 : 0)))
+        finish();
     },
     render(g) {
       field.render(g, time);
       const timer = duration < 900 ? Math.max(0, duration - time) : undefined;
       const center =
-        variant === 'speed' ? `${hits[0] + misses[0]}/20 · ${formatDuration(time)}` : variant === 'accuracy' ? `${hits[0] + misses[0]}/25` : variant === 'endless' ? `${L(ctx, 'Misses', 'Meleset')} ${misses[0]}/3` : undefined;
+        variant === 'speed'
+          ? `${hits[0] + misses[0]}/20 · ${formatDuration(time)}`
+          : variant === 'accuracy'
+            ? `${hits[0] + misses[0]}/25`
+            : variant === 'endless'
+              ? `${L(ctx, 'Misses', 'Meleset')} ${misses[0]}/3`
+              : undefined;
       scoreHeader(g, ctx, score, { timer, center });
       for (let i = 0; i < n; i++) if (out[i]) bubble(g, ctx.input(i), tx(ctx, 'out'), C.muted);
     },
-    inspect: () => ({ score: [...score], targets: field.targets.filter((t) => !t.dead).map((t) => ({ owner: t.owner, x: t.x, y: t.y, kind: t.kind })) }),
+    inspect: () => ({
+      score: [...score],
+      targets: field.targets
+        .filter((t) => !t.dead)
+        .map((t) => ({ owner: t.owner, x: t.x, y: t.y, kind: t.kind })),
+    }),
   };
 }
 

@@ -92,17 +92,30 @@ export class Flyer {
   }
 }
 
-export function buildPipes(rng: Rng, count: number, start = 1.2): Pipe[] {
+/** `gapScale` widens (> 1) or narrows (< 1) every gap — the difficulty lever. */
+export function buildPipes(rng: Rng, count: number, start = 1.2, gapScale = 1): Pipe[] {
   const pipes: Pipe[] = [];
   let x = start;
   for (let i = 0; i < count; i++) {
-    pipes.push({ x, gapY: rng.range(0.3, 0.7), gap: Math.max(0.26, 0.4 - i * 0.004), passed: false });
+    pipes.push({
+      x,
+      gapY: rng.range(0.3, 0.7),
+      gap: Math.max(0.26, 0.4 - i * 0.004) * gapScale,
+      passed: false,
+    });
     x += rng.range(0.55, 0.75);
   }
   return pipes;
 }
 
-export function renderFlight(g: CanvasRenderingContext2D, r: Rect, f: Flyer, track: Pipe[], color: string, label?: string): void {
+export function renderFlight(
+  g: CanvasRenderingContext2D,
+  r: Rect,
+  f: Flyer,
+  track: Pipe[],
+  color: string,
+  label?: string,
+): void {
   g.save();
   roundRect(g, r.x, r.y, r.w, r.h, 18);
   g.clip();

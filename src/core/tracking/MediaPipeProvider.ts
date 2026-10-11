@@ -2,7 +2,15 @@ import type { PoseLandmarker } from '@mediapipe/tasks-vision';
 import type { DetectedPose, Landmark, PoseFrame, PoseProvider, ProviderStatus } from './types';
 import { STRIDE, packLandmarks, type WorkerResponse, type WorkerResult } from './protocol';
 
-export const MODEL_URL = '/models/pose_landmarker_lite.task';
+/**
+ * Pose models: `lite` (~5.8 MB) runs everywhere; `full` (~9.4 MB) is noticeably steadier on hands,
+ * feet and partially hidden bodies but needs a fast GPU. Both are self-hosted.
+ */
+export type ModelVariant = 'lite' | 'full';
+export const MODEL_URLS: Record<ModelVariant, string> = {
+  lite: '/models/pose_landmarker_lite.task',
+  full: '/models/pose_landmarker_full.task',
+};
 export const WASM_BASE = '/mediapipe/wasm';
 
 export type InputQuality = 'performance' | 'balanced' | 'quality';
@@ -13,8 +21,21 @@ const INPUT_WIDTH: Record<InputQuality, number> = {
   quality: 960,
 };
 
+/**
+ * Width of the image handed to the pose model. Three or four people are each smaller in the frame,
+ * so crowds get at least the "quality" width (640 px on the performance preset) — more pixels per
+ * body keeps far and partly hidden players detected.
+ */
+export function inputWidthFor(q: InputQuality, numPoses: number): number {
+  const base = INPUT_WIDTH[q];
+  return numPoses >= 3 ? Math.max(base, q === 'performance' ? 640 : INPUT_WIDTH.quality) : base;
+}
+
 /** Downloads a file with progress reporting. */
-async function fetchWithProgress(url: string, onProgress: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
+async function fetchWithProgress(
+  url: string,
+  onProgress: (loaded: number, total: number) => void,
+): Promise<ArrayBuffer> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download ${url} (${res.status})`);
   const total = Number(res.headers.get('content-length')) || 0;
@@ -43,7 +64,7 @@ async function fetchWithProgress(url: string, onProgress: (loaded: number, total
 }
 
 /** Approximate download sizes, used until the server reports Content-Length. */
-const MODEL_BYTES = 5_800_000;
+const MODEL_BYTES: Record<ModelVariant, number> = { lite: 5_800_000, full: 9_400_000 };
 const WASM_BYTES = 11_800_000;
 
 type Progress = (loaded: number, total: number) => void;
@@ -53,7 +74,10 @@ type Progress = (loaded: number, total: number) => void;
  * worker restart (or a second provider) never downloads them again. The service worker additionally
  * keeps both files in Cache Storage across visits.
  */
-const downloads = new Map<string, { promise: Promise<ArrayBuffer>; listeners: Set<Progress>; last: [number, number] }>();
+const downloads = new Map<
+  string,
+  { promise: Promise<ArrayBuffer>; listeners: Set<Progress>; last: [number, number] }
+>();
 
 function download(url: string, onProgress: Progress, required = true): Promise<ArrayBuffer | null> {
   let entry = downloads.get(url);
@@ -119,12 +143,14 @@ export class MediaPipeProvider implements PoseProvider {
   private pending: ((r: WorkerResult | null) => void) | null = null;
   private numPoses = 2;
   private lastT = 0;
-  private inputWidth = INPUT_WIDTH.balanced;
+  private quality: InputQuality = 'balanced';
   private canResize = true;
   private failures = 0;
   private recoveries = 0;
   private recovering: Promise<void> | null = null;
   private disposed = false;
+  /** Model currently running. */
+  variant: ModelVariant = 'lite';
   backend = '';
   ready = false;
   /** Called when the provider rebuilds its worker after a failure (for diagnostics/UI). */
@@ -133,25 +159,37 @@ export class MediaPipeProvider implements PoseProvider {
   onFatal: (() => void) | null = null;
 
   setQuality(q: InputQuality): void {
-    this.inputWidth = INPUT_WIDTH[q];
+    this.quality = q;
   }
 
-  async init(numPoses: number, onStatus?: (s: ProviderStatus) => void): Promise<void> {
+  async init(
+    numPoses: number,
+    onStatus?: (s: ProviderStatus) => void,
+    variant: ModelVariant = 'lite',
+  ): Promise<void> {
     this.numPoses = numPoses;
+    this.variant = variant;
     const report = (s: ProviderStatus) => onStatus?.(s);
     report({ phase: 'loading', message: 'Downloading motion model', progress: 0 });
 
     // The model (~5.7 MB) is fetched here so we can show progress; the WASM runtime is warmed in parallel.
-    const sizes = { model: [0, MODEL_BYTES], wasm: [0, WASM_BYTES] };
+    const sizes = { model: [0, MODEL_BYTES[variant]], wasm: [0, WASM_BYTES] };
     const update = () => {
       const loaded = sizes.model[0] + sizes.wasm[0];
       const total = sizes.model[1] + sizes.wasm[1];
-      report({ phase: 'loading', message: 'Downloading motion model', progress: Math.min(0.95, loaded / total) });
+      report({
+        phase: 'loading',
+        message: 'Downloading motion model',
+        progress: Math.min(0.95, loaded / total),
+      });
     };
-    const useWorker = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && 'createImageBitmap' in window;
+    const useWorker =
+      typeof Worker !== 'undefined' &&
+      typeof OffscreenCanvas !== 'undefined' &&
+      'createImageBitmap' in window;
     const wasmFile = useWorker ? 'vision_wasm_module_internal.wasm' : 'vision_wasm_internal.wasm';
     const [model] = await Promise.all([
-      download(MODEL_URL, (l, t) => {
+      download(MODEL_URLS[variant], (l, t) => {
         sizes.model = [l, t || sizes.model[1]];
         update();
       }) as Promise<ArrayBuffer>,
@@ -327,6 +365,63 @@ export class MediaPipeProvider implements PoseProvider {
     return this.lastT;
   }
 
+  /**
+   * Swap the running pose model (e.g. upgrade to `full` on a fast device) without touching the
+   * camera: the new model is downloaded in the background, then the inference backend is rebuilt
+   * from it. Detection pauses only for the rebuild itself (a few hundred ms). Resolves false if the
+   * download or rebuild failed — the previous model keeps running in that case.
+   */
+  async switchModel(variant: ModelVariant, onProgress?: (p: number) => void): Promise<boolean> {
+    if (variant === this.variant || this.disposed) return variant === this.variant;
+    let model: ArrayBuffer;
+    try {
+      model = (await download(MODEL_URLS[variant], (l, t) =>
+        onProgress?.(t ? l / t : l / MODEL_BYTES[variant]),
+      )) as ArrayBuffer;
+    } catch (err) {
+      console.warn('[tracking] model download failed', err);
+      return false;
+    }
+    if (this.disposed) return false;
+    while (this.recovering) await this.recovering;
+    const previous = this.model;
+    const hadWorker = !!this.worker;
+    let done!: () => void;
+    this.recovering = new Promise<void>((r) => (done = r));
+    try {
+      this.killWorker();
+      this.main?.close();
+      this.main = null;
+      const delegate = hadWorker
+        ? await this.initWorker(model, this.numPoses)
+        : await this.initMain(model, this.numPoses);
+      this.backend = `${delegate} · ${hadWorker ? 'worker' : 'main'}`;
+      this.model = model;
+      this.variant = variant;
+      return true;
+    } catch (err) {
+      console.warn('[tracking] model switch failed, restoring the previous model', err);
+      this.killWorker();
+      if (previous) {
+        try {
+          const delegate = hadWorker
+            ? await this.initWorker(previous, this.numPoses)
+            : await this.initMain(previous, this.numPoses);
+          this.backend = `${delegate} · ${hadWorker ? 'worker' : 'main'}`;
+        } catch {
+          this.ready = false;
+          this.onFatal?.();
+        }
+      }
+      return false;
+    } finally {
+      this.failures = 0;
+      this.recovering = null;
+      done();
+      if (this.disposed) this.killWorker();
+    }
+  }
+
   setNumPoses(n: number): void {
     if (n === this.numPoses) return;
     this.numPoses = n;
@@ -352,7 +447,7 @@ export class MediaPipeProvider implements PoseProvider {
         const worker = this.worker;
         const vw = video.videoWidth;
         const vh = video.videoHeight;
-        const w = Math.min(this.inputWidth, vw);
+        const w = Math.min(inputWidthFor(this.quality, this.numPoses), vw);
         const h = Math.round((w / vw) * vh);
         let bitmap: ImageBitmap;
         try {

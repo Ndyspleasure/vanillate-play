@@ -27,7 +27,8 @@ export const pt = (x: number, y: number): Point => ({ x, y });
 export const rectContains = (r: Rect, p: Point): boolean =>
   p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
-export const circleHit = (a: Point, ra: number, b: Point, rb: number): boolean => dist2(a, b) <= (ra + rb) ** 2;
+export const circleHit = (a: Point, ra: number, b: Point, rb: number): boolean =>
+  dist2(a, b) <= (ra + rb) ** 2;
 
 /** Distance from point p to the segment ab. */
 export function distToSegment(p: Point, a: Point, b: Point): number {

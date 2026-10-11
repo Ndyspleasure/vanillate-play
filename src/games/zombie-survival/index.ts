@@ -26,7 +26,14 @@ interface Zombie {
   dead: boolean;
 }
 
-const WAVES: { walkers: number; crawlers: number; spitters: number; speed: number; boss?: boolean; elite?: boolean }[] = [
+const WAVES: {
+  walkers: number;
+  crawlers: number;
+  spitters: number;
+  speed: number;
+  boss?: boolean;
+  elite?: boolean;
+}[] = [
   { walkers: 6, crawlers: 0, spitters: 0, speed: 60 },
   { walkers: 7, crawlers: 3, spitters: 0, speed: 70 },
   { walkers: 8, crawlers: 3, spitters: 2, speed: 78 },
@@ -54,9 +61,17 @@ const factory: GameFactory = (ctx) => {
     wave++;
     if (wave > WAVES.length) return end(true);
     const w = WAVES[wave - 1];
-    queue = ctx.rng.shuffle([...Array(w.walkers).fill('walker'), ...Array(w.crawlers).fill('crawler'), ...Array(w.spitters).fill('spitter')] as ZKind[]);
+    queue = ctx.rng.shuffle([
+      ...Array(w.walkers).fill('walker'),
+      ...Array(w.crawlers).fill('crawler'),
+      ...Array(w.spitters).fill('spitter'),
+    ] as ZKind[]);
     if (w.boss) queue.push('boss');
-    ctx.banner(w.boss ? tx(ctx, 'boss') : w.elite ? tx(ctx, 'elite') : tx(ctx, 'wave', { n: wave }), undefined, 1.6);
+    ctx.banner(
+      w.boss ? tx(ctx, 'boss') : w.elite ? tx(ctx, 'elite') : tx(ctx, 'wave', { n: wave }),
+      undefined,
+      1.6,
+    );
     ctx.audio.music.play(w.boss ? 'boss' : 'tension');
   };
 
@@ -65,9 +80,28 @@ const factory: GameFactory = (ctx) => {
     const side = ctx.rng.chance(0.5) ? -1 : 1;
     const alive = [0, 1].filter((i) => !down[i]);
     const target = side === -1 ? (alive.includes(0) ? 0 : 1) : alive.includes(1) ? 1 : 0;
-    const base = kind === 'boss' ? 40 : kind === 'crawler' ? w.speed * 0.8 : kind === 'spitter' ? w.speed * 0.6 : w.speed;
+    const base =
+      kind === 'boss'
+        ? 40
+        : kind === 'crawler'
+          ? w.speed * 0.8
+          : kind === 'spitter'
+            ? w.speed * 0.6
+            : w.speed;
     const hpMax = kind === 'boss' ? 30 : kind === 'walker' ? (w.elite ? 3 : 2) : 1;
-    zombies.push({ kind, x: side === -1 ? -60 : ctx.width + 60, side, speed: base * (ctx.width / 1280), hp: hpMax, max: hpMax, target, attackT: 0, spitT: 2.5, hitT: 0, dead: false });
+    zombies.push({
+      kind,
+      x: side === -1 ? -60 : ctx.width + 60,
+      side,
+      speed: base * (ctx.width / 1280),
+      hp: hpMax,
+      max: hpMax,
+      target,
+      attackT: 0,
+      spitT: 2.5,
+      hitT: 0,
+      dead: false,
+    });
   };
 
   const end = (win: boolean) => {
@@ -79,12 +113,18 @@ const factory: GameFactory = (ctx) => {
       coopResult(ctx, pct, {
         big: String(kills[0] + kills[1]),
         headline: win ? L(ctx, 'YOU SURVIVED!', 'KALIAN SELAMAT!') : L(ctx, 'OVERRUN…', 'TERKEPUNG…'),
-        subline: win ? L(ctx, 'Unbeatable duo!', 'Duo tak terkalahkan!') : L(ctx, 'Rematch and hold the line!', 'Rematch dan bertahan lebih lama!'),
+        subline: win
+          ? L(ctx, 'Unbeatable duo!', 'Duo tak terkalahkan!')
+          : L(ctx, 'Rematch and hold the line!', 'Rematch dan bertahan lebih lama!'),
         stats: [
           { label: tx(ctx, 'statKills'), values: kills.map(String) },
           { label: tx(ctx, 'statWaves'), values: [String(win ? WAVES.length : wave - 1)] },
         ],
-        shareLine: L(ctx, `WE SURVIVED ${win ? 'THE BOSS' : `WAVE ${wave - 1}`} 🧟`, `KAMI BERTAHAN ${win ? 'SAMPAI BOS' : `GELOMBANG ${wave - 1}`} 🧟`),
+        shareLine: L(
+          ctx,
+          `WE SURVIVED ${win ? 'THE BOSS' : `WAVE ${wave - 1}`} 🧟`,
+          `KAMI BERTAHAN ${win ? 'SAMPAI BOS' : `GELOMBANG ${wave - 1}`} 🧟`,
+        ),
       }),
     );
   };
@@ -137,7 +177,12 @@ const factory: GameFactory = (ctx) => {
           const cands = zombies
             .filter((z) => !z.dead && Math.abs(z.x - inp.center.x) < reach)
             .filter((z) => (kick ? z.kind === 'crawler' || z.kind === 'boss' : z.kind !== 'crawler'))
-            .filter((z) => kick || Math.sign(z.x - inp.center.x) === punch || Math.abs(z.x - inp.center.x) < reach * 0.35)
+            .filter(
+              (z) =>
+                kick ||
+                Math.sign(z.x - inp.center.x) === punch ||
+                Math.abs(z.x - inp.center.x) < reach * 0.35,
+            )
             .sort((a, b) => Math.abs(a.x - inp.center.x) - Math.abs(b.x - inp.center.x));
           if (cands[0]) damageZombie(cands[0], 1, i);
         }
@@ -149,7 +194,8 @@ const factory: GameFactory = (ctx) => {
         ctx.fx.flash('#b3ff9e', 0.6);
         ctx.fx.shake(14, 0.5);
         ctx.banner(tx(ctx, 'nova'), undefined, 1);
-        for (const z of zombies) if (!z.dead) damageZombie(z, z.kind === 'boss' ? 8 : 99, ctx.rng.chance(0.5) ? 0 : 1);
+        for (const z of zombies)
+          if (!z.dead) damageZombie(z, z.kind === 'boss' ? 8 : 99, ctx.rng.chance(0.5) ? 0 : 1);
       }
       // Revive
       for (let i = 0; i < 2; i++) {
@@ -178,7 +224,17 @@ const factory: GameFactory = (ctx) => {
           z.spitT -= dt;
           if (z.spitT <= 0 && !down[z.target]) {
             z.spitT = 3;
-            spit.add({ kind: 'body', owner: z.target, t: 1.1, warn: 1.1, x: tgt.center.x, y: tgt.center.y, from: z.side, style: 'ball', width: 50 });
+            spit.add({
+              kind: 'body',
+              owner: z.target,
+              t: ctx.tune(1.4, 1.1, 0.85),
+              warn: ctx.tune(1.4, 1.1, 0.85),
+              x: tgt.center.x,
+              y: tgt.center.y,
+              from: z.side,
+              style: 'ball',
+              width: 50,
+            });
             ctx.audio.play('splat', { volume: 0.4 });
           }
         } else {
@@ -229,12 +285,27 @@ const factory: GameFactory = (ctx) => {
         text(g, ctx.players[i].name, z.x + 24, 62, { size: 18, align: 'left', color: ctx.players[i].color });
         if (down[i]) {
           bubble(g, inp, `${tx(ctx, 'down')} ${Math.round((revive[i] / 2) * 100)}%`, C.bad);
-          text(g, L(ctx, `${ctx.players[1 - i].name}: hold hands up to revive!`, `${ctx.players[1 - i].name}: angkat tangan untuk menghidupkan!`), ctx.width / 2, ctx.height * 0.3, { size: 26, color: C.warn });
+          text(
+            g,
+            L(
+              ctx,
+              `${ctx.players[1 - i].name}: hold hands up to revive!`,
+              `${ctx.players[1 - i].name}: angkat tangan untuk menghidupkan!`,
+            ),
+            ctx.width / 2,
+            ctx.height * 0.3,
+            { size: 26, color: C.warn },
+          );
         }
       }
       bar(g, ctx.width / 2 - 150, 84, 300, 14, nova, nova >= 1 ? C.gold : '#9be15d');
-      text(g, nova >= 1 ? tx(ctx, 'novaReady') : 'NOVA', ctx.width / 2, 112, { size: nova >= 1 ? 20 : 14, color: nova >= 1 ? C.gold : C.ink });
-      text(g, wave > 0 ? tx(ctx, 'wave', { n: Math.min(wave, WAVES.length) }) : '', ctx.width / 2, 30, { size: 22 });
+      text(g, nova >= 1 ? tx(ctx, 'novaReady') : 'NOVA', ctx.width / 2, 112, {
+        size: nova >= 1 ? 20 : 14,
+        color: nova >= 1 ? C.gold : C.ink,
+      });
+      text(g, wave > 0 ? tx(ctx, 'wave', { n: Math.min(wave, WAVES.length) }) : '', ctx.width / 2, 30, {
+        size: 22,
+      });
     },
     inspect: () => ({ wave, zombies: zombies.length, hp: [...hp], down: [...down] }),
   };

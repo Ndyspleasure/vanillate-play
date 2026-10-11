@@ -8,7 +8,13 @@ export function notFoundScreen(): Screen {
     'div',
     { class: 'page' },
     header(''),
-    h('main', { id: 'main', class: 'section center notfound' }, h('p', { class: 'notfound__emoji', 'aria-hidden': 'true' }, '🙈'), h('h1', null, t('notfound')), button(t('notfound.back'), { href: '/games' })),
+    h(
+      'main',
+      { id: 'main', class: 'section center notfound' },
+      h('p', { class: 'notfound__emoji', 'aria-hidden': 'true' }, '🙈'),
+      h('h1', null, t('notfound')),
+      button(t('notfound.back'), { href: '/games' }),
+    ),
     footer(),
   );
   return { el, title: 'Not found — Vanillate Motion' };

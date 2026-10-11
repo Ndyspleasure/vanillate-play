@@ -47,11 +47,7 @@ export class OneEuroFilter {
 export class LandmarkFilterBank {
   private filters: OneEuroFilter[];
 
-  constructor(
-    count: number,
-    minCutoff: number,
-    beta: number,
-  ) {
+  constructor(count: number, minCutoff: number, beta: number) {
     this.filters = Array.from({ length: count * 3 }, () => new OneEuroFilter(minCutoff, beta));
   }
 

@@ -42,6 +42,9 @@ Rules:
 - All visible text goes through `tx()` (shared keys in `kits/text.ts`) or `L(ctx, en, id)`.
 - Reuse kits: `commands`, `targets`, `hazards`, `freeze`, `lanes`, `goal`, `flap`, `ui`.
 - End with `versusResult`, `coopResult` or `soloResult` so the result screen, stats, personal bests and share card work.
+- Support difficulty: pass the main pacing levers through `ctx.tune(easy, normal, hard)` (reaction windows, speeds, spawn rates, CPU sharpness). Easy should be forgiving for kids and first-timers, hard should feel sharp — not unfair to tracking noise.
+- Must work in a narrow 9:16 stage (creator mode, portrait phones): size text and layouts from `ctx.width` / `ctx.height`, never fixed pixel layouts.
+- Optional: add the game to a party collection in `src/games/collections.ts` (tests check that its mode supports the collection's player counts).
 
 ## 3. Tests
 

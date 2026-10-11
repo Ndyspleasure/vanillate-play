@@ -16,17 +16,32 @@ const LENGTH = 650;
 const LIMIT = 150;
 
 /** Simple AI that reads the track ahead and reacts with human-like reliability. */
-function aiControl(r: Runner, track: Obstacle[], time: number, rngNext: () => number, out: MutableInput): void {
+function aiControl(
+  r: Runner,
+  track: Obstacle[],
+  time: number,
+  rngNext: () => number,
+  out: MutableInput,
+  missRate = 0.12,
+): void {
   out.clearEvents();
   out.state.energy = 0.9;
   for (const o of track) {
     const ahead = o.z - r.z;
     if (ahead < 2 || ahead > 7) continue;
-    if (rngNext() > 0.12) {
+    if (rngNext() > missRate) {
       if (o.kind === 'hurdle' && !r.airborne) out.push('JUMP');
       if (o.kind === 'bar' && !r.sliding) out.push('SQUAT');
       if (o.kind === 'cone' && (o.moving ? movingLane(o, time) : o.lane) === Math.round(r.x)) {
-        const free = [0, 1, 2].find((l) => !track.some((c) => c.kind === 'cone' && Math.abs(c.z - o.z) < 0.5 && (c.moving ? movingLane(c, time) : c.lane) === l));
+        const free = [0, 1, 2].find(
+          (l) =>
+            !track.some(
+              (c) =>
+                c.kind === 'cone' &&
+                Math.abs(c.z - o.z) < 0.5 &&
+                (c.moving ? movingLane(c, time) : c.lane) === l,
+            ),
+        );
         if (free !== undefined) out.push(free < r.lane ? 'MOVE_LEFT' : 'MOVE_RIGHT');
       }
     }
@@ -38,7 +53,8 @@ const factory: GameFactory = (ctx) => {
   const humans = ctx.players.length;
   const solo = humans === 1;
   const count = solo ? 2 : humans;
-  const track = buildTrack(ctx.rng, LENGTH, 1);
+  const track = buildTrack(ctx.rng, LENGTH, ctx.tune(0.7, 1, 1.35));
+  const aiMiss = ctx.tune(0.25, 0.12, 0.05);
   const runners = Array.from({ length: count }, () => new Runner());
   const aiInput = new MutableInput(9, emptyState());
   const order: number[] = [];
@@ -52,7 +68,10 @@ const factory: GameFactory = (ctx) => {
     finished = true;
     const times = runners.map((r) => (r.finished ? r.finishTime : LIMIT + (LENGTH - r.z) / 5));
     const stats = [
-      { label: tx(ctx, 'statLapTime'), values: runners.map((r) => (r.finished ? formatDuration(r.finishTime) : 'DNF')) },
+      {
+        label: tx(ctx, 'statLapTime'),
+        values: runners.map((r) => (r.finished ? formatDuration(r.finishTime) : 'DNF')),
+      },
       { label: tx(ctx, 'statCoins'), values: runners.map((r) => String(r.coins)) },
       { label: ctx.lang === 'id' ? 'Tabrakan' : 'Crashes', values: runners.map((r) => String(r.hits)) },
     ];
@@ -67,7 +86,14 @@ const factory: GameFactory = (ctx) => {
           recordLabel: tx(ctx, 'statLapTime'),
         }),
       );
-    } else ctx.end(versusResult(ctx, times, { lowerIsBetter: true, display: (v) => (v >= LIMIT ? 'DNF' : formatDuration(v)), stats }));
+    } else
+      ctx.end(
+        versusResult(ctx, times, {
+          lowerIsBetter: true,
+          display: (v) => (v >= LIMIT ? 'DNF' : formatDuration(v)),
+          stats,
+        }),
+      );
   };
 
   return {
@@ -80,7 +106,7 @@ const factory: GameFactory = (ctx) => {
         if (r.finished) continue;
         let inp: PlayerInput;
         if (solo && i === 1) {
-          aiControl(r, track, time, () => ctx.rng.next(), aiInput);
+          aiControl(r, track, time, () => ctx.rng.next(), aiInput, aiMiss);
           inp = aiInput;
         } else inp = ctx.input(i);
         r.control(inp);
@@ -96,11 +122,18 @@ const factory: GameFactory = (ctx) => {
           r.finishTime = time;
           order.push(i);
           ctx.audio.play(order.length === 1 ? 'cheer' : 'success');
-          ctx.fx.text(order.length === 1 ? `🏆 ${nameOf(i)}` : `#${order.length} ${nameOf(i)}`, ctx.width / 2, ctx.height * 0.4, colorOf(i), 46);
+          ctx.fx.text(
+            order.length === 1 ? `🏆 ${nameOf(i)}` : `#${order.length} ${nameOf(i)}`,
+            ctx.width / 2,
+            ctx.height * 0.4,
+            colorOf(i),
+            46,
+          );
         }
       }
       const humansDone = runners.slice(0, humans).every((r) => r.finished);
-      if (humansDone || time > LIMIT || (order.length > 0 && time - runners[order[0]].finishTime > 12)) finish();
+      if (humansDone || time > LIMIT || (order.length > 0 && time - runners[order[0]].finishTime > 12))
+        finish();
     },
     renderBackground(g) {
       g.fillStyle = '#120a2c';
@@ -118,12 +151,17 @@ const factory: GameFactory = (ctx) => {
           label: `${nameOf(i)} · ${Math.round(runners[i].speed * 3.6)} km/h`,
           ghost: rival,
         });
-        if (runners[i].finished) text(g, formatDuration(runners[i].finishTime), r.x + r.w / 2, r.y + r.h * 0.2, { size: 40, color: C.gold });
+        if (runners[i].finished)
+          text(g, formatDuration(runners[i].finishTime), r.x + r.w / 2, r.y + r.h * 0.2, {
+            size: 40,
+            color: C.gold,
+          });
       }
       // Progress track
       const bw = ctx.width - 160;
       bar(g, 80, 26, bw, 14, 1, 'rgba(255,255,255,0.12)');
-      for (let i = 0; i < count; i++) circle(g, 80 + bw * Math.min(1, runners[i].z / LENGTH), 33, 11, colorOf(i), '#140b2e', 3);
+      for (let i = 0; i < count; i++)
+        circle(g, 80 + bw * Math.min(1, runners[i].z / LENGTH), 33, 11, colorOf(i), '#140b2e', 3);
       text(g, '🏁', 80 + bw + 26, 33, { size: 22, stroke: 0 });
       text(g, `${Math.round(time)}s`, 40, 33, { size: 18, stroke: 0 });
     },

@@ -1,5 +1,13 @@
 import { clamp01, mean } from '../../core/math';
-import { comparePoses, matchPose, poseById, poseName, UPPER_BODY_POSES, type PoseDef, type PoseVector } from '../../core/motion/pose';
+import {
+  comparePoses,
+  matchPose,
+  poseById,
+  poseName,
+  UPPER_BODY_POSES,
+  type PoseDef,
+  type PoseVector,
+} from '../../core/motion/pose';
 import { C, ghost, text } from '../../engine/draw';
 import { coopResult, scoreHeader } from '../../engine/hud';
 import type { GameFactory } from '../../engine/types';
@@ -12,10 +20,31 @@ import { bigCommand, bubble, zoneMeter } from '../kits/ui';
  * Couple Challenge (GAMES.md 6.35) — a menu of short couple rounds played back to back.
  * Each round scores 0–100% together; the result shows COUPLE SCORE and BEST SYNC.
  */
-type RoundId = 'syncJump' | 'mirrorPose' | 'reactionDuo' | 'freeze' | 'sameMove' | 'follow' | 'heart';
-const ROUNDS: RoundId[] = ['syncJump', 'mirrorPose', 'reactionDuo', 'freeze', 'sameMove', 'follow', 'heart'];
+type RoundId =
+  | 'syncJump'
+  | 'syncSquat'
+  | 'mirrorPose'
+  | 'reactionDuo'
+  | 'freeze'
+  | 'sameMove'
+  | 'follow'
+  | 'heart'
+  | 'highFive';
+
+/**
+ * Challenge packs: the classic menu plus themed sets. Rounds may repeat within a pack (the
+ * workout pack alternates jumps and squats).
+ */
+export const PACKS: Record<string, RoundId[]> = {
+  classic: ['syncJump', 'mirrorPose', 'reactionDuo', 'freeze', 'sameMove', 'follow', 'heart'],
+  date: ['mirrorPose', 'heart', 'highFive', 'follow', 'freeze', 'sameMove'],
+  quick: ['syncJump', 'heart', 'highFive'],
+  workout: ['syncJump', 'syncSquat', 'sameMove', 'freeze', 'syncSquat', 'syncJump'],
+};
 const TITLES: Record<RoundId, [string, string]> = {
   syncJump: ['SYNC JUMP', 'LOMPAT SINKRON'],
+  syncSquat: ['SYNC SQUAT', 'JONGKOK SINKRON'],
+  highFive: ['HIGH FIVE!', 'TOS!'],
   mirrorPose: ['MIRROR POSE', 'POSE CERMIN'],
   reactionDuo: ['REACTION DUO', 'REAKSI BERDUA'],
   freeze: ['FREEZE TOGETHER', 'DIAM BERSAMA'],
@@ -25,6 +54,7 @@ const TITLES: Record<RoundId, [string, string]> = {
 };
 
 const factory: GameFactory = (ctx) => {
+  const ROUNDS = PACKS[ctx.options.pack ?? 'classic'] ?? PACKS.classic;
   const results: number[] = [];
   let ri = -1;
   let phase: 'intro' | 'run' | 'result' = 'intro';
@@ -38,7 +68,12 @@ const factory: GameFactory = (ctx) => {
   let falseStart = [false, false];
   let roundScore = 0;
   let hold = 0;
-  const freeze = new FreezeMonitor(2, 0.55, 0.4, 0.2);
+  const freeze = new FreezeMonitor(
+    2,
+    ctx.tune(0.55 * 1.25, 0.55, 0.55 * 0.82),
+    ctx.tune(0.4 * 1.3, 0.4, 0.4 * 0.75),
+    0.2,
+  );
   let caught = [false, false];
   let history: { t: number; v: PoseVector }[] = [];
   let finished = false;
@@ -56,9 +91,16 @@ const factory: GameFactory = (ctx) => {
           headline: L(ctx, 'COUPLE SCORE', 'SKOR PASANGAN'),
           stats: [
             { label: L(ctx, 'Best sync', 'Sinkron terbaik'), values: [`${Math.round(best)}%`] },
-            ...ROUNDS.map((r, k) => ({ label: TITLES[r][ctx.lang === 'id' ? 1 : 0], values: [`${Math.round(results[k] * 100)}%`] })),
+            ...ROUNDS.map((r, k) => ({
+              label: TITLES[r][ctx.lang === 'id' ? 1 : 0],
+              values: [`${Math.round(results[k] * 100)}%`],
+            })),
           ],
-          shareLine: L(ctx, `COUPLE SCORE ${Math.round(pct)}% · BEST SYNC ${Math.round(best)}% 💑`, `SKOR PASANGAN ${Math.round(pct)}% · SINKRON TERBAIK ${Math.round(best)}% 💑`),
+          shareLine: L(
+            ctx,
+            `COUPLE SCORE ${Math.round(pct)}% · BEST SYNC ${Math.round(best)}% 💑`,
+            `SKOR PASANGAN ${Math.round(pct)}% · SINKRON TERBAIK ${Math.round(best)}% 💑`,
+          ),
         }),
       );
       return;
@@ -72,7 +114,12 @@ const factory: GameFactory = (ctx) => {
     caught = [false, false];
     history = [];
     pose = id() === 'heart' ? poseById('heart') : ctx.rng.pick(UPPER_BODY_POSES);
-    cmd = id() === 'syncJump' ? COMMANDS.jump : COMMANDS[ctx.rng.pick(BASIC_COMMANDS)];
+    cmd =
+      id() === 'syncJump'
+        ? COMMANDS.jump
+        : id() === 'syncSquat'
+          ? COMMANDS.squat
+          : COMMANDS[ctx.rng.pick(BASIC_COMMANDS)];
     waitFor = ctx.rng.range(1.2, 2.8);
     ctx.audio.play('heart');
   };
@@ -84,13 +131,14 @@ const factory: GameFactory = (ctx) => {
     t = 0;
     const pct = Math.round(roundScore * 100);
     ctx.audio.play(pct >= 80 ? 'perfect' : pct >= 50 ? 'success' : 'fail');
-    if (pct >= 80) ctx.fx.burst(ctx.width / 2, ctx.height * 0.4, ['#ff4d8d', '#ff9ec7', '#fff'], 36, { shape: 'star' });
+    if (pct >= 80)
+      ctx.fx.burst(ctx.width / 2, ctx.height * 0.4, ['#ff4d8d', '#ff9ec7', '#fff'], 36, { shape: 'star' });
   };
 
   const timingScore = () => {
     const [a, b] = times;
     if (a === null || b === null) return 0;
-    return clamp01(1 - Math.max(0, Math.abs(a - b) - 60) / 700);
+    return clamp01(1 - Math.max(0, Math.abs(a - b) - 60) / ctx.tune(950, 700, 480));
   };
 
   next();
@@ -118,10 +166,13 @@ const factory: GameFactory = (ctx) => {
       const B = ctx.input(1);
       switch (id()) {
         case 'syncJump':
+        case 'syncSquat':
         case 'sameMove': {
-          for (let i = 0; i < 2; i++) if (times[i] === null && t > 0.15) times[i] = performed(cmd, ctx.input(i), now, t > 0.3);
+          for (let i = 0; i < 2; i++)
+            if (times[i] === null && t > 0.15) times[i] = performed(cmd, ctx.input(i), now, t > 0.3);
           if (times[0] !== null && times[1] !== null) samples.push(comparePoses(A.pose, B.pose));
-          if ((times[0] !== null && times[1] !== null && samples.length > 10) || t > 4) done(timingScore() * 0.75 + (samples.length ? mean(samples) : 0) * 0.25);
+          if ((times[0] !== null && times[1] !== null && samples.length > 10) || t > 4)
+            done(timingScore() * 0.75 + (samples.length ? mean(samples) : 0) * 0.25);
           break;
         }
         case 'reactionDuo': {
@@ -130,7 +181,8 @@ const factory: GameFactory = (ctx) => {
             shownAt = now;
             break;
           }
-          for (let i = 0; i < 2; i++) if (times[i] === null) times[i] = performed(cmd, ctx.input(i), now, t - waitFor > 0.15);
+          for (let i = 0; i < 2; i++)
+            if (times[i] === null) times[i] = performed(cmd, ctx.input(i), now, t - waitFor > 0.15);
           if ((times[0] !== null && times[1] !== null) || t - waitFor > 2.5) {
             const ms = times.map((x) => (x === null ? 2500 : Math.max(150, x - shownAt)));
             const speed = clamp01(1 - (mean(ms) - 300) / 1400);
@@ -147,13 +199,48 @@ const factory: GameFactory = (ctx) => {
           if (t > 3.2) done(caught.filter((c) => !c).length / 2);
           break;
         }
+        case 'highFive': {
+          // Inner hands meet above the shoulders (mirrored view: P1's right hand faces P2's left).
+          const reach = Math.max(70, (A.torsoPx + B.torsoPx) * 0.35);
+          const d = Math.min(
+            Math.hypot(A.rightHand.x - B.leftHand.x, A.rightHand.y - B.leftHand.y),
+            Math.hypot(A.leftHand.x - B.rightHand.x, A.leftHand.y - B.rightHand.y),
+          );
+          const high =
+            A.state.handRaised || B.state.handRaised || Math.min(A.rightHand.y, B.leftHand.y) < A.shoulders.y;
+          const closeness = clamp01(1 - (d - reach) / (reach * 3));
+          samples.push(high ? closeness : closeness * 0.5);
+          if (d < reach && high) {
+            if (hold === 0) {
+              ctx.audio.play('punch');
+              ctx.fx.burst(
+                (A.rightHand.x + B.leftHand.x) / 2,
+                (A.rightHand.y + B.leftHand.y) / 2,
+                ['#ffd23d', '#fff'],
+                24,
+                {
+                  shape: 'star',
+                },
+              );
+            }
+            hold += dt;
+          }
+          if (hold >= 0.4 || t > 6)
+            done(hold >= 0.4 ? 0.6 + 0.4 * clamp01(1 - (t - 1) / 5) : Math.max(0, ...samples) * 0.5);
+          break;
+        }
         case 'mirrorPose':
         case 'heart': {
           const sa = matchPose(pose, A.state, A.pose);
           const sb = matchPose(pose, B.state, B.pose);
           samples.push(Math.min(sa, sb));
           if (sa > 0.7 && sb > 0.7) hold += dt;
-          if (hold >= 1 || t > 6) done(hold >= 1 ? Math.max(...samples.slice(-30)) * 0.7 + clamp01(1 - t / 6) * 0.3 : Math.max(0, ...samples) * 0.6);
+          if (hold >= 1 || t > 6)
+            done(
+              hold >= 1
+                ? Math.max(...samples.slice(-30)) * 0.7 + clamp01(1 - t / 6) * 0.3
+                : Math.max(0, ...samples) * 0.6,
+            );
           break;
         }
         case 'follow': {
@@ -168,9 +255,17 @@ const factory: GameFactory = (ctx) => {
       }
     },
     render(g) {
-      scoreHeader(g, ctx, [`${results.length ? Math.round(mean(results) * 100) : 0}%`, `${Math.min(ri + 1, ROUNDS.length)}/${ROUNDS.length}`], {
-        labels: [L(ctx, 'COUPLE', 'PASANGAN'), L(ctx, 'ROUND', 'RONDE')],
-      });
+      scoreHeader(
+        g,
+        ctx,
+        [
+          `${results.length ? Math.round(mean(results) * 100) : 0}%`,
+          `${Math.min(ri + 1, ROUNDS.length)}/${ROUNDS.length}`,
+        ],
+        {
+          labels: [L(ctx, 'COUPLE', 'PASANGAN'), L(ctx, 'ROUND', 'RONDE')],
+        },
+      );
       if (finished) return;
       const title = TITLES[id()][ctx.lang === 'id' ? 1 : 0];
       if (phase === 'intro') {
@@ -178,23 +273,53 @@ const factory: GameFactory = (ctx) => {
         return;
       }
       if (phase === 'result') {
-        bigCommand(g, ctx, tx(ctx, 'syncPct', { p: Math.round(roundScore * 100) }), roundScore >= 0.8 ? '💞' : '❤️', roundScore >= 0.8 ? C.gold : C.ink, 0.9);
+        bigCommand(
+          g,
+          ctx,
+          tx(ctx, 'syncPct', { p: Math.round(roundScore * 100) }),
+          roundScore >= 0.8 ? '💞' : '❤️',
+          roundScore >= 0.8 ? C.gold : C.ink,
+          0.9,
+        );
         return;
       }
       switch (id()) {
         case 'syncJump':
+        case 'syncSquat':
         case 'sameMove':
-          bigCommand(g, ctx, tx(ctx, 'together', { x: cmdLabel(ctx, cmd).replace('!', '') }), cmd.emoji, cmd.color);
+          bigCommand(
+            g,
+            ctx,
+            tx(ctx, 'together', { x: cmdLabel(ctx, cmd).replace('!', '') }),
+            cmd.emoji,
+            cmd.color,
+          );
           for (let i = 0; i < 2; i++) if (times[i] !== null) bubble(g, ctx.input(i), '✓', C.good);
           break;
         case 'reactionDuo':
           if (t < waitFor) bigCommand(g, ctx, tx(ctx, 'wait'), '⏱️', C.bad);
           else bigCommand(g, ctx, cmdLabel(ctx, cmd), cmd.emoji, cmd.color);
-          for (let i = 0; i < 2; i++) if (falseStart[i]) bubble(g, ctx.input(i), tx(ctx, 'falseStart'), C.bad);
+          for (let i = 0; i < 2; i++)
+            if (falseStart[i]) bubble(g, ctx.input(i), tx(ctx, 'falseStart'), C.bad);
           break;
         case 'freeze':
           bigCommand(g, ctx, tx(ctx, 'cmdFreeze'), '🧊', '#8be9ff');
-          for (let i = 0; i < 2; i++) bubble(g, ctx.input(i), caught[i] ? tx(ctx, 'caught') : '✓', caught[i] ? C.bad : C.good);
+          for (let i = 0; i < 2; i++)
+            bubble(g, ctx.input(i), caught[i] ? tx(ctx, 'caught') : '✓', caught[i] ? C.bad : C.good);
+          break;
+        case 'highFive':
+          bigCommand(g, ctx, TITLES.highFive[ctx.lang === 'id' ? 1 : 0], '✋', C.gold);
+          text(
+            g,
+            L(ctx, 'Touch your inner hands up high', 'Tempelkan tangan bagian dalam di atas'),
+            ctx.width / 2,
+            ctx.height * 0.62,
+            {
+              size: 24,
+              color: C.vanilla,
+              maxWidth: ctx.width * 0.9,
+            },
+          );
           break;
         case 'mirrorPose':
         case 'heart':

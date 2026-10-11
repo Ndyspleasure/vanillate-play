@@ -1,5 +1,6 @@
 import { app } from '../../app/context';
 import type { Screen } from '../../app/router';
+import { clipSupported } from '../../engine/clip';
 import { PLAYER_COLORS } from '../../engine/draw';
 import { settings, type Settings } from '../../storage/settings';
 import { stats } from '../../storage/stats';
@@ -17,15 +18,32 @@ export function settingsScreen(): Screen {
   const select = <K extends keyof Settings>(key: K, choices: [Settings[K], string][], id: string) =>
     h(
       'select',
-      { id, onchange: (e: Event) => save({ [key]: (e.target as HTMLSelectElement).value } as Partial<Settings>) },
+      {
+        id,
+        onchange: (e: Event) => save({ [key]: (e.target as HTMLSelectElement).value } as Partial<Settings>),
+      },
       choices.map(([v, label]) => h('option', { value: String(v), selected: s[key] === v }, label)),
     );
 
-  const toggle = (key: 'reducedMotion' | 'showSkeleton' | 'showPerf' | 'gestureControls' | 'analytics', label: string) =>
+  const toggle = (
+    key:
+      | 'reducedMotion'
+      | 'showSkeleton'
+      | 'showPerf'
+      | 'gestureControls'
+      | 'analytics'
+      | 'replayClips'
+      | 'creatorMode',
+    label: string,
+  ) =>
     h(
       'label',
       { class: 'toggle' },
-      h('input', { type: 'checkbox', checked: s[key], onchange: (e: Event) => save({ [key]: (e.target as HTMLInputElement).checked }) }),
+      h('input', {
+        type: 'checkbox',
+        checked: s[key],
+        onchange: (e: Event) => save({ [key]: (e.target as HTMLInputElement).checked }),
+      }),
       h('span', null, label),
     );
 
@@ -71,6 +89,14 @@ export function settingsScreen(): Screen {
     ),
   );
 
+  const modelNote = h('p', { class: 'small muted', id: 'model-note' });
+  const updateModelNote = () => {
+    const v = app.session.modelVariant;
+    modelNote.textContent = `${t('settings.model.hint')}${v ? ` ${t('settings.model.now', { m: t(`settings.model.${v}` as I18nKey) })}` : ''}`;
+  };
+  updateModelNote();
+  app.session.onModelChange = updateModelNote;
+
   const el = h(
     'div',
     { class: 'page page--settings' },
@@ -97,19 +123,54 @@ export function settingsScreen(): Screen {
         toggle('reducedMotion', t('settings.reduced')),
         toggle('showSkeleton', t('settings.skeleton')),
         toggle('gestureControls', t('settings.gestures')),
+        toggle('creatorMode', t('settings.creator')),
+        button(t('lab.open'), { variant: 'secondary', size: 'sm', href: '/lab', attrs: { id: 'open-lab' } }),
       ),
-      h('section', { class: 'card settings-group' }, h('h2', null, t('settings.sound')), range('sfxVolume', t('settings.sfx')), range('musicVolume', t('settings.music'))),
+      h(
+        'section',
+        { class: 'card settings-group' },
+        h('h2', null, t('settings.sound')),
+        range('sfxVolume', t('settings.sfx')),
+        range('musicVolume', t('settings.music')),
+      ),
       h(
         'section',
         { class: 'card settings-group' },
         h('h2', null, t('settings.performance')),
-        h('label', { class: 'field' }, h('span', null, t('settings.fx')), select('fxQuality', (['auto', 'low', 'medium', 'high'] as const).map((v) => [v, t(`settings.fx.${v}` as I18nKey)]), 'set-fx')),
+        h(
+          'label',
+          { class: 'field' },
+          h('span', null, t('settings.fx')),
+          select(
+            'fxQuality',
+            (['auto', 'low', 'medium', 'high'] as const).map((v) => [v, t(`settings.fx.${v}` as I18nKey)]),
+            'set-fx',
+          ),
+        ),
         h(
           'label',
           { class: 'field' },
           h('span', null, t('settings.tracking')),
-          select('trackingQuality', (['performance', 'balanced', 'quality'] as const).map((v) => [v, t(`settings.tracking.${v}` as I18nKey)]), 'set-tracking'),
+          select(
+            'trackingQuality',
+            (['performance', 'balanced', 'quality'] as const).map((v) => [
+              v,
+              t(`settings.tracking.${v}` as I18nKey),
+            ]),
+            'set-tracking',
+          ),
         ),
+        h(
+          'label',
+          { class: 'field' },
+          h('span', null, t('settings.model')),
+          select(
+            'poseModel',
+            (['auto', 'lite', 'full'] as const).map((v) => [v, t(`settings.model.${v}` as I18nKey)]),
+            'set-model',
+          ),
+        ),
+        modelNote,
         toggle('showPerf', t('settings.perf')),
       ),
       h(
@@ -139,6 +200,9 @@ export function settingsScreen(): Screen {
         { class: 'card settings-group' },
         h('h2', null, t('settings.privacy')),
         toggle('analytics', t('settings.analytics')),
+        clipSupported()
+          ? toggle('replayClips', t('settings.clips'))
+          : h('p', { class: 'small muted' }, t('settings.clipsUnsupported')),
         h(
           'div',
           { class: 'row' },
@@ -165,5 +229,11 @@ export function settingsScreen(): Screen {
     ),
     footer(),
   );
-  return { el, title: `${t('settings.title')} — Vanillate Motion` };
+  return {
+    el,
+    title: `${t('settings.title')} — Vanillate Motion`,
+    destroy: () => {
+      if (app.session.onModelChange === updateModelNote) app.session.onModelChange = null;
+    },
+  };
 }

@@ -143,8 +143,34 @@ export class PlayerTracker {
     return this.locked;
   }
 
+  /**
+   * Horizontal part of the camera frame that is actually on screen (view-space x, as fractions of
+   * the frame width). A portrait phone or creator mode crops the sides, so player zones must be
+   * laid out over the visible part only — otherwise two people standing in view are "off-zone".
+   */
+  private visible: [number, number] = [0, 1];
+
+  setVisibleRange(x0: number, x1: number): void {
+    const a = Math.max(0, Math.min(1, x0));
+    const b = Math.max(a + 0.05, Math.min(1, x1));
+    this.visible = [a, b];
+  }
+
+  get visibleRange(): readonly [number, number] {
+    return this.visible;
+  }
+
+  /** Width of one player's zone in view units. */
+  get zoneWidth(): number {
+    return this.zoneSpan;
+  }
+
+  private get zoneSpan(): number {
+    return (this.aspect * (this.visible[1] - this.visible[0])) / this.required;
+  }
+
   zoneCenter(i: number): number {
-    return this.aspect * ((i + 0.5) / this.required);
+    return this.aspect * this.visible[0] + this.zoneSpan * (i + 0.5);
   }
 
   clearSlot(i: number): void {
@@ -189,7 +215,12 @@ export class PlayerTracker {
     dets.sort((a, b) => b.quality - a.quality);
     const unique: Measured[] = [];
     for (const d of dets) {
-      if (!unique.some((u) => Math.hypot(u.center.x - d.center.x, u.center.y - d.center.y) < 0.25 * Math.min(u.scale, d.scale)))
+      if (
+        !unique.some(
+          (u) =>
+            Math.hypot(u.center.x - d.center.x, u.center.y - d.center.y) < 0.25 * Math.min(u.scale, d.scale),
+        )
+      )
         unique.push(d);
     }
     dets = unique;
@@ -199,8 +230,10 @@ export class PlayerTracker {
     const slotIdx = Array.from({ length: n }, (_, i) => i);
     const cost = (si: number, d: Measured): number => {
       const s = this.slots[si];
-      const zoneDist = Math.abs(d.center.x - this.zoneCenter(si)) / (this.aspect / n);
-      if (s.state === 'empty') return 1 + zoneDist * 2;
+      const zoneDist = Math.abs(d.center.x - this.zoneCenter(si)) / this.zoneSpan;
+      // A free slot takes any visible person (cheaper than leaving it empty, see missCost); the zone
+      // distance only decides who goes where when several people are in view.
+      if (s.state === 'empty') return 0.2 + zoneDist * 0.8;
       const age = Math.max(0, (now - s.lastSeen) / 1000);
       const px = s.center.x + s.velocity.x * Math.min(age, 0.3);
       const py = s.center.y + s.velocity.y * Math.min(age, 0.3);
@@ -256,7 +289,9 @@ export class PlayerTracker {
       assigned.add(j);
       const d = dets[j];
       const wasTracking = s.state === 'active' || s.state === 'grace';
-      const jump = wasTracking ? Math.hypot(d.center.x - s.center.x, d.center.y - s.center.y) / Math.max(s.scale, 0.05) : 99;
+      const jump = wasTracking
+        ? Math.hypot(d.center.x - s.center.x, d.center.y - s.center.y) / Math.max(s.scale, 0.05)
+        : 99;
       if (!wasTracking || jump > 2.5) {
         this.filters[k].view.reset();
         this.filters[k].world.reset();
@@ -286,7 +321,8 @@ export class PlayerTracker {
         for (let i = 0; i < n - 1; i++) {
           const a = this.slots[i];
           const b = this.slots[i + 1];
-          if (a.state === 'active' && b.state === 'active' && a.center.x > b.center.x + 0.02) this.swap(i, i + 1);
+          if (a.state === 'active' && b.state === 'active' && a.center.x > b.center.x + 0.02)
+            this.swap(i, i + 1);
         }
       }
     }

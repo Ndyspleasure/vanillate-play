@@ -1,6 +1,8 @@
 import type { Sensitivity } from '../core/motion/types';
 import type { InputQuality } from '../core/tracking/MediaPipeProvider';
+import type { ModelPreference } from '../core/tracking/modelPolicy';
 import type { FxQuality } from '../engine/fx';
+import type { Level } from '../engine/types';
 import { load, save } from './store';
 
 export type Lang = 'en' | 'id';
@@ -12,6 +14,8 @@ export interface Settings {
   sensitivity: Sensitivity;
   fxQuality: FxQuality | 'auto';
   trackingQuality: InputQuality;
+  /** Pose model: auto (high accuracy on fast devices), lite or full. */
+  poseModel: ModelPreference;
   showSkeleton: boolean;
   reducedMotion: boolean;
   showPerf: boolean;
@@ -20,6 +24,12 @@ export interface Settings {
   gestureControls: boolean;
   /** Allow anonymous, aggregated usage events (only sent if an endpoint is configured). */
   analytics: boolean;
+  /** Record replay clips (opt-in; clips stay on the device unless shared). */
+  replayClips: boolean;
+  /** Vertical 9:16 game screen for recording/streaming on desktop. */
+  creatorMode: boolean;
+  /** Last chosen difficulty (pre-selected on game pages). */
+  level: Level;
 }
 
 const KEY = 'vm.settings.v1';
@@ -39,6 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sensitivity: 'normal',
   fxQuality: 'auto',
   trackingQuality: 'balanced',
+  poseModel: 'auto',
   showSkeleton: true,
   reducedMotion: false,
   showPerf: false,
@@ -46,6 +57,9 @@ export const DEFAULT_SETTINGS: Settings = {
   safetyAcknowledged: false,
   gestureControls: true,
   analytics: true,
+  level: 'normal',
+  replayClips: false,
+  creatorMode: false,
 };
 
 type Listener = (s: Settings) => void;
@@ -58,7 +72,8 @@ class SettingsStore {
     const prefersReduced =
       typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.value = load(KEY, { ...DEFAULT_SETTINGS, lang: defaultLang(), reducedMotion: prefersReduced });
-    if (!Array.isArray(this.value.names) || this.value.names.length !== 4) this.value.names = [...DEFAULT_SETTINGS.names];
+    if (!Array.isArray(this.value.names) || this.value.names.length !== 4)
+      this.value.names = [...DEFAULT_SETTINGS.names];
   }
 
   get(): Settings {
@@ -77,7 +92,11 @@ class SettingsStore {
   }
 
   reset(): void {
-    this.update({ ...DEFAULT_SETTINGS, lang: this.value.lang, safetyAcknowledged: this.value.safetyAcknowledged });
+    this.update({
+      ...DEFAULT_SETTINGS,
+      lang: this.value.lang,
+      safetyAcknowledged: this.value.safetyAcknowledged,
+    });
   }
 }
 

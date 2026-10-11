@@ -1,7 +1,9 @@
 import { track } from '../analytics';
 import { drawArt } from '../art/sprites';
 import { C, FONT, PLAYER_COLORS, roundRect } from '../engine/draw';
+import { clipSupported, type Clip } from '../engine/clip';
 import type { GameMeta, MatchResult, PlayerInfo } from '../engine/types';
+import { settings } from '../storage/settings';
 import { button, modal, toast } from './components';
 import { h } from './dom';
 import { t } from './i18n';
@@ -117,7 +119,13 @@ export function renderShareCard(
   return c;
 }
 
-export function openShare(meta: GameMeta, result: MatchResult, players: readonly PlayerInfo[], photo: HTMLCanvasElement | null): void {
+export function openShare(
+  meta: GameMeta,
+  result: MatchResult,
+  players: readonly PlayerInfo[],
+  photo: HTMLCanvasElement | null,
+  clip: Promise<Clip | null> = Promise.resolve(null),
+): void {
   let includePhoto = false;
   let vertical = false;
   const img = h('img', { class: 'share-preview', alt: 'Result card preview' });
@@ -127,7 +135,8 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
     img.src = current.toDataURL('image/png');
   };
   render();
-  const toBlob = () => new Promise<Blob | null>((res) => (current ? current.toBlob(res, 'image/png') : res(null)));
+  const toBlob = () =>
+    new Promise<Blob | null>((res) => (current ? current.toBlob(res, 'image/png') : res(null)));
   const fileName = `vanillate-${meta.id}-${Date.now()}.png`;
 
   const share = async () => {
@@ -140,7 +149,11 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
       if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], text: result.shareText, title: `${meta.name} — Vanillate Motion` });
       } else if (nav.share) {
-        await nav.share({ text: result.shareText, title: `${meta.name} — Vanillate Motion`, url: location.origin });
+        await nav.share({
+          text: result.shareText,
+          title: `${meta.name} — Vanillate Motion`,
+          url: location.origin,
+        });
       } else {
         download();
       }
@@ -168,7 +181,7 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
     }
   };
 
-  const body = h(
+  const cardPane = h(
     'div',
     { class: 'share' },
     img,
@@ -205,11 +218,135 @@ export function openShare(meta: GameMeta, result: MatchResult, players: readonly
         'div',
         { class: 'share__buttons' },
         button(t('share.share'), { icon: 'share', onClick: () => void share() }),
-        button(t('share.download'), { icon: 'download', variant: 'secondary', onClick: () => void download() }),
+        button(t('share.download'), {
+          icon: 'download',
+          variant: 'secondary',
+          onClick: () => void download(),
+        }),
         button(t('share.copy'), { icon: 'copy', variant: 'ghost', onClick: () => void copy() }),
       ),
       h('p', { class: 'muted small' }, t('share.note')),
     ),
   );
-  modal(t('share.title'), body, { wide: true });
+  const clipPane = clipSection(meta, result, clip);
+  const tabs = h('div', { class: 'share-tabs', role: 'tablist' });
+  const panes = [cardPane, clipPane];
+  const labels = [t('share.tabCard'), t('share.tabClip')];
+  const select = (i: number) => {
+    panes.forEach((p, j) => (p.hidden = i !== j));
+    tabs.querySelectorAll('button').forEach((b, j) => {
+      b.classList.toggle('is-active', i === j);
+      b.setAttribute('aria-selected', String(i === j));
+    });
+  };
+  labels.forEach((l, i) =>
+    tabs.appendChild(
+      h(
+        'button',
+        { class: 'share-tab', type: 'button', role: 'tab', id: `share-tab-${i}`, onclick: () => select(i) },
+        l,
+      ),
+    ),
+  );
+  select(0);
+  // Open on the clip when one was recorded: it's the more fun thing to share.
+  void clip.then((c) => {
+    if (c) select(1);
+  });
+  modal(t('share.title'), h('div', null, tabs, cardPane, clipPane), { wide: true });
+}
+
+/** Replay clip pane: preview + share/download, or the opt-in when clips are off. */
+function clipSection(meta: GameMeta, result: MatchResult, clip: Promise<Clip | null>): HTMLElement {
+  const box = h('div', { class: 'share share--clip' }, h('p', { class: 'muted' }, t('share.clipLoading')));
+  void clip.then((c) => {
+    box.replaceChildren();
+    if (!c) {
+      box.appendChild(h('p', { class: 'muted' }, t('share.clipNone')));
+      if (!settings.get().replayClips && clipSupported()) {
+        box.append(
+          h('p', null, t('share.clipOff')),
+          h(
+            'label',
+            { class: 'toggle' },
+            h('input', {
+              type: 'checkbox',
+              id: 'enable-clips',
+              onchange: (e: Event) =>
+                settings.update({ replayClips: (e.target as HTMLInputElement).checked }),
+            }),
+            h('span', null, t('share.clipEnable')),
+          ),
+        );
+      }
+      return;
+    }
+    const ext = c.type.includes('mp4') ? 'mp4' : 'webm';
+    const url = URL.createObjectURL(c.blob);
+    const fileName = `vanillate-${meta.id}-${Date.now()}.${ext}`;
+    const video = h('video', {
+      class: 'share-preview share-preview--clip',
+      src: url,
+      controls: true,
+      loop: true,
+      muted: true,
+      autoplay: true,
+      playsinline: true,
+    });
+    const download = () => {
+      track('clip_shared', { game: meta.id, method: 'download' });
+      const a = h('a', { href: url, download: fileName });
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    };
+    const share = async () => {
+      const file = new File([c.blob], fileName, { type: c.type });
+      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        track('clip_shared', { game: meta.id, method: 'share' });
+        try {
+          await nav.share({
+            files: [file],
+            text: result.shareText,
+            title: `${meta.name} — Vanillate Motion`,
+          });
+        } catch {
+          /* cancelled */
+        }
+      } else download();
+    };
+    box.append(
+      video,
+      h(
+        'div',
+        { class: 'share__controls' },
+        h(
+          'div',
+          { class: 'share__buttons' },
+          button(t('share.share'), {
+            icon: 'share',
+            onClick: () => void share(),
+            attrs: { id: 'share-clip' },
+          }),
+          button(t('share.downloadVideo'), {
+            icon: 'download',
+            variant: 'secondary',
+            onClick: download,
+            attrs: { id: 'download-clip' },
+          }),
+        ),
+        h('p', { class: 'muted small' }, t('share.clipNote', { s: Math.round(c.seconds) })),
+      ),
+    );
+    // Release the video memory when the dialog closes.
+    const obs = new MutationObserver(() => {
+      if (!box.isConnected) {
+        obs.disconnect();
+        URL.revokeObjectURL(url);
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  });
+  return box;
 }

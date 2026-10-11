@@ -56,7 +56,15 @@ export function text(g: CanvasRenderingContext2D, str: string, x: number, y: num
 }
 
 /** Draw an icon: uses the SVG art set when available, otherwise falls back to the emoji glyph. */
-export function emoji(g: CanvasRenderingContext2D, e: string, x: number, y: number, size: number, alpha = 1, color?: string): void {
+export function emoji(
+  g: CanvasRenderingContext2D,
+  e: string,
+  x: number,
+  y: number,
+  size: number,
+  alpha = 1,
+  color?: string,
+): void {
   if (drawArt(g, e, x, y, size * 1.05, { alpha, color })) return;
   g.globalAlpha = alpha;
   g.font = `${Math.round(size)}px ${EMOJI_FONT}`;
@@ -67,7 +75,14 @@ export function emoji(g: CanvasRenderingContext2D, e: string, x: number, y: numb
   g.globalAlpha = 1;
 }
 
-export function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+export function roundRect(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
   const rr = Math.min(r, w / 2, h / 2);
   g.beginPath();
   g.moveTo(x + rr, y);
@@ -126,7 +141,15 @@ export function bar(
   }
 }
 
-export function progressRing(g: CanvasRenderingContext2D, x: number, y: number, r: number, value: number, color: string, width = 8): void {
+export function progressRing(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  value: number,
+  color: string,
+  width = 8,
+): void {
   g.lineCap = 'round';
   g.lineWidth = width;
   g.strokeStyle = 'rgba(255,255,255,0.18)';
@@ -142,7 +165,15 @@ export function progressRing(g: CanvasRenderingContext2D, x: number, y: number, 
   g.lineCap = 'butt';
 }
 
-export function circle(g: CanvasRenderingContext2D, x: number, y: number, r: number, fill?: string, stroke?: string, width = 3): void {
+export function circle(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  fill?: string,
+  stroke?: string,
+  width = 3,
+): void {
   g.beginPath();
   g.arc(x, y, Math.max(0, r), 0, Math.PI * 2);
   if (fill) {
@@ -157,7 +188,13 @@ export function circle(g: CanvasRenderingContext2D, x: number, y: number, r: num
 }
 
 /** Skeleton overlay on top of the camera feed. `avatar` draws a chunky body for keyboard mode. */
-export function skeleton(g: CanvasRenderingContext2D, inp: PlayerInput, color: string, avatar = false, alpha = 1): void {
+export function skeleton(
+  g: CanvasRenderingContext2D,
+  inp: PlayerInput,
+  color: string,
+  avatar = false,
+  alpha = 1,
+): void {
   const pts = inp.skeleton;
   const width = avatar ? Math.max(10, inp.torsoPx * 0.16) : Math.max(3, inp.torsoPx * 0.035);
   g.globalAlpha = alpha * (inp.health === 'ok' ? 1 : 0.45);
@@ -196,7 +233,16 @@ export function skeleton(g: CanvasRenderingContext2D, inp: PlayerInput, color: s
   }
   if (!avatar) {
     g.fillStyle = '#fff';
-    for (const i of [LM.leftShoulder, LM.rightShoulder, LM.leftElbow, LM.rightElbow, LM.leftHip, LM.rightHip, LM.leftKnee, LM.rightKnee]) {
+    for (const i of [
+      LM.leftShoulder,
+      LM.rightShoulder,
+      LM.leftElbow,
+      LM.rightElbow,
+      LM.leftHip,
+      LM.rightHip,
+      LM.leftKnee,
+      LM.rightKnee,
+    ]) {
       const p = pts[i];
       if (p) circle(g, p.x, p.y, width * 0.9, '#fff');
     }
@@ -218,7 +264,14 @@ export function handCursor(g: CanvasRenderingContext2D, p: Point, color: string,
   circle(g, p.x, p.y, r * 0.62, color, '#fff', 3);
 }
 
-export function playerTag(g: CanvasRenderingContext2D, label: string, x: number, y: number, color: string, size = 18): void {
+export function playerTag(
+  g: CanvasRenderingContext2D,
+  label: string,
+  x: number,
+  y: number,
+  color: string,
+  size = 18,
+): void {
   g.font = `800 ${size}px ${FONT}`;
   const w = g.measureText(label).width + size * 1.1;
   panel(g, x - w / 2, y - size * 0.8, w, size * 1.6, { fill: color, r: size * 0.8 });

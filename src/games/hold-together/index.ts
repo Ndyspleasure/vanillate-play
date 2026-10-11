@@ -34,7 +34,8 @@ const factory: GameFactory = (ctx) => {
   let spots = [0, 0];
   let finished = false;
 
-  const spotX = (i: number) => spots[i] - (ORDER[ci] === 'slide' && phase === 'hold' ? t * ctx.width * 0.025 : 0);
+  const spotX = (i: number) =>
+    spots[i] - (ORDER[ci] === 'slide' && phase === 'hold' ? t * ctx.width * 0.025 : 0);
 
   const ok = (i: number, inp: PlayerInput): boolean => {
     switch (ORDER[ci]) {
@@ -42,11 +43,11 @@ const factory: GameFactory = (ctx) => {
         return inp.state.handsUp;
       case 'spots':
       case 'slide':
-        return Math.abs(inp.center.x - spotX(i)) < Math.max(50, inp.torsoPx * 0.6);
+        return Math.abs(inp.center.x - spotX(i)) < Math.max(50, inp.torsoPx * ctx.tune(0.8, 0.6, 0.45));
       case 'freeze':
-        return inp.state.energy < 0.4;
+        return inp.state.energy < ctx.tune(0.55, 0.4, 0.3);
       case 'tpose':
-        return matchPose(poseById('t-pose'), inp.state, inp.pose) > 0.7;
+        return matchPose(poseById('t-pose'), inp.state, inp.pose) > ctx.tune(0.62, 0.7, 0.78);
       case 'squat':
         return inp.state.squatting || inp.state.drop > 0.22;
     }
@@ -64,7 +65,10 @@ const factory: GameFactory = (ctx) => {
       ctx.end(
         coopResult(ctx, pct, {
           stats: [
-            { label: L(ctx, 'Held together', 'Bertahan bersama'), values: [`${Math.round(mean(held) * 100)}%`] },
+            {
+              label: L(ctx, 'Held together', 'Bertahan bersama'),
+              values: [`${Math.round(mean(held) * 100)}%`],
+            },
             { label: L(ctx, 'Sync', 'Sinkron'), values: [`${Math.round(mean(syncs) * 100)}%`] },
           ],
         }),
@@ -111,11 +115,20 @@ const factory: GameFactory = (ctx) => {
     render(g) {
       if (finished) return;
       const id = ORDER[ci];
-      scoreHeader(g, ctx, [`${Math.round(mean(held.length ? held : [0]) * 100)}%`, `${ci + 1}/${ORDER.length}`], {
-        labels: [L(ctx, 'HELD', 'BERTAHAN'), L(ctx, 'CHALLENGE', 'TANTANGAN')],
-        timer: phase === 'hold' ? DURATION - t : undefined,
+      scoreHeader(
+        g,
+        ctx,
+        [`${Math.round(mean(held.length ? held : [0]) * 100)}%`, `${ci + 1}/${ORDER.length}`],
+        {
+          labels: [L(ctx, 'HELD', 'BERTAHAN'), L(ctx, 'CHALLENGE', 'TANTANGAN')],
+          timer: phase === 'hold' ? DURATION - t : undefined,
+        },
+      );
+      text(g, NAMES[id][ctx.lang === 'id' ? 1 : 0], ctx.width / 2, ctx.height * 0.24, {
+        size: 44,
+        color: C.vanilla,
+        weight: 800,
       });
-      text(g, NAMES[id][ctx.lang === 'id' ? 1 : 0], ctx.width / 2, ctx.height * 0.24, { size: 44, color: C.vanilla, weight: 800 });
       if (id === 'spots' || id === 'slide') {
         for (let i = 0; i < 2; i++) {
           const x = spotX(i);
@@ -132,7 +145,8 @@ const factory: GameFactory = (ctx) => {
       }
       if (phase === 'hold') {
         zoneMeter(g, ctx, 0, both / DURATION, L(ctx, 'Together', 'Bersama'), C.good);
-        for (let i = 0; i < 2; i++) bubble(g, ctx.input(i), ok(i, ctx.input(i)) ? '✓' : '…', ok(i, ctx.input(i)) ? C.good : C.warn);
+        for (let i = 0; i < 2; i++)
+          bubble(g, ctx.input(i), ok(i, ctx.input(i)) ? '✓' : '…', ok(i, ctx.input(i)) ? C.good : C.warn);
       }
     },
     inspect: () => ({ challenge: ORDER[ci], phase }),

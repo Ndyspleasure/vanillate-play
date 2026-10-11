@@ -32,6 +32,19 @@ export const THRESHOLDS = {
   /** Wrist height above the shoulder line for a raised hand. */
   handOn: 0.6,
   handOff: 0.35,
+  /**
+   * Shoulder width ≈ this × torso length when the camera is at chest height. A camera placed high
+   * or low foreshortens the torso but not the shoulders, so horizontal moves are measured against
+   * max(torso, shoulderWidth / ratio) — otherwise a pitched camera turns small sways into steps.
+   */
+  shoulderToTorso: 0.85,
+  /** Side kick: ankle lift above the standing foot and upward speed (torso units). */
+  kickLift: 0.45,
+  kickSpeed: 1.6,
+  /** Front kick towards the camera: forward foot travel (m) and speed (m/s) from world landmarks. */
+  kickForward: 0.3,
+  kickForwardSpeed: 1.2,
+  kickForwardLift: 0.12,
 } as const;
 
 /** Longest a jump can last before the airborne state is considered a tracking artefact. */
@@ -192,6 +205,8 @@ export class MotionRecognizer {
     const k = this.k;
     const s = this.state;
     const T = calib?.torso ?? f.torso;
+    // Horizontal unit, robust to a camera that looks down/up at the player (see shoulderToTorso).
+    const H = Math.max(T, (calib?.shoulderWidth ?? f.shoulderWidth) / THRESHOLDS.shoulderToTorso);
 
     const rawEnergy = this.computeEnergy(pose, T, dt);
     s.energy += (rawEnergy - s.energy) * smoothFactor(dt, 0.15);
@@ -224,10 +239,12 @@ export class MotionRecognizer {
     s.confidence = f.quality;
 
     const prev = this.history.length > 1 ? this.history[this.history.length - 2].f : f;
-    s.velocity = { x: (f.center.x - prev.center.x) / dt / T, y: (f.center.y - prev.center.y) / dt / T };
+    s.velocity = { x: (f.center.x - prev.center.x) / dt / H, y: (f.center.y - prev.center.y) / dt / T };
 
     // Continuous measures
-    s.lean = f.hipsVisible ? (f.shC.x - f.hipC.x) / f.torso : ((f.rSh.y - f.lSh.y) / Math.max(f.shoulderWidth, 1e-3)) * 0.5;
+    s.lean = f.hipsVisible
+      ? (f.shC.x - f.hipC.x) / Math.max(f.torso, f.shoulderWidth / THRESHOLDS.shoulderToTorso)
+      : ((f.rSh.y - f.lSh.y) / Math.max(f.shoulderWidth, 1e-3)) * 0.5;
     s.leftHandHeight = (f.shC.y - f.lWr.y) / T;
     s.rightHandHeight = (f.shC.y - f.rWr.y) / T;
     s.leftArmExt = f.lArmExt;
@@ -235,7 +252,7 @@ export class MotionRecognizer {
     s.leftKneeHeight = f.hipsVisible && f.kneesVisible ? (f.hipC.y - f.lKnee.y) / T : -1;
     s.rightKneeHeight = f.hipsVisible && f.kneesVisible ? (f.hipC.y - f.rKnee.y) / T : -1;
     if (calib) {
-      s.offsetX = (f.center.x - calib.centerX) / T;
+      s.offsetX = (f.center.x - calib.centerX) / H;
       s.rise = (calib.shoulderY - f.shC.y) / T;
       s.drop = f.hipsVisible ? (f.hipC.y - calib.hipY) / T : ((f.shC.y - calib.shoulderY) / T) * 0.9;
       s.headDrop = (f.nose.y - calib.noseY) / T;
@@ -286,8 +303,8 @@ export class MotionRecognizer {
     const back = this.sampleAgo(260, t);
     if (back && t - back.t > 60) {
       const span = (t - back.t) / 1000;
-      const dxBody = (f.center.x - back.f.center.x) / T;
-      const dxHead = (f.nose.x - back.f.nose.x) / T;
+      const dxBody = (f.center.x - back.f.center.x) / H;
+      const dxHead = (f.nose.x - back.f.nose.x) / H;
       if (dxBody < -0.35 * k && -dxBody / span > 1.3 * k) emit('STEP_LEFT', 450);
       if (dxBody > 0.35 * k && dxBody / span > 1.3 * k) emit('STEP_RIGHT', 450);
       if (dxHead < -0.3 * k && -dxHead / span > 1.5 * k) emit('DODGE_LEFT', 450);
@@ -412,8 +429,19 @@ export class MotionRecognizer {
         const liftR = (f.lAnk.y - f.rAnk.y) / T;
         const vL = (b.f.lAnk.y - f.lAnk.y) / T / span;
         const vR = (b.f.rAnk.y - f.rAnk.y) / T / span;
-        if (liftL > 0.45 * k && vL > 1.6 * k) emit('KICK_LEFT', 500);
-        if (liftR > 0.45 * k && vR > 1.6 * k) emit('KICK_RIGHT', 500);
+        if (liftL > THRESHOLDS.kickLift * k && vL > THRESHOLDS.kickSpeed * k) emit('KICK_LEFT', 500);
+        if (liftR > THRESHOLDS.kickLift * k && vR > THRESHOLDS.kickSpeed * k) emit('KICK_RIGHT', 500);
+        // Front kicks towards the camera barely lift the foot on screen: use the 3D foot travel.
+        const fwd = (now: [number, number, number] | null, then: [number, number, number] | null) =>
+          now && then ? then[2] - now[2] : 0;
+        const fL = fwd(f.lAnkleRel, b.f.lAnkleRel);
+        const fR = fwd(f.rAnkleRel, b.f.rAnkleRel);
+        const front = (d: number, lift: number) =>
+          d > THRESHOLDS.kickForward * k &&
+          d / span > THRESHOLDS.kickForwardSpeed * k &&
+          lift > THRESHOLDS.kickForwardLift * k;
+        if (front(fL, liftL) && fL > fR) emit('KICK_LEFT', 500);
+        if (front(fR, liftR) && fR > fL) emit('KICK_RIGHT', 500);
       }
     } else {
       s.kneeUpLeft = false;

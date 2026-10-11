@@ -12,11 +12,22 @@ import { bigCommand, bubble } from '../kits/ui';
  * Sync = timing (60%) + pose similarity (30%) + holding it together (10%).
  */
 const PROMPTS = 10;
-const WINDOW = 4;
-const POOL: CommandId[] = ['jump', 'squat', 'handsUp', 'leanLeft', 'leanRight', 'left', 'right', 'leftHand', 'rightHand'];
+const POOL: CommandId[] = [
+  'jump',
+  'squat',
+  'handsUp',
+  'leanLeft',
+  'leanRight',
+  'left',
+  'right',
+  'leftHand',
+  'rightHand',
+];
 const INSTANT: ReadonlySet<CommandId> = new Set(['jump']);
 
 const factory: GameFactory = (ctx) => {
+  // Difficulty-dependent tuning (easy, normal, hard).
+  const WINDOW = ctx.tune(5, 4, 3);
   const results: number[] = [];
   const timings: number[] = [];
   let idx = -1;
@@ -51,7 +62,7 @@ const factory: GameFactory = (ctx) => {
     if (a !== null && b !== null) {
       const dt = Math.abs(a - b);
       timings.push(dt);
-      const timing = clamp01(1 - Math.max(0, dt - 60) / 700);
+      const timing = clamp01(1 - Math.max(0, dt - 60) / ctx.tune(950, 700, 480));
       const pose = sims.length ? mean(sims) : 0.7;
       const dur = INSTANT.has(cmdId) ? 1 : clamp01(heldTogether / 0.8);
       s = timing * 0.6 + pose * 0.3 + dur * 0.1;
@@ -63,7 +74,14 @@ const factory: GameFactory = (ctx) => {
     ctx.audio.play(pct >= 85 ? 'heart' : pct >= 60 ? 'success' : 'fail');
     const mid = { x: ctx.width / 2, y: ctx.height * 0.5 };
     if (pct >= 85) ctx.fx.burst(mid.x, mid.y, ['#ff4d8d', '#ff9ec7', '#fff'], 30, { shape: 'star' });
-    ctx.fx.text(`${grade} · ${tx(ctx, 'syncPct', { p: pct })}`, mid.x, mid.y, pct >= 85 ? C.gold : C.ink, 40, 1.3);
+    ctx.fx.text(
+      `${grade} · ${tx(ctx, 'syncPct', { p: pct })}`,
+      mid.x,
+      mid.y,
+      pct >= 85 ? C.gold : C.ink,
+      40,
+      1.3,
+    );
     phase = 'reveal';
     t = 0;
   };
@@ -76,7 +94,10 @@ const factory: GameFactory = (ctx) => {
       coopResult(ctx, pct, {
         stats: [
           { label: tx(ctx, 'bestSync'), values: [`${Math.round(Math.max(...results) * 100)}%`] },
-          { label: ctx.lang === 'id' ? 'Selisih waktu rata-rata' : 'Average timing gap', values: [timings.length ? `${Math.round(mean(timings))}ms` : '—'] },
+          {
+            label: ctx.lang === 'id' ? 'Selisih waktu rata-rata' : 'Average timing gap',
+            values: [timings.length ? `${Math.round(mean(timings))}ms` : '—'],
+          },
         ],
       }),
     );
@@ -122,15 +143,29 @@ const factory: GameFactory = (ctx) => {
       } else if (t > WINDOW) score();
     },
     render(g) {
-      scoreHeader(g, ctx, [`${results.length ? Math.round(mean(results) * 100) : 0}%`, `${idx + 1}/${PROMPTS}`], {
-        labels: [ctx.lang === 'id' ? 'SINKRON' : 'SYNC', ctx.lang === 'id' ? 'TANTANGAN' : 'CHALLENGE'],
-      });
+      scoreHeader(
+        g,
+        ctx,
+        [`${results.length ? Math.round(mean(results) * 100) : 0}%`, `${idx + 1}/${PROMPTS}`],
+        {
+          labels: [ctx.lang === 'id' ? 'SINKRON' : 'SYNC', ctx.lang === 'id' ? 'TANTANGAN' : 'CHALLENGE'],
+        },
+      );
       const cmd = COMMANDS[cmdId];
       const label = tx(ctx, 'together', { x: cmdLabel(ctx, cmd).replace('!', '') });
       if (phase === 'show') bigCommand(g, ctx, label, cmd.emoji, C.vanilla, 0.7 + t * 0.3);
       else if (phase === 'act') bigCommand(g, ctx, label, cmd.emoji, cmd.color, 1);
-      else bigCommand(g, ctx, tx(ctx, 'syncPct', { p: Math.round(last * 100) }), last >= 0.85 ? '💞' : '❤️', last >= 0.85 ? C.gold : C.ink, 0.9);
-      for (let i = 0; i < 2; i++) if (times[i] !== null && phase === 'act') bubble(g, ctx.input(i), '✓', C.good);
+      else
+        bigCommand(
+          g,
+          ctx,
+          tx(ctx, 'syncPct', { p: Math.round(last * 100) }),
+          last >= 0.85 ? '💞' : '❤️',
+          last >= 0.85 ? C.gold : C.ink,
+          0.9,
+        );
+      for (let i = 0; i < 2; i++)
+        if (times[i] !== null && phase === 'act') bubble(g, ctx.input(i), '✓', C.good);
     },
     inspect: () => ({ phase, cmd: cmdId, idx }),
   };

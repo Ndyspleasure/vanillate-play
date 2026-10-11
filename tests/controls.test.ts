@@ -46,9 +46,23 @@ describe('GestureHold (raise a hand to start)', () => {
 
 describe('tutorial practice', () => {
   it('turns a game’s moves into a short list of steps, keeping left/right together', () => {
-    expect(practiceSteps(['lean', 'jump', 'squat']).map((s) => s.id)).toEqual(['left', 'right', 'jump', 'squat']);
-    expect(practiceSteps(['punch', 'block', 'lean']).map((s) => s.id)).toEqual(['punch', 'block', 'left', 'right']);
-    expect(practiceSteps(['punch', 'block', 'jump', 'lean']).map((s) => s.id)).toEqual(['punch', 'block', 'jump']);
+    expect(practiceSteps(['lean', 'jump', 'squat']).map((s) => s.id)).toEqual([
+      'left',
+      'right',
+      'jump',
+      'squat',
+    ]);
+    expect(practiceSteps(['punch', 'block', 'lean']).map((s) => s.id)).toEqual([
+      'punch',
+      'block',
+      'left',
+      'right',
+    ]);
+    expect(practiceSteps(['punch', 'block', 'jump', 'lean']).map((s) => s.id)).toEqual([
+      'punch',
+      'block',
+      'jump',
+    ]);
     expect(practiceSteps(['dance', 'still']).map((s) => s.id)).toEqual(['dance']);
     expect(practiceSteps(['still']).map((s) => s.id)).toEqual(['hands']);
   });

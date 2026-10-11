@@ -104,17 +104,37 @@ const factory: GameFactory = (ctx) => {
   let t = 0;
   let phase: 'work' | 'rest' = 'work';
   let finished = false;
-  const goal = plan.length * 22;
+  const goal = plan.length * ctx.tune(16, 22, 30);
 
   const finish = () => {
     if (finished) return;
     finished = true;
-    const stats = plan.map((e) => ({ label: NAMES[e][ctx.lang === 'id' ? 1 : 0], values: reps.map((r) => String(r[e])) }));
+    const stats = plan.map((e) => ({
+      label: NAMES[e][ctx.lang === 'id' ? 1 : 0],
+      values: reps.map((r) => String(r[e])),
+    }));
     stats.push({ label: tx(ctx, 'statStreak'), values: bestStreak.map(String) });
-    stats.push({ label: tx(ctx, 'statAccuracy'), values: total.map((tt, i) => `${tt + shallow[i] ? Math.round((tt / (tt + shallow[i])) * 100) : 0}%`) });
+    stats.push({
+      label: tx(ctx, 'statAccuracy'),
+      values: total.map((tt, i) => `${tt + shallow[i] ? Math.round((tt / (tt + shallow[i])) * 100) : 0}%`),
+    });
     const sum = total.reduce((a, b) => a + b, 0);
-    if (coop) ctx.end(coopResult(ctx, Math.min(100, (sum / goal) * 100), { stats, big: tx(ctx, 'reps', { n: sum }), headline: L(ctx, 'TEAM GOAL', 'TARGET TIM') }));
-    else if (n === 1) ctx.end(soloResult(ctx, total[0], { display: tx(ctx, 'reps', { n: total[0] }), stats, recordLabel: tx(ctx, 'statReps') }));
+    if (coop)
+      ctx.end(
+        coopResult(ctx, Math.min(100, (sum / goal) * 100), {
+          stats,
+          big: tx(ctx, 'reps', { n: sum }),
+          headline: L(ctx, 'TEAM GOAL', 'TARGET TIM'),
+        }),
+      );
+    else if (n === 1)
+      ctx.end(
+        soloResult(ctx, total[0], {
+          display: tx(ctx, 'reps', { n: total[0] }),
+          stats,
+          recordLabel: tx(ctx, 'statReps'),
+        }),
+      );
     else ctx.end(versusResult(ctx, total, { stats }));
   };
 
@@ -142,7 +162,13 @@ const factory: GameFactory = (ctx) => {
           bestStreak[i] = Math.max(bestStreak[i], streak[i]);
           lastRep[i] = t;
           ctx.audio.play('coin', { pitch: 1 + Math.min(0.5, streak[i] * 0.03) });
-          ctx.fx.text(String(reps[i][ex]), ctx.input(i).head.x, ctx.input(i).head.y - 90, ctx.players[i].color, 44);
+          ctx.fx.text(
+            String(reps[i][ex]),
+            ctx.input(i).head.x,
+            ctx.input(i).head.y - 90,
+            ctx.players[i].color,
+            44,
+          );
         } else if (r === 'shallow') {
           shallow[i]++;
           tip = { player: i, t: 0, msg: L(ctx, 'Go lower!', 'Lebih rendah!') };
@@ -155,16 +181,42 @@ const factory: GameFactory = (ctx) => {
         phase = 'rest';
         t = 0;
         ctx.audio.play('whistle');
-        ctx.banner(tx(ctx, 'rest'), `${L(ctx, 'Next', 'Berikutnya')}: ${NAMES[plan[idx]][ctx.lang === 'id' ? 1 : 0]}`, REST - 0.5);
+        ctx.banner(
+          tx(ctx, 'rest'),
+          `${L(ctx, 'Next', 'Berikutnya')}: ${NAMES[plan[idx]][ctx.lang === 'id' ? 1 : 0]}`,
+          REST - 0.5,
+        );
       }
     },
     render(g) {
       const ex = plan[Math.min(idx, plan.length - 1)];
-      scoreHeader(g, ctx, total.map((x) => tx(ctx, 'reps', { n: x })), { timer: phase === 'work' ? WORK - t : REST - t, center: `${NAMES[ex][ctx.lang === 'id' ? 1 : 0]} · ${idx + 1}/${plan.length}` });
+      scoreHeader(
+        g,
+        ctx,
+        total.map((x) => tx(ctx, 'reps', { n: x })),
+        {
+          timer: phase === 'work' ? WORK - t : REST - t,
+          center: `${NAMES[ex][ctx.lang === 'id' ? 1 : 0]} · ${idx + 1}/${plan.length}`,
+        },
+      );
       if (phase === 'work') {
         emoji(g, NAMES[ex][2], ctx.width / 2, ctx.height * 0.24, 70);
-        for (let i = 0; i < n; i++) zoneMeter(g, ctx, i, (reps[i][ex] % 10) / 10, `${reps[i][ex]} · ${tx(ctx, 'statStreak')} ${streak[i]}`);
-        if (coop) text(g, `${L(ctx, 'Team goal', 'Target tim')}: ${total.reduce((a, b) => a + b, 0)} / ${goal}`, ctx.width / 2, ctx.height * 0.34, { size: 28, color: C.vanilla });
+        for (let i = 0; i < n; i++)
+          zoneMeter(
+            g,
+            ctx,
+            i,
+            (reps[i][ex] % 10) / 10,
+            `${reps[i][ex]} · ${tx(ctx, 'statStreak')} ${streak[i]}`,
+          );
+        if (coop)
+          text(
+            g,
+            `${L(ctx, 'Team goal', 'Target tim')}: ${total.reduce((a, b) => a + b, 0)} / ${goal}`,
+            ctx.width / 2,
+            ctx.height * 0.34,
+            { size: 28, color: C.vanilla },
+          );
       }
       if (tip) bubble(g, ctx.input(tip.player), tip.msg, C.warn);
     },

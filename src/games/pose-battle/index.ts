@@ -10,15 +10,17 @@ import { bubble, zoneMeter } from '../kits/ui';
  * accurately and hold steady takes the point. First to 5.
  */
 const WIN = 5;
-const MATCH = 0.75;
-const HOLD = 0.5;
 
 const ARMS: { en: string; id: string; a: PoseDef['angles'] }[] = [
   { en: 'HANDS UP', id: 'TANGAN NAIK', a: { lUpper: 100, lFore: 95, rUpper: 80, rFore: 85 } },
   { en: 'RIGHT HAND UP', id: 'TANGAN KANAN NAIK', a: { lUpper: -100, lFore: -95, rUpper: 80, rFore: 85 } },
   { en: 'LEFT HAND UP', id: 'TANGAN KIRI NAIK', a: { lUpper: 100, lFore: 95, rUpper: -80, rFore: -85 } },
   { en: 'ARMS OUT', id: 'LENGAN KE SAMPING', a: { lUpper: 180, lFore: 180, rUpper: 0, rFore: 0 } },
-  { en: 'HANDS ON HIPS', id: 'TANGAN DI PINGGANG', a: { lUpper: -135, lFore: -45, rUpper: -45, rFore: -135 } },
+  {
+    en: 'HANDS ON HIPS',
+    id: 'TANGAN DI PINGGANG',
+    a: { lUpper: -135, lFore: -45, rUpper: -45, rFore: -135 },
+  },
   { en: 'FLEX', id: 'OTOT', a: { lUpper: 180, lFore: 90, rUpper: 0, rFore: 90 } },
   { en: 'DISCO', id: 'DISKO', a: { lUpper: -135, lFore: -135, rUpper: 45, rFore: 45 } },
 ];
@@ -35,6 +37,9 @@ const LEGS: { en: string; id: string; checks: PoseDef['checks'] }[] = [
 ];
 
 const factory: GameFactory = (ctx) => {
+  // Difficulty-dependent tuning (easy, normal, hard).
+  const MATCH = ctx.tune(0.68, 0.75, 0.8);
+  const HOLD = ctx.tune(0.4, 0.5, 0.7);
   const n = ctx.players.length;
   const pts = new Array(n).fill(0);
   const sims: number[][] = Array.from({ length: n }, () => []);
@@ -68,7 +73,14 @@ const factory: GameFactory = (ctx) => {
     finished = true;
     ctx.end(
       versusResult(ctx, pts, {
-        stats: [{ label: tx(ctx, 'statAccuracy'), values: sims.map((s) => (s.length ? `${Math.round((s.reduce((a, b) => a + b, 0) / s.length) * 100)}%` : '—')) }],
+        stats: [
+          {
+            label: tx(ctx, 'statAccuracy'),
+            values: sims.map((s) =>
+              s.length ? `${Math.round((s.reduce((a, b) => a + b, 0) / s.length) * 100)}%` : '—',
+            ),
+          },
+        ],
       }),
     );
   };
@@ -112,10 +124,15 @@ const factory: GameFactory = (ctx) => {
       const size = Math.min(ctx.height * 0.09, 70);
       if (phase === 'pose') {
         ghost(g, def, ctx.width / 2, ctx.height * 0.4, size, C.vanilla, 0.9);
-        parts.forEach((p, k) => text(g, p, ctx.width / 2, ctx.height * 0.62 + k * 34, { size: 26, color: C.vanilla }));
+        parts.forEach((p, k) =>
+          text(g, p, ctx.width / 2, ctx.height * 0.62 + k * 34, { size: 26, color: C.vanilla }),
+        );
         for (let i = 0; i < n; i++) zoneMeter(g, ctx, i, hold[i] / HOLD, tx(ctx, 'holdIt'));
       } else if (roundWinner >= 0) bubble(g, ctx.input(roundWinner), '+1', C.gold);
-      else text(g, L(ctx, 'Nobody got it!', 'Tidak ada yang berhasil!'), ctx.width / 2, ctx.height * 0.4, { size: 36 });
+      else
+        text(g, L(ctx, 'Nobody got it!', 'Tidak ada yang berhasil!'), ctx.width / 2, ctx.height * 0.4, {
+          size: 36,
+        });
     },
     inspect: () => ({ def, phase, pts: [...pts] }),
   };

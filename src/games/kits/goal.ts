@@ -16,7 +16,13 @@ export interface GoalLayout {
 export function goalLayout(ctx: GameContext): GoalLayout {
   const gw = Math.min(ctx.width * 0.62, ctx.height * 1.35);
   const gh = gw * 0.36;
-  return { gx: (ctx.width - gw) / 2, gy: ctx.height * 0.2, gw, gh, spot: { x: ctx.width / 2, y: ctx.height * 0.86 } };
+  return {
+    gx: (ctx.width - gw) / 2,
+    gy: ctx.height * 0.2,
+    gw,
+    gh,
+    spot: { x: ctx.width / 2, y: ctx.height * 0.86 },
+  };
 }
 
 export interface KeeperState {
@@ -29,7 +35,13 @@ export interface KeeperState {
 }
 
 /** Map a human keeper's body to keeper state. */
-export function keeperFromInput(inp: PlayerInput, prev: KeeperState, dt: number, diveUntil: number, now: number): KeeperState {
+export function keeperFromInput(
+  inp: PlayerInput,
+  prev: KeeperState,
+  dt: number,
+  diveUntil: number,
+  now: number,
+): KeeperState {
   const s = inp.state;
   const target = clamp(s.offsetX * 0.9 + s.lean * 1.4, -1, 1);
   const x = lerp(prev.x, target, 1 - Math.exp(-dt / 0.08));
@@ -40,7 +52,10 @@ export function keeperFromInput(inp: PlayerInput, prev: KeeperState, dt: number,
   return { x, reach, dive };
 }
 
-export function keeperRect(L: GoalLayout, k: KeeperState): { x0: number; x1: number; y0: number; y1: number } {
+export function keeperRect(
+  L: GoalLayout,
+  k: KeeperState,
+): { x0: number; x1: number; y0: number; y1: number } {
   const cx = L.gx + L.gw / 2 + k.x * L.gw * 0.42;
   const half = L.gw * (0.09 + Math.abs(k.dive) * 0.1);
   const shift = k.dive * L.gw * 0.1;
@@ -100,7 +115,13 @@ export function drawPitch(g: CanvasRenderingContext2D, ctx: GameContext, L: Goal
   g.stroke();
 }
 
-export function drawKeeper(g: CanvasRenderingContext2D, L: GoalLayout, k: KeeperState, color: string, label?: string): void {
+export function drawKeeper(
+  g: CanvasRenderingContext2D,
+  L: GoalLayout,
+  k: KeeperState,
+  color: string,
+  label?: string,
+): void {
   const r = keeperRect(L, k);
   const cx = (r.x0 + r.x1) / 2;
   const tilt = k.dive * 0.5;
@@ -174,4 +195,5 @@ export function aimFromInput(inp: PlayerInput): number {
   return clamp(inp.state.lean * 2 + inp.state.offsetX * 0.8, -1, 1);
 }
 
-export const kicked = (inp: PlayerInput): boolean => inp.any('KICK_LEFT', 'KICK_RIGHT', 'PUNCH_LEFT', 'PUNCH_RIGHT');
+export const kicked = (inp: PlayerInput): boolean =>
+  inp.any('KICK_LEFT', 'KICK_RIGHT', 'PUNCH_LEFT', 'PUNCH_RIGHT');

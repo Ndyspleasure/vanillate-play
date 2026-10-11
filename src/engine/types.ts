@@ -7,6 +7,9 @@ import type { Fx } from './fx';
 import type { Rng } from './rng';
 
 export type ModeId = 'solo' | 'versus' | 'coop' | 'party';
+/** Difficulty level chosen before a match. */
+export type Level = 'easy' | 'normal' | 'hard';
+export const LEVELS: readonly Level[] = ['easy', 'normal', 'hard'];
 export type CategoryId = 'for-two' | 'versus' | 'couple' | 'party' | 'solo' | 'sports' | 'viral';
 export type MoveHint =
   | 'jump'
@@ -150,6 +153,10 @@ export interface GameContext {
   readonly meta: GameMeta;
   readonly mode: ModeId;
   readonly options: Readonly<Record<string, string>>;
+  /** Difficulty chosen by the players. */
+  readonly level: Level;
+  /** Pick a value for the current difficulty level. */
+  tune<T>(easy: T, normal: T, hard: T): T;
   readonly players: readonly PlayerInfo[];
   readonly width: number;
   readonly height: number;

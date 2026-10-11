@@ -1,5 +1,6 @@
 import type { BodyIssue } from '../core/calibration/Calibration';
 import { GestureHold } from '../core/motion/gesture';
+import { crowdAdvice, type CrowdAdvice } from '../core/players/crowd';
 import type { PracticeTracker } from '../core/motion/practice';
 import type { MotionSession } from '../core/session/MotionSession';
 import { SIM_ASPECT } from '../core/tracking/SimulatedProvider';
@@ -18,6 +19,8 @@ export interface LobbyStatus {
   /** Start gesture is waiting for raised hands to come down first. */
   startArmed: boolean;
   fullBody: boolean;
+  /** Framing advice for 3–4 players (and duos standing shoulder to shoulder). */
+  crowd: CrowdAdvice;
 }
 
 /**
@@ -90,6 +93,7 @@ export class LobbyView {
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;
     this.mapper.set(w, h, this.session.mode === 'camera' ? this.session.camera.aspect : SIM_ASPECT);
+    this.session.tracker.setVisibleRange(...this.mapper.visibleRange());
   }
 
   setPhase(phase: LobbyPhase): void {
@@ -122,12 +126,21 @@ export class LobbyView {
       issues.push(present ? p.issues : []);
       if (present && p.issues.some((x) => x === 'feet-hidden' || x === 'hips-hidden')) fullBody = false;
     }
+    const crowd = crowdAdvice(
+      Array.from({ length: n }, (_, i) => {
+        const slot = this.session.slot(i);
+        return { present: this.session.health(i) !== 'lost', center: slot.center, scale: slot.scale };
+      }),
+      this.session.tracker.zoneWidth,
+    );
     return {
+      crowd,
       detected,
       ready,
       calibrating,
       issues,
-      lowLight: this.session.mode === 'camera' && this.session.brightness !== null && this.session.brightness < 0.17,
+      lowLight:
+        this.session.mode === 'camera' && this.session.brightness !== null && this.session.brightness < 0.17,
       extra: this.session.tracker.extraPeople,
       startProgress: this.hold.progress,
       startArmed: this.hold.armed,
@@ -247,12 +260,43 @@ export class LobbyView {
         progressRing(g, inp.head.x, ry, 20, p.progress, color, 6);
       }
     }
+    // Crowd hints: arrows between players who stand too close, "step back" over oversized ones.
+    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
+    for (const [a, b] of this.status.crowd.crowded) {
+      const pa = this.hub.get(a);
+      const pb = this.hub.get(b);
+      const y = (pa.shoulders.y + pb.shoulders.y) / 2;
+      const mx = (pa.shoulders.x + pb.shoulders.x) / 2;
+      g.globalAlpha = pulse;
+      text(g, '⟵  ⟶', mx, y, { size: 34, color: C.warn, weight: 800 });
+      g.globalAlpha = 1;
+    }
+    for (const i of this.status.crowd.tooBig) {
+      const inp = this.hub.get(i);
+      g.globalAlpha = pulse;
+      text(
+        g,
+        this.lang === 'id' ? '⬆ MUNDUR' : '⬆ STEP BACK',
+        inp.head.x,
+        inp.head.y - inp.headRadius * 1.6,
+        {
+          size: 20,
+          color: C.warn,
+          weight: 800,
+        },
+      );
+      g.globalAlpha = 1;
+    }
     // Practice check-off pops above each player's head
     for (const p of this.pops) {
       const inp = this.hub.get(p.player);
       const u = p.t / 1.2;
       g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1;
-      text(g, p.text, inp.head.x, inp.head.y - inp.headRadius * 2.4 - 70 - u * 40, { size: 26, color: C.good, weight: 800 });
+      text(g, p.text, inp.head.x, inp.head.y - inp.headRadius * 2.4 - 70 - u * 40, {
+        size: 26,
+        color: C.good,
+        weight: 800,
+      });
       g.globalAlpha = 1;
     }
     // Hold-to-start meter

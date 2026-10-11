@@ -71,14 +71,14 @@ const factory: GameFactory = (ctx) => {
       owner: i,
       x,
       y: 90,
-      vy: ctx.height * (0.16 + time * 0.004),
+      vy: ctx.height * (0.16 + time * 0.004) * ctx.tune(0.8, 1, 1.25),
       r: Math.max(26, 44 - time * 0.25),
       part: ctx.rng.pick(PARTS),
       bomb,
       fruit: ctx.rng.pick(FRUIT),
       dead: false,
     });
-    nextDrop[i] = Math.max(0.55, 1.6 - time * 0.018) + ctx.rng.range(0, 0.4);
+    nextDrop[i] = Math.max(0.55, 1.6 - time * 0.018) * ctx.tune(1.25, 1, 0.8) + ctx.rng.range(0, 0.4);
   };
 
   const finish = () => {
@@ -89,7 +89,14 @@ const factory: GameFactory = (ctx) => {
       { label: tx(ctx, 'statBombs'), values: bombs.map(String) },
     ];
     const total = score.reduce((a, b) => a + b, 0);
-    if (coop) ctx.end(coopResult(ctx, (caught.reduce((a, b) => a + b, 0) / Math.max(1, dropped)) * 100, { stats, big: String(total), headline: L(ctx, 'TEAM CATCH', 'TANGKAPAN TIM') }));
+    if (coop)
+      ctx.end(
+        coopResult(ctx, (caught.reduce((a, b) => a + b, 0) / Math.max(1, dropped)) * 100, {
+          stats,
+          big: String(total),
+          headline: L(ctx, 'TEAM CATCH', 'TANGKAPAN TIM'),
+        }),
+      );
     else if (n === 1) ctx.end(soloResult(ctx, score[0], { stats }));
     else ctx.end(versusResult(ctx, score, { stats }));
   };
@@ -155,7 +162,10 @@ const factory: GameFactory = (ctx) => {
         circle(g, inp.leftElbow.x, inp.leftElbow.y, 10, undefined, '#fff', 2);
         circle(g, inp.rightElbow.x, inp.rightElbow.y, 10, undefined, '#fff', 2);
       }
-      scoreHeader(g, ctx, coop ? [score.reduce((a, b) => a + b, 0), ''] : score, { timer: Math.max(0, DURATION - time), labels: coop ? [L(ctx, 'TEAM', 'TIM'), ''] : undefined });
+      scoreHeader(g, ctx, coop ? [score.reduce((a, b) => a + b, 0), ''] : score, {
+        timer: Math.max(0, DURATION - time),
+        labels: coop ? [L(ctx, 'TEAM', 'TIM'), ''] : undefined,
+      });
     },
     inspect: () => ({ items: items.length, score: [...score] }),
   };

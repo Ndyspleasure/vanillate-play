@@ -31,7 +31,11 @@ export function mediapipeAssets(): Plugin {
     },
     generateBundle() {
       for (const name of FILES) {
-        this.emitFile({ type: 'asset', fileName: `mediapipe/wasm/${name}`, source: readFileSync(join(dir, name)) });
+        this.emitFile({
+          type: 'asset',
+          fileName: `mediapipe/wasm/${name}`,
+          source: readFileSync(join(dir, name)),
+        });
       }
     },
   };

@@ -15,9 +15,9 @@ export function createFlap(ctx: GameContext, mode: Mode): GameInstance {
   const n = ctx.players.length;
   const glide = ctx.options.control === 'glide';
   // Same pipe layout for everyone (fair challenge), each with its own pass-state.
-  const layout = buildPipes(ctx.rng, 220);
+  const layout = buildPipes(ctx.rng, 220, 1.2, ctx.tune(1.2, 1, 0.86));
   const tracks: Pipe[][] = ctx.players.map(() => layout.map((p) => ({ ...p })));
-  const flyers = ctx.players.map(() => new Flyer(0.3, glide));
+  const flyers = ctx.players.map(() => new Flyer(ctx.tune(0.25, 0.3, 0.36), glide));
   const crashes = new Array(n).fill(0);
   const stun = new Array(n).fill(0);
   const out = new Array(n).fill(false);
@@ -35,7 +35,12 @@ export function createFlap(ctx: GameContext, mode: Mode): GameInstance {
     ];
     if (n === 1) ctx.end(soloResult(ctx, flyers[0].pipes, { stats }));
     else {
-      const scores = mode === 'race' ? flyers.map((f) => Math.round(f.dist * 10)) : mode === 'sudden' ? flyers.map((f, i) => (out[i] ? 0 : 1000) + f.pipes) : flyers.map((f) => f.pipes);
+      const scores =
+        mode === 'race'
+          ? flyers.map((f) => Math.round(f.dist * 10))
+          : mode === 'sudden'
+            ? flyers.map((f, i) => (out[i] ? 0 : 1000) + f.pipes)
+            : flyers.map((f) => f.pipes);
       ctx.end(versusResult(ctx, scores, { display: (v) => String(mode === 'sudden' ? v % 1000 : v), stats }));
     }
   };
@@ -77,7 +82,14 @@ export function createFlap(ctx: GameContext, mode: Mode): GameInstance {
       const w = (ctx.width - pad * (n + 1)) / n;
       for (let i = 0; i < n; i++) {
         const r: Rect = { x: pad + i * (w + pad), y: pad, w, h: ctx.height - pad * 2 };
-        renderFlight(g, r, flyers[i], tracks[i], ctx.players[i].color, `${ctx.players[i].name}${out[i] ? ` · ${tx(ctx, 'out')}` : ''}`);
+        renderFlight(
+          g,
+          r,
+          flyers[i],
+          tracks[i],
+          ctx.players[i].color,
+          `${ctx.players[i].name}${out[i] ? ` · ${tx(ctx, 'out')}` : ''}`,
+        );
       }
       if (duration < 900) {
         const left = Math.max(0, Math.ceil(duration - time));

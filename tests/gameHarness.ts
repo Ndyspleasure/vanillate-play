@@ -7,7 +7,8 @@ import { Fx } from '../src/engine/fx';
 import { MutableInput } from '../src/engine/input';
 import { Rng } from '../src/engine/rng';
 import { playerZones } from '../src/engine/stage';
-import type { GameContext, GameInstance, GameMeta, MatchResult, ModeId } from '../src/engine/types';
+import { tuneFor } from '../src/engine/hud';
+import type { GameContext, GameInstance, GameMeta, Level, MatchResult, ModeId } from '../src/engine/types';
 
 /** A CanvasRenderingContext2D stand-in that accepts every call (render code runs headless). */
 export function fakeCanvas(): CanvasRenderingContext2D {
@@ -67,7 +68,15 @@ export function standing(inp: MutableInput, cx: number, height: number): void {
   inp.state.hipsVisible = true;
 }
 
-export function createHarness(meta: GameMeta, factory: (ctx: GameContext) => GameInstance, mode: ModeId, count: number, options: Record<string, string> = {}, seed = 42): Harness {
+export function createHarness(
+  meta: GameMeta,
+  factory: (ctx: GameContext) => GameInstance,
+  mode: ModeId,
+  count: number,
+  options: Record<string, string> = {},
+  seed = 42,
+  level: Level = 'normal',
+): Harness {
   const width = 1280;
   const height = 720;
   const zones = playerZones(width, height, count);
@@ -108,7 +117,14 @@ export function createHarness(meta: GameMeta, factory: (ctx: GameContext) => Gam
     meta,
     mode,
     options: opts,
-    players: Array.from({ length: count }, (_, i) => ({ index: i, name: `P${i + 1}`, color: PLAYER_COLORS[i], tint: PLAYER_TINTS[i] })),
+    level,
+    tune: (e, n, hd) => tuneFor(level, e, n, hd),
+    players: Array.from({ length: count }, (_, i) => ({
+      index: i,
+      name: `P${i + 1}`,
+      color: PLAYER_COLORS[i],
+      tint: PLAYER_TINTS[i],
+    })),
     width,
     height,
     rng: new Rng(seed),

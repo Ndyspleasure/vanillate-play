@@ -3,13 +3,7 @@
  */
 
 export type CameraErrorCode =
-  | 'insecure'
-  | 'unsupported'
-  | 'denied'
-  | 'not-found'
-  | 'in-use'
-  | 'overconstrained'
-  | 'unknown';
+  'insecure' | 'unsupported' | 'denied' | 'not-found' | 'in-use' | 'overconstrained' | 'unknown';
 
 export class CameraError extends Error {
   constructor(
@@ -96,7 +90,9 @@ export class CameraManager {
 
   get aspect(): number {
     if (!this.videoEl) return 16 / 9;
-    return this.video.videoWidth && this.video.videoHeight ? this.video.videoWidth / this.video.videoHeight : 16 / 9;
+    return this.video.videoWidth && this.video.videoHeight
+      ? this.video.videoWidth / this.video.videoHeight
+      : 16 / 9;
   }
 
   /**
@@ -114,7 +110,8 @@ export class CameraManager {
 
   private async open(deviceId?: string | null): Promise<void> {
     const unsupported = cameraSupport();
-    if (unsupported === 'insecure') throw new CameraError('insecure', 'Camera needs a secure (https) connection.');
+    if (unsupported === 'insecure')
+      throw new CameraError('insecure', 'Camera needs a secure (https) connection.');
     if (unsupported) throw new CameraError('unsupported', 'This browser cannot access a camera.');
     this.stop();
     const gen = this.gen;
@@ -124,7 +121,10 @@ export class CameraManager {
       frameRate: { ideal: 30, max: 60 },
     };
     const attempts: MediaStreamConstraints[] = [
-      { video: { ...base, ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'user' }) }, audio: false },
+      {
+        video: { ...base, ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'user' }) },
+        audio: false,
+      },
       { video: { facingMode: 'user' }, audio: false },
       { video: true, audio: false },
     ];
@@ -222,7 +222,8 @@ export class CameraManager {
     ctx.drawImage(this.video, 0, 0, 32, 18);
     const data = ctx.getImageData(0, 0, 32, 18).data;
     let sum = 0;
-    for (let i = 0; i < data.length; i += 4) sum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    for (let i = 0; i < data.length; i += 4)
+      sum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
     return sum / (data.length / 4) / 255;
   }
 }

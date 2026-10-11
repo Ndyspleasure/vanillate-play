@@ -25,6 +25,12 @@ export class StageMapper {
     this.offY = (height - dispH) / 2;
   }
 
+  /** Visible horizontal part of the camera frame, as fractions of its width (cover crop). */
+  visibleRange(): [number, number] {
+    const fw = this.scale * this.aspect;
+    return [Math.max(0, -this.offX / fw), Math.min(1, (this.width - this.offX) / fw)];
+  }
+
   toStage(p: Point, out: Point = { x: 0, y: 0 }): Point {
     out.x = this.offX + p.x * this.scale;
     out.y = this.offY + p.y * this.scale;

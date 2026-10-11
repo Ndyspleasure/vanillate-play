@@ -32,11 +32,17 @@ const factory: GameFactory = (ctx) => {
   const n = ctx.players.length;
   const coop = ctx.mode === 'coop';
   const survival = ctx.options.variant === 'survival';
-  const ships = ctx.players.map((_p, i) => ({ x: ctx.zone(i).x + ctx.zone(i).w / 2, cool: 0, shield: 0, charge: 1, hit: 0 }));
+  const ships = ctx.players.map((_p, i) => ({
+    x: ctx.zone(i).x + ctx.zone(i).w / 2,
+    cool: 0,
+    shield: 0,
+    charge: 1,
+    hit: 0,
+  }));
   const score = new Array(n).fill(0);
   const kills = new Array(n).fill(0);
-  let lives = coop ? 5 : 3;
-  const livesEach = new Array(n).fill(3);
+  let lives = (coop ? 5 : 3) + ctx.tune(2, 0, -1);
+  const livesEach = new Array(n).fill(3 + ctx.tune(2, 0, -1));
   let ents: Ent[] = [];
   let shots: Shot[] = [];
   let wave = 0;
@@ -44,19 +50,44 @@ const factory: GameFactory = (ctx) => {
   let spawnT = 0;
   let time = 0;
   let finished = false;
-  const stars = Array.from({ length: 80 }, () => ({ x: ctx.rng.next(), y: ctx.rng.next(), s: ctx.rng.range(1, 3) }));
+  const stars = Array.from({ length: 80 }, () => ({
+    x: ctx.rng.next(),
+    y: ctx.rng.next(),
+    s: ctx.rng.range(1, 3),
+  }));
   const shipY = () => ctx.height - 90;
 
   const startWave = () => {
     wave++;
     waveT = 0;
     if (!survival && wave === 5) {
-      ents.push({ x: ctx.width / 2, y: -80, vx: 120, vy: 40, hp: 40, kind: 'boss', r: 90, fire: 1, dead: false });
+      ents.push({
+        x: ctx.width / 2,
+        y: -80,
+        vx: 120,
+        vy: 40,
+        hp: 40,
+        kind: 'boss',
+        r: 90,
+        fire: 1,
+        dead: false,
+      });
       ctx.banner(tx(ctx, 'boss'), undefined, 1.6);
       ctx.audio.music.play('boss');
     } else {
       const count = 5 + wave * 2;
-      for (let k = 0; k < count; k++) ents.push({ x: ((k + 0.5) / count) * ctx.width, y: -40 - (k % 3) * 60, vx: 60 * (k % 2 ? 1 : -1), vy: 30 + wave * 4, hp: 1 + Math.floor(wave / 3), kind: 'enemy', r: 30, fire: ctx.rng.range(1, 4), dead: false });
+      for (let k = 0; k < count; k++)
+        ents.push({
+          x: ((k + 0.5) / count) * ctx.width,
+          y: -40 - (k % 3) * 60,
+          vx: 60 * (k % 2 ? 1 : -1),
+          vy: 30 + wave * 4,
+          hp: 1 + Math.floor(wave / 3),
+          kind: 'enemy',
+          r: 30,
+          fire: ctx.rng.range(1, 4),
+          dead: false,
+        });
       ctx.banner(tx(ctx, 'wave', { n: wave }), undefined, 1.2);
     }
   };
@@ -67,10 +98,26 @@ const factory: GameFactory = (ctx) => {
     ctx.audio.music.stop(300);
     const stats = [
       { label: L(ctx, 'Enemies destroyed', 'Musuh dihancurkan'), values: kills.map(String) },
-      { label: tx(ctx, 'statWaves'), values: [String(survival ? Math.floor(time) + ' s' : wave - (win ? 0 : 1))] },
+      {
+        label: tx(ctx, 'statWaves'),
+        values: [String(survival ? Math.floor(time) + ' s' : wave - (win ? 0 : 1))],
+      },
     ];
-    if (coop) ctx.end(coopResult(ctx, Math.min(100, win ? 100 : ((wave - 1) / 5) * 100), { big: String(score[0] + score[1]), headline: win ? L(ctx, 'MISSION COMPLETE', 'MISI SELESAI') : L(ctx, 'SHIP DOWN', 'KAPAL HANCUR'), stats }));
-    else if (n === 1) ctx.end(soloResult(ctx, score[0], { headline: win ? L(ctx, 'MISSION COMPLETE', 'MISI SELESAI') : undefined, stats }));
+    if (coop)
+      ctx.end(
+        coopResult(ctx, Math.min(100, win ? 100 : ((wave - 1) / 5) * 100), {
+          big: String(score[0] + score[1]),
+          headline: win ? L(ctx, 'MISSION COMPLETE', 'MISI SELESAI') : L(ctx, 'SHIP DOWN', 'KAPAL HANCUR'),
+          stats,
+        }),
+      );
+    else if (n === 1)
+      ctx.end(
+        soloResult(ctx, score[0], {
+          headline: win ? L(ctx, 'MISSION COMPLETE', 'MISI SELESAI') : undefined,
+          stats,
+        }),
+      );
     else ctx.end(versusResult(ctx, score, { stats }));
   };
 
@@ -111,14 +158,19 @@ const factory: GameFactory = (ctx) => {
         const z = ctx.zone(i);
         const span = n === 1 ? ctx.width : z.w;
         const cx = n === 1 ? ctx.width / 2 : z.x + z.w / 2;
-        const target = clamp(cx + (inp.state.offsetX * 0.45 + inp.state.lean * 1.1) * span * 0.6, 40, ctx.width - 40);
+        const target = clamp(
+          cx + (inp.state.offsetX * 0.45 + inp.state.lean * 1.1) * span * 0.6,
+          40,
+          ctx.width - 40,
+        );
         if (inp.health !== 'lost') s.x = lerp(s.x, target, 1 - Math.exp(-dt / 0.08));
         s.cool = Math.max(0, s.cool - dt);
         s.shield = Math.max(0, s.shield - dt);
         s.hit = Math.max(0, s.hit - dt);
         s.charge = Math.min(1, s.charge + dt / 8);
         if (s.cool === 0 && inp.any('PUNCH_LEFT', 'PUNCH_RIGHT')) {
-          for (const dx of [-14, 14]) shots.push({ x: s.x + dx, y: shipY() - 30, vy: -900, owner: i, dead: false });
+          for (const dx of [-14, 14])
+            shots.push({ x: s.x + dx, y: shipY() - 30, vy: -900, owner: i, dead: false });
           s.cool = 0.18;
           ctx.audio.play('laser', { volume: 0.4, pitch: 1.4 });
         }
@@ -127,7 +179,8 @@ const factory: GameFactory = (ctx) => {
           s.shield = 3;
           ctx.audio.play('powerup');
           ctx.fx.ring(s.x, shipY(), '#3dd6ff', 20, 220, 0.6, 8);
-          for (const sh of shots) if (sh.owner === -1 && Math.hypot(sh.x - s.x, sh.y - shipY()) < 260) sh.dead = true;
+          for (const sh of shots)
+            if (sh.owner === -1 && Math.hypot(sh.x - s.x, sh.y - shipY()) < 260) sh.dead = true;
         }
       });
       // Spawning
@@ -136,7 +189,17 @@ const factory: GameFactory = (ctx) => {
         if (spawnT <= 0) {
           spawnT = Math.max(0.35, 1.4 - time * 0.01);
           const rock = ctx.rng.chance(0.6);
-          ents.push({ x: ctx.rng.range(40, ctx.width - 40), y: -50, vx: ctx.rng.range(-40, 40), vy: ctx.rng.range(120, 200) + time * 2, hp: rock ? 2 : 1, kind: rock ? 'rock' : 'enemy', r: rock ? 36 : 28, fire: ctx.rng.range(1, 3), dead: false });
+          ents.push({
+            x: ctx.rng.range(40, ctx.width - 40),
+            y: -50,
+            vx: ctx.rng.range(-40, 40),
+            vy: (ctx.rng.range(120, 200) + time * 2) * ctx.tune(0.8, 1, 1.2),
+            hp: rock ? 2 : 1,
+            kind: rock ? 'rock' : 'enemy',
+            r: rock ? 36 : 28,
+            fire: ctx.rng.range(1, 3),
+            dead: false,
+          });
         }
       } else if (ents.every((e) => e.dead) && waveT > 1.5) {
         if (wave >= 5) return finish(true);
@@ -155,7 +218,8 @@ const factory: GameFactory = (ctx) => {
         if (e.kind !== 'rock' && e.fire <= 0 && e.y > 0) {
           e.fire = e.kind === 'boss' ? 0.6 : ctx.rng.range(2, 4.5);
           const spread = e.kind === 'boss' ? [-60, 0, 60] : [0];
-          for (const dx of spread) shots.push({ x: e.x + dx, y: e.y + e.r * 0.6, vy: 320 + wave * 15, owner: -1, dead: false });
+          for (const dx of spread)
+            shots.push({ x: e.x + dx, y: e.y + e.r * 0.6, vy: 320 + wave * 15, owner: -1, dead: false });
         }
         if (e.y > ctx.height + 60) e.dead = true;
         ships.forEach((s, i) => {
@@ -205,7 +269,8 @@ const factory: GameFactory = (ctx) => {
     renderBackground(g) {
       g.fillStyle = '#05010f';
       g.fillRect(0, 0, ctx.width, ctx.height);
-      for (const st of stars) circle(g, st.x * ctx.width, st.y * ctx.height, st.s, `rgba(255,255,255,${0.3 + st.s * 0.2})`);
+      for (const st of stars)
+        circle(g, st.x * ctx.width, st.y * ctx.height, st.s, `rgba(255,255,255,${0.3 + st.s * 0.2})`);
     },
     render(g) {
       for (const e of ents) {
@@ -225,10 +290,26 @@ const factory: GameFactory = (ctx) => {
         if (s.shield > 0) circle(g, s.x, shipY(), 56, 'rgba(61,214,255,0.18)', '#3dd6ff', 3);
         bar(g, s.x - 30, shipY() + 58, 60, 6, s.charge, s.charge >= 1 ? '#3dd6ff' : 'rgba(61,214,255,0.5)');
       });
-      scoreHeader(g, ctx, score, { center: survival ? `${Math.floor(time)} s` : tx(ctx, 'wave', { n: Math.max(1, wave) }) });
+      scoreHeader(g, ctx, score, {
+        center: survival ? `${Math.floor(time)} s` : tx(ctx, 'wave', { n: Math.max(1, wave) }),
+      });
       if (coop || n === 1) hearts(g, ctx.width / 2, 108, Math.max(0, lives), coop ? 5 : 3, 22, 'center');
-      else ctx.players.forEach((_p, i) => hearts(g, ctx.zone(i).x + ctx.zone(i).w / 2, 108, Math.max(0, livesEach[i]), 3, 22, 'center'));
-      if (time < 5) text(g, L(ctx, 'Lean to fly · punch to fire · hands up = shield', 'Condong untuk terbang · pukul untuk menembak · angkat tangan = perisai'), ctx.width / 2, ctx.height * 0.55, { size: 22, color: C.vanilla });
+      else
+        ctx.players.forEach((_p, i) =>
+          hearts(g, ctx.zone(i).x + ctx.zone(i).w / 2, 108, Math.max(0, livesEach[i]), 3, 22, 'center'),
+        );
+      if (time < 5)
+        text(
+          g,
+          L(
+            ctx,
+            'Lean to fly · punch to fire · hands up = shield',
+            'Condong untuk terbang · pukul untuk menembak · angkat tangan = perisai',
+          ),
+          ctx.width / 2,
+          ctx.height * 0.55,
+          { size: 22, color: C.vanilla },
+        );
     },
     inspect: () => ({ wave, ents: ents.length, lives }),
   };

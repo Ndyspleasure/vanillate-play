@@ -46,6 +46,13 @@ export class SimBody {
   kickRightT = -1;
   kneeLeft = false;
   kneeRight = false;
+  /** 'front' kicks go towards the camera (small on-screen lift, large depth change). */
+  kickStyle: 'side' | 'front' = 'side';
+  /**
+   * Camera pitch 0..1: vertical foreshortening of the body in the image, like a camera placed high
+   * above or low below the player (0 = chest-height camera).
+   */
+  pitch = 0;
   flapT = -1;
   /** Small idle sway so the body never looks frozen; disabled for freeze games via `stillness`. */
   sway = 0;
@@ -134,7 +141,10 @@ export class SimBody {
     const legs = (side: -1 | 1, kickT: number, knee: boolean) => {
       const hip = { x: hipC.x + side * hipHalf, y: hipC.y };
       const spread = this.squat * 0.32 * T;
-      let ankle = { x: hip.x + side * (0.06 * T + spread * 0.6), y: Math.min(groundY - lift, hip.y + thigh + shin) };
+      let ankle = {
+        x: hip.x + side * (0.06 * T + spread * 0.6),
+        y: Math.min(groundY - lift, hip.y + thigh + shin),
+      };
       let kneeP = {
         x: hip.x + side * (0.04 * T + spread),
         y: hip.y + Math.sqrt(Math.max(0.0001, thigh ** 2 - (spread * 0.9) ** 2)) * (1 - this.squat * 0.35),
@@ -142,9 +152,10 @@ export class SimBody {
       let ankleZ = 0;
       if (kickT >= 0) {
         const u = Math.sin((kickT / 0.5) * Math.PI);
-        kneeP = { x: hip.x + side * 0.1 * T, y: hip.y + thigh * (1 - 0.55 * u) };
-        ankle = { x: hip.x + side * 0.18 * T, y: hip.y + (thigh + shin) * (1 - 0.75 * u) };
-        ankleZ = -0.5 * u;
+        const front = this.kickStyle === 'front';
+        kneeP = { x: hip.x + side * 0.1 * T, y: hip.y + thigh * (1 - (front ? 0.2 : 0.55) * u) };
+        ankle = { x: hip.x + side * 0.18 * T, y: hip.y + (thigh + shin) * (1 - (front ? 0.22 : 0.75) * u) };
+        ankleZ = (front ? -0.85 : -0.5) * u;
       } else if (knee) {
         kneeP = { x: hip.x + side * 0.05 * T, y: hip.y + 0.15 * T };
         ankle = { x: hip.x + side * 0.08 * T, y: hip.y + 0.15 * T + shin * 0.95 };
@@ -179,7 +190,8 @@ export class SimBody {
       const mirrorDeg = (deg: number) => (side === -1 ? 180 - deg : deg);
       if (a.punchT >= 0) {
         // Guard → extended forward → retract
-        const u = a.punchT < 0.1 ? a.punchT / 0.1 : a.punchT < 0.22 ? 1 : Math.max(0, 1 - (a.punchT - 0.22) / 0.2);
+        const u =
+          a.punchT < 0.1 ? a.punchT / 0.1 : a.punchT < 0.22 ? 1 : Math.max(0, 1 - (a.punchT - 0.22) / 0.2);
         const guardElbow = { x: sh.x + side * 0.12 * T, y: sh.y + 0.45 * T };
         const guardWrist = { x: sh.x - side * 0.05 * T, y: sh.y - 0.12 * T };
         const extElbow = { x: sh.x - side * 0.02 * T, y: sh.y + 0.08 * T };
@@ -279,7 +291,10 @@ export class SimBody {
       [LM.rightIndex, ra],
       [LM.rightThumb, ra],
     ] as const) {
-      const ext = { x: w.wrist.x + (w.wrist.x - w.elbow.x) * 0.15, y: w.wrist.y + (w.wrist.y - w.elbow.y) * 0.15 };
+      const ext = {
+        x: w.wrist.x + (w.wrist.x - w.elbow.x) * 0.15,
+        y: w.wrist.y + (w.wrist.y - w.elbow.y) * 0.15,
+      };
       set(i, ext, w.wz);
     }
     set(LM.leftHip, L.hip);
@@ -302,6 +317,8 @@ export class SimBody {
       z: p.z,
       v: p.v,
     }));
+    // Camera pitch only changes the 2D image (world landmarks stay metric).
+    if (this.pitch > 0) for (const p of view) p.y = hipC.y + (p.y - hipC.y) * (1 - this.pitch);
     return { view, world };
   }
 }
@@ -313,6 +330,11 @@ export class SimulatedProvider implements PoseProvider {
   private lastNow = 0;
   /** Bodies that are "in frame". Allows tests to simulate players leaving the camera. */
   present: boolean[] = [true, true, true, true];
+  /**
+   * Fraction of the frame width the bodies are spread over (1 = whole frame). Creator mode's
+   * vertical crop only shows the middle third, so simulated players stand closer together there.
+   */
+  spread = 1;
 
   constructor(count = 4) {
     for (let i = 0; i < count; i++) this.bodies.push(new SimBody(0));
@@ -323,7 +345,7 @@ export class SimulatedProvider implements PoseProvider {
   layout(n: number): void {
     const count = Math.max(1, Math.min(n, this.bodies.length));
     this.bodies.forEach((b, i) => {
-      const x = SIM_ASPECT * ((i + 0.5) / count);
+      const x = SIM_ASPECT * (0.5 + ((i + 0.5) / count - 0.5) * this.spread);
       b.baseX = x;
       b.x = x;
       b.zone = 0;

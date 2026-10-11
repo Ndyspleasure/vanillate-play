@@ -36,9 +36,35 @@ const factory: GameFactory = (ctx) => {
   const humans = ctx.players.length;
   const aiColors = ['#e0e0ff', '#ffb020', '#06d6a0'];
   const cars: Car[] = [];
-  for (let i = 0; i < humans; i++) cars.push({ z: 0, x: i === 0 ? -0.35 : 0.35, speed: 0, nitro: 1, nitroT: 0, drift: false, finished: false, time: 0, color: ctx.players[i].color, ai: false, bump: 0 });
+  for (let i = 0; i < humans; i++)
+    cars.push({
+      z: 0,
+      x: i === 0 ? -0.35 : 0.35,
+      speed: 0,
+      nitro: 1,
+      nitroT: 0,
+      drift: false,
+      finished: false,
+      time: 0,
+      color: ctx.players[i].color,
+      ai: false,
+      bump: 0,
+    });
   const aiCount = humans === 1 ? 3 : 2;
-  for (let k = 0; k < aiCount; k++) cars.push({ z: 20 + k * 25, x: [-0.5, 0.5, 0][k], speed: 0, nitro: 0, nitroT: 0, drift: false, finished: false, time: 0, color: aiColors[k], ai: true, bump: 0 });
+  for (let k = 0; k < aiCount; k++)
+    cars.push({
+      z: 20 + k * 25,
+      x: [-0.5, 0.5, 0][k],
+      speed: 0,
+      nitro: 0,
+      nitroT: 0,
+      drift: false,
+      finished: false,
+      time: 0,
+      color: aiColors[k],
+      ai: true,
+      bump: 0,
+    });
   const total = LAP * LAPS;
   let time = 0;
   let finished = false;
@@ -50,12 +76,20 @@ const factory: GameFactory = (ctx) => {
     if (finished) return;
     finished = true;
     const place = (i: number) => {
-      const sorted = cars.map((c, k) => ({ c, k })).sort((a, b) => (a.c.finished && b.c.finished ? a.c.time - b.c.time : b.c.z - a.c.z));
+      const sorted = cars
+        .map((c, k) => ({ c, k }))
+        .sort((a, b) => (a.c.finished && b.c.finished ? a.c.time - b.c.time : b.c.z - a.c.z));
       return sorted.findIndex((s) => s.k === i) + 1;
     };
     const stats = [
-      { label: tx(ctx, 'statLapTime'), values: cars.slice(0, humans).map((c) => (c.finished ? formatDuration(c.time) : 'DNF')) },
-      { label: tx(ctx, 'statPlace'), values: cars.slice(0, humans).map((_c, i) => `#${place(i)} / ${cars.length}`) },
+      {
+        label: tx(ctx, 'statLapTime'),
+        values: cars.slice(0, humans).map((c) => (c.finished ? formatDuration(c.time) : 'DNF')),
+      },
+      {
+        label: tx(ctx, 'statPlace'),
+        values: cars.slice(0, humans).map((_c, i) => `#${place(i)} / ${cars.length}`),
+      },
     ];
     if (humans === 1) {
       const c = cars[0];
@@ -69,7 +103,14 @@ const factory: GameFactory = (ctx) => {
           recordLabel: tx(ctx, 'statLapTime'),
         }),
       );
-    } else ctx.end(versusResult(ctx, cars.slice(0, humans).map((c) => (c.finished ? c.time : 999)), { lowerIsBetter: true, display: (v) => (v >= 999 ? 'DNF' : formatDuration(v)), stats }));
+    } else
+      ctx.end(
+        versusResult(
+          ctx,
+          cars.slice(0, humans).map((c) => (c.finished ? c.time : 999)),
+          { lowerIsBetter: true, display: (v) => (v >= 999 ? 'DNF' : formatDuration(v)), stats },
+        ),
+      );
   };
 
   return {
@@ -87,7 +128,7 @@ const factory: GameFactory = (ctx) => {
         if (c.ai) {
           const look = curve(c.z + 30);
           steer = clamp((look * 0.55 - c.x) * 1.6 + Math.sin(time + i) * 0.1, -1, 1);
-          maxSpeed = 54 + i * 1.5;
+          maxSpeed = (54 + i * 1.5) * ctx.tune(0.88, 1, 1.1);
         } else {
           const inp = ctx.input(i);
           steer = steerFrom(inp);
@@ -97,14 +138,21 @@ const factory: GameFactory = (ctx) => {
             c.nitroT = 2;
             c.nitro -= 0.34;
             ctx.audio.play('powerup');
-            ctx.fx.text(tx(ctx, 'nitro'), ctx.width / (humans * 2) + (i * ctx.width) / humans, ctx.height * 0.4, C.gold, 44);
+            ctx.fx.text(
+              tx(ctx, 'nitro'),
+              ctx.width / (humans * 2) + (i * ctx.width) / humans,
+              ctx.height * 0.4,
+              C.gold,
+              44,
+            );
           }
         }
         c.nitroT = Math.max(0, c.nitroT - dt);
         c.bump = Math.max(0, c.bump - dt);
         const offroad = Math.abs(c.x) > 1.05;
         let target = maxSpeed + (c.nitroT > 0 ? 22 : 0) + (isBoostZone(c.z) ? 15 : 0);
-        if (offroad) target = 22;
+        // Easy keeps more speed off-road so drifting wide isn't punished as hard.
+        if (offroad) target = ctx.tune(34, 22, 18);
         if (c.bump > 0) target *= 0.5;
         c.speed = lerp(c.speed, target, 1 - Math.exp(-dt / (target > c.speed ? 1.6 : 0.5)));
         const grip = c.drift ? 1.6 : 1;
@@ -150,13 +198,27 @@ const factory: GameFactory = (ctx) => {
         const c = cars[i];
         const lap = Math.min(LAPS, Math.floor(c.z / LAP) + 1);
         panel(g, r.x + 10, r.y + 10, 220, 74, { fill: 'rgba(20,10,40,0.75)', r: 14 });
-        text(g, `${ctx.players[i].name}`, r.x + 22, r.y + 30, { size: 16, align: 'left', color: c.color, stroke: 0 });
-        text(g, tx(ctx, 'lap', { n: lap, m: LAPS }), r.x + 22, r.y + 58, { size: 22, align: 'left', stroke: 0 });
+        text(g, `${ctx.players[i].name}`, r.x + 22, r.y + 30, {
+          size: 16,
+          align: 'left',
+          color: c.color,
+          stroke: 0,
+        });
+        text(g, tx(ctx, 'lap', { n: lap, m: LAPS }), r.x + 22, r.y + 58, {
+          size: 22,
+          align: 'left',
+          stroke: 0,
+        });
         text(g, `${Math.round(c.speed * 3.2)} km/h`, r.x + r.w - 20, r.y + 34, { size: 24, align: 'right' });
         bar(g, r.x + r.w - 170, r.y + 54, 150, 12, c.nitro, C.gold);
         text(g, 'NITRO', r.x + r.w - 178, r.y + 60, { size: 12, align: 'right', stroke: 0 });
-        if (c.drift) text(g, tx(ctx, 'drift'), r.x + r.w / 2, r.y + r.h * 0.3, { size: 34, color: '#3dd6ff' });
-        if (c.finished) text(g, `${tx(ctx, 'finish')} ${formatDuration(c.time)}`, r.x + r.w / 2, r.y + r.h * 0.4, { size: 40, color: C.gold });
+        if (c.drift)
+          text(g, tx(ctx, 'drift'), r.x + r.w / 2, r.y + r.h * 0.3, { size: 34, color: '#3dd6ff' });
+        if (c.finished)
+          text(g, `${tx(ctx, 'finish')} ${formatDuration(c.time)}`, r.x + r.w / 2, r.y + r.h * 0.4, {
+            size: 40,
+            color: C.gold,
+          });
         const place = cars.filter((o) => o.z > c.z).length + 1;
         text(g, `#${place}`, r.x + r.w / 2, r.y + 40, { size: 40, color: C.vanilla });
       }
@@ -179,7 +241,11 @@ const factory: GameFactory = (ctx) => {
     g.fillStyle = '#5a189a';
     g.beginPath();
     g.moveTo(r.x, horizon);
-    for (let k = 0; k <= 12; k++) g.lineTo(r.x + (r.w * k) / 12, horizon - 30 - Math.abs(Math.sin(k * 1.7 + curve(car.z) * 0.6)) * r.h * 0.12);
+    for (let k = 0; k <= 12; k++)
+      g.lineTo(
+        r.x + (r.w * k) / 12,
+        horizon - 30 - Math.abs(Math.sin(k * 1.7 + curve(car.z) * 0.6)) * r.h * 0.12,
+      );
     g.lineTo(r.x + r.w, horizon);
     g.fill();
     g.fillStyle = '#2d6a4f';
@@ -221,7 +287,10 @@ const factory: GameFactory = (ctx) => {
       if (odd) quad(a.w * 0.04, b.w * 0.04, '#fff7e8');
     }
     // Other cars, far to near
-    const others = all.map((c, k) => ({ c, k })).filter(({ k }) => k !== me).sort((a, b) => b.c.z - a.c.z);
+    const others = all
+      .map((c, k) => ({ c, k }))
+      .filter(({ k }) => k !== me)
+      .sort((a, b) => b.c.z - a.c.z);
     for (const { c } of others) {
       const rel = c.z - car.z;
       if (rel < 1 || rel > DRAW * SEG * 0.8) continue;

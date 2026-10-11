@@ -169,7 +169,10 @@ export class Fx {
 
   shakeOffset(): { x: number; y: number } {
     if (this.shakeAmount <= 0) return { x: 0, y: 0 };
-    return { x: (Math.random() - 0.5) * 2 * this.shakeAmount, y: (Math.random() - 0.5) * 2 * this.shakeAmount };
+    return {
+      x: (Math.random() - 0.5) * 2 * this.shakeAmount,
+      y: (Math.random() - 0.5) * 2 * this.shakeAmount,
+    };
   }
 
   render(g: CanvasRenderingContext2D, width: number, height: number): void {
@@ -223,7 +226,14 @@ export class Fx {
   }
 }
 
-export function drawStar(g: CanvasRenderingContext2D, x: number, y: number, r: number, inner: number, points: number): void {
+export function drawStar(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  inner: number,
+  points: number,
+): void {
   g.beginPath();
   for (let i = 0; i < points * 2; i++) {
     const rad = i % 2 === 0 ? r : inner;

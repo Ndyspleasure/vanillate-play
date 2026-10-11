@@ -14,7 +14,9 @@ const page = await browser.newPage();
 
 async function png(html: string, w: number, h: number, path: string): Promise<void> {
   await page.setViewportSize({ width: w, height: h });
-  await page.setContent(`<!doctype html><html><body style="margin:0;width:${w}px;height:${h}px;overflow:hidden">${html}</body></html>`);
+  await page.setContent(
+    `<!doctype html><html><body style="margin:0;width:${w}px;height:${h}px;overflow:hidden">${html}</body></html>`,
+  );
   await page.waitForTimeout(150);
   await page.screenshot({ path, omitBackground: false });
 }
@@ -27,7 +29,8 @@ await png(icon(512, 20), 512, 512, 'public/icons/icon-512.png');
 await png(icon(512, 90), 512, 512, 'public/icons/maskable-512.png');
 await png(icon(180, 14), 180, 180, 'public/icons/apple-touch-icon.png');
 
-const art = (name: string, color: string, size: number) => `<div style="width:${size}px;height:${size}px">${svgMarkup(name, color).replace('<svg ', '<svg width="100%" height="100%" ')}</div>`;
+const art = (name: string, color: string, size: number) =>
+  `<div style="width:${size}px;height:${size}px">${svgMarkup(name, color).replace('<svg ', '<svg width="100%" height="100%" ')}</div>`;
 const og = `
 <div style="width:1200px;height:630px;background:radial-gradient(900px 500px at 85% 0%,#8b5cff,transparent 60%),radial-gradient(700px 400px at 0% 100%,#ff4d8d66,transparent 60%),#140b2e;font-family:system-ui,sans-serif;color:#fff7e8;position:relative;overflow:hidden">
   <div style="position:absolute;left:70px;top:70px;display:flex;align-items:center;gap:18px">${art('logo', '#fff', 72)}<span style="font-size:40px;font-weight:800">Vanillate <span style="color:#ffe9b8">Motion</span></span></div>

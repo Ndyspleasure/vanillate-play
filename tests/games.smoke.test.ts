@@ -3,7 +3,22 @@ import { GAMES, playersForMode } from '../src/games/catalog';
 import type { MotionEvent } from '../src/core/motion/types';
 import { createHarness } from './gameHarness';
 
-const RANDOM_EVENTS: MotionEvent[] = ['JUMP', 'SQUAT', 'HANDS_UP', 'PUNCH_LEFT', 'PUNCH_RIGHT', 'MOVE_LEFT', 'MOVE_RIGHT', 'LEAN_LEFT', 'LEAN_RIGHT', 'KICK_LEFT', 'KICK_RIGHT', 'FLAP', 'BLOCK', 'STEP'];
+const RANDOM_EVENTS: MotionEvent[] = [
+  'JUMP',
+  'SQUAT',
+  'HANDS_UP',
+  'PUNCH_LEFT',
+  'PUNCH_RIGHT',
+  'MOVE_LEFT',
+  'MOVE_RIGHT',
+  'LEAN_LEFT',
+  'LEAN_RIGHT',
+  'KICK_LEFT',
+  'KICK_RIGHT',
+  'FLAP',
+  'BLOCK',
+  'STEP',
+];
 
 describe('every game runs headless in every mode', () => {
   for (const meta of GAMES) {
@@ -13,7 +28,7 @@ describe('every game runs headless in every mode', () => {
         const count = playersForMode(meta, mode);
         const h = createHarness(meta, mod.default, mode, count);
         let seed = 7;
-        const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+        const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
         h.run(240, (_t, hh) => {
           for (const inp of hh.inputs) {
             if (rnd() < 0.06) hh.emit(inp.index, RANDOM_EVENTS[Math.floor(rnd() * RANDOM_EVENTS.length)]);
@@ -41,7 +56,9 @@ describe('every game runs headless in every mode', () => {
 describe('catalog', () => {
   it('has no placeholder implementations left', async () => {
     const { readFileSync } = await import('node:fs');
-    const bad = GAMES.filter((g) => readFileSync(`src/games/${g.id}/index.ts`, 'utf8').includes('PLACEHOLDER')).map((g) => g.id);
+    const bad = GAMES.filter((g) =>
+      readFileSync(`src/games/${g.id}/index.ts`, 'utf8').includes('PLACEHOLDER'),
+    ).map((g) => g.id);
     expect(bad).toEqual([]);
   });
 });

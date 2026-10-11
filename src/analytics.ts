@@ -19,7 +19,11 @@ export type AnalyticsEvent =
   | 'tracking_failure'
   | 'keyboard_mode'
   | 'tutorial'
-  | 'share_result';
+  | 'share_result'
+  | 'level_selected'
+  | 'collection_started'
+  | 'collection_completed'
+  | 'clip_shared';
 
 type Props = Record<string, string | number | boolean>;
 
@@ -39,7 +43,12 @@ function flush(): void {
   const body = JSON.stringify({ events: queue.splice(0, queue.length) });
   try {
     if (!navigator.sendBeacon?.(ENDPOINT, body)) {
-      void fetch(ENDPOINT, { method: 'POST', body, keepalive: true, headers: { 'content-type': 'application/json' } });
+      void fetch(ENDPOINT, {
+        method: 'POST',
+        body,
+        keepalive: true,
+        headers: { 'content-type': 'application/json' },
+      });
     }
   } catch {
     /* analytics must never break the game */
