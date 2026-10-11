@@ -74,10 +74,10 @@ export function autoModelStep(
   current: ModelVariant,
   framesOnModel: number,
   perf: PerfSample,
-  opts: { trial: boolean; saveData: boolean; lowMemory: boolean; rejected: boolean },
+  opts: { trial: boolean; saveData: boolean; lowMemory: boolean; rejected: boolean; crowd?: boolean },
 ): AutoModelAction {
   if (current === 'lite') {
-    if (opts.rejected || opts.saveData || opts.lowMemory) return null;
+    if (opts.rejected || opts.saveData || opts.lowMemory || opts.crowd) return null;
     if (framesOnModel < AUTO_MODEL.observeFrames) return null;
     const gpu = /GPU/.test(perf.backend);
     return gpu &&

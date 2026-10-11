@@ -358,10 +358,19 @@ export function playScreen(m: RouteMatch): Screen {
   };
 
   // ── Lobby ──────────────────────────────────────────────
-  const statusText = (st: LobbyStatus): HTMLElement => {
+  const statusText = (st: LobbyStatus, crowdOnly = false): HTMLElement => {
     const msgs: string[] = [];
     if (settings.get().creatorMode && count > 1 && session.mode === 'camera') msgs.push(t('creator.duo'));
     if (st.lowLight) msgs.push(t('issue.low-light'));
+    const names = settings.get().names;
+    for (const [a, b] of st.crowd.crowded) msgs.push(t('issue.crowded', { a: names[a], b: names[b] }));
+    for (const i of st.crowd.tooBig) msgs.push(t('issue.zone', { name: names[i] }));
+    if (crowdOnly)
+      return h(
+        'ul',
+        { class: 'lobby__issues' },
+        msgs.slice(0, 2).map((x) => h('li', null, '💡 ', x)),
+      );
     if (st.extra > 0) msgs.push(t('issue.extra', { m: count }));
     st.issues.forEach((list) => {
       for (const iss of list) {
@@ -536,6 +545,7 @@ export function playScreen(m: RouteMatch): Screen {
         practice.done,
         st.startArmed,
         tutorialDone,
+        st.crowd,
       ]);
       if (key === lastStatusKey) return;
       lastStatusKey = key;
@@ -592,7 +602,9 @@ export function playScreen(m: RouteMatch): Screen {
           st.fullBody ? ` · ${t('lobby.fullBody')}` : '',
         ),
       );
+      // Crowd hints matter in every phase (players drift together while practising).
       if (phase === 'detect') issuesBox.appendChild(statusText(st));
+      else if (st.crowd.crowded.length || st.crowd.tooBig.length) issuesBox.appendChild(statusText(st, true));
       const ready = st.ready.every(Boolean);
       startBtn.toggleAttribute('disabled', !ready);
       const gestures = !!lobby?.gestures;

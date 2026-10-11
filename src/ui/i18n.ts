@@ -314,6 +314,8 @@ const en = {
   'creator.off': 'Creator mode off',
   'creator.duo': 'Creator mode: stand close together in the middle so you both fit the vertical frame.',
   'settings.creator': 'Creator mode: vertical 9:16 game screen for recording or streaming',
+  'issue.crowded': '{a} and {b}: spread out a little so the camera can tell you apart',
+  'issue.zone': '{name}: step back so you fit your zone',
 };
 
 export type I18nKey = keyof typeof en;
@@ -630,6 +632,8 @@ const id: Partial<Record<I18nKey, string>> = {
   'creator.off': 'Mode kreator mati',
   'creator.duo': 'Mode kreator: berdiri berdekatan di tengah agar kalian berdua masuk bingkai vertikal.',
   'settings.creator': 'Mode kreator: layar game vertikal 9:16 untuk rekam atau streaming',
+  'issue.crowded': '{a} dan {b}: beri jarak sedikit agar kamera bisa membedakan kalian',
+  'issue.zone': '{name}: mundur sedikit agar muat di zonamu',
 };
 
 const DICTS: Record<Lang, Partial<Record<I18nKey, string>>> = { en, id };

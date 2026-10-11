@@ -21,6 +21,16 @@ const INPUT_WIDTH: Record<InputQuality, number> = {
   quality: 960,
 };
 
+/**
+ * Width of the image handed to the pose model. Three or four people are each smaller in the frame,
+ * so crowds get at least the "quality" width (640 px on the performance preset) — more pixels per
+ * body keeps far and partly hidden players detected.
+ */
+export function inputWidthFor(q: InputQuality, numPoses: number): number {
+  const base = INPUT_WIDTH[q];
+  return numPoses >= 3 ? Math.max(base, q === 'performance' ? 640 : INPUT_WIDTH.quality) : base;
+}
+
 /** Downloads a file with progress reporting. */
 async function fetchWithProgress(
   url: string,
@@ -133,7 +143,7 @@ export class MediaPipeProvider implements PoseProvider {
   private pending: ((r: WorkerResult | null) => void) | null = null;
   private numPoses = 2;
   private lastT = 0;
-  private inputWidth = INPUT_WIDTH.balanced;
+  private quality: InputQuality = 'balanced';
   private canResize = true;
   private failures = 0;
   private recoveries = 0;
@@ -149,7 +159,7 @@ export class MediaPipeProvider implements PoseProvider {
   onFatal: (() => void) | null = null;
 
   setQuality(q: InputQuality): void {
-    this.inputWidth = INPUT_WIDTH[q];
+    this.quality = q;
   }
 
   async init(
@@ -437,7 +447,7 @@ export class MediaPipeProvider implements PoseProvider {
         const worker = this.worker;
         const vw = video.videoWidth;
         const vh = video.videoHeight;
-        const w = Math.min(this.inputWidth, vw);
+        const w = Math.min(inputWidthFor(this.quality, this.numPoses), vw);
         const h = Math.round((w / vw) * vh);
         let bitmap: ImageBitmap;
         try {

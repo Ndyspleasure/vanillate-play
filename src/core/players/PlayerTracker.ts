@@ -160,6 +160,11 @@ export class PlayerTracker {
     return this.visible;
   }
 
+  /** Width of one player's zone in view units. */
+  get zoneWidth(): number {
+    return this.zoneSpan;
+  }
+
   private get zoneSpan(): number {
     return (this.aspect * (this.visible[1] - this.visible[0])) / this.required;
   }

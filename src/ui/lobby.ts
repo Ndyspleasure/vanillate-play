@@ -1,5 +1,6 @@
 import type { BodyIssue } from '../core/calibration/Calibration';
 import { GestureHold } from '../core/motion/gesture';
+import { crowdAdvice, type CrowdAdvice } from '../core/players/crowd';
 import type { PracticeTracker } from '../core/motion/practice';
 import type { MotionSession } from '../core/session/MotionSession';
 import { SIM_ASPECT } from '../core/tracking/SimulatedProvider';
@@ -18,6 +19,8 @@ export interface LobbyStatus {
   /** Start gesture is waiting for raised hands to come down first. */
   startArmed: boolean;
   fullBody: boolean;
+  /** Framing advice for 3–4 players (and duos standing shoulder to shoulder). */
+  crowd: CrowdAdvice;
 }
 
 /**
@@ -123,7 +126,15 @@ export class LobbyView {
       issues.push(present ? p.issues : []);
       if (present && p.issues.some((x) => x === 'feet-hidden' || x === 'hips-hidden')) fullBody = false;
     }
+    const crowd = crowdAdvice(
+      Array.from({ length: n }, (_, i) => {
+        const slot = this.session.slot(i);
+        return { present: this.session.health(i) !== 'lost', center: slot.center, scale: slot.scale };
+      }),
+      this.session.tracker.zoneWidth,
+    );
     return {
+      crowd,
       detected,
       ready,
       calibrating,
@@ -248,6 +259,33 @@ export class LobbyView {
         circle(g, inp.head.x, ry, 22, 'rgba(20,10,40,0.6)');
         progressRing(g, inp.head.x, ry, 20, p.progress, color, 6);
       }
+    }
+    // Crowd hints: arrows between players who stand too close, "step back" over oversized ones.
+    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
+    for (const [a, b] of this.status.crowd.crowded) {
+      const pa = this.hub.get(a);
+      const pb = this.hub.get(b);
+      const y = (pa.shoulders.y + pb.shoulders.y) / 2;
+      const mx = (pa.shoulders.x + pb.shoulders.x) / 2;
+      g.globalAlpha = pulse;
+      text(g, '⟵  ⟶', mx, y, { size: 34, color: C.warn, weight: 800 });
+      g.globalAlpha = 1;
+    }
+    for (const i of this.status.crowd.tooBig) {
+      const inp = this.hub.get(i);
+      g.globalAlpha = pulse;
+      text(
+        g,
+        this.lang === 'id' ? '⬆ MUNDUR' : '⬆ STEP BACK',
+        inp.head.x,
+        inp.head.y - inp.headRadius * 1.6,
+        {
+          size: 20,
+          color: C.warn,
+          weight: 800,
+        },
+      );
+      g.globalAlpha = 1;
     }
     // Practice check-off pops above each player's head
     for (const p of this.pops) {

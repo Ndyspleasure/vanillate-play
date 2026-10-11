@@ -237,6 +237,8 @@ export class MotionSession {
         saveData: !!nav?.connection?.saveData,
         lowMemory: (nav?.deviceMemory ?? 8) < 4,
         rejected: fullRejected(),
+        // Crowds are better served by a sharper input image on the light model.
+        crowd: this.required >= 3,
       },
     );
     if (action === 'upgrade') void this.switchModel('full', true);
@@ -484,7 +486,8 @@ export class MotionSession {
 
   private cameraPoses(): number {
     const required = this.required;
-    return Math.min(MAX_PLAYERS, required + (required <= 2 ? 1 : 0));
+    // One pose more than needed, so an extra person is noticed (warning) instead of stealing a slot.
+    return Math.min(MAX_PLAYERS, required + 1);
   }
 
   // ── Tracking loop ──────────────────────────────────────
