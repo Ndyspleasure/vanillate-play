@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { crowdAdvice } from '../src/core/players/crowd';
 import { inputWidthFor } from '../src/core/tracking/MediaPipeProvider';
+import { SIM_ASPECT } from '../src/core/tracking/SimulatedProvider';
 import { SimRig } from './helpers';
 
 const body = (x: number, scale = 0.17, present = true) => ({ present, center: { x, y: 0.5 }, scale });
@@ -71,5 +72,38 @@ describe('four players in one camera', () => {
     expect(rig.session.health(2)).not.toBe('lost');
     const xs = [0, 1, 2, 3].map((i) => rig.session.slot(i).center.x);
     expect([...xs].sort((a, b) => a - b)).toEqual(xs);
+  });
+});
+
+describe('acquiring players anywhere in the visible frame', () => {
+  for (const frac of [0.15, 0.25, 0.33, 0.5, 0.8]) {
+    it(`a solo player standing at ${frac} of the frame width is detected`, async () => {
+      const rig = new SimRig(1);
+      rig.sim.setNumPoses(1);
+      rig.body(0).baseX = rig.body(0).x = SIM_ASPECT * frac;
+      await rig.step(1.6);
+      expect(rig.session.isReady(0)).toBe(true);
+    });
+  }
+
+  for (const frac of [0.1, 0.4]) {
+    it(`a duo is detected with Player 1 at ${frac} (off their zone centre)`, async () => {
+      const rig = new SimRig(2);
+      rig.body(0).baseX = rig.body(0).x = SIM_ASPECT * frac;
+      await rig.step(1.6);
+      expect(rig.session.isReady(0)).toBe(true);
+      expect(rig.session.isReady(1)).toBe(true);
+      expect(rig.session.slot(0).center.x).toBeLessThan(rig.session.slot(1).center.x);
+    });
+  }
+
+  it('with one player wanted and two people in view, the more central one plays', async () => {
+    const rig = new SimRig(1);
+    rig.sim.setNumPoses(2);
+    rig.body(0).baseX = rig.body(0).x = SIM_ASPECT * 0.48;
+    rig.body(1).baseX = rig.body(1).x = SIM_ASPECT * 0.85;
+    await rig.step(1.6);
+    expect(rig.session.slot(0).center.x).toBeLessThan(SIM_ASPECT * 0.6);
+    expect(rig.session.tracker.extraPeople).toBe(1);
   });
 });

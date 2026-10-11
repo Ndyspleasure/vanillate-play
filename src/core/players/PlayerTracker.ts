@@ -231,7 +231,9 @@ export class PlayerTracker {
     const cost = (si: number, d: Measured): number => {
       const s = this.slots[si];
       const zoneDist = Math.abs(d.center.x - this.zoneCenter(si)) / this.zoneSpan;
-      if (s.state === 'empty') return 1 + zoneDist * 2;
+      // A free slot takes any visible person (cheaper than leaving it empty, see missCost); the zone
+      // distance only decides who goes where when several people are in view.
+      if (s.state === 'empty') return 0.2 + zoneDist * 0.8;
       const age = Math.max(0, (now - s.lastSeen) / 1000);
       const px = s.center.x + s.velocity.x * Math.min(age, 0.3);
       const py = s.center.y + s.velocity.y * Math.min(age, 0.3);

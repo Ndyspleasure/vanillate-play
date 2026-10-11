@@ -174,6 +174,7 @@ export function labScreen(): Screen {
     canvas.style.width = `${w}px`;
     canvas.style.height = `${hh}px`;
     mapper.set(w, hh, session.mode === 'camera' ? session.camera.aspect : SIM_ASPECT);
+    session.tracker.setVisibleRange(...mapper.visibleRange());
   };
   const ro = new ResizeObserver(resize);
   ro.observe(stage);
