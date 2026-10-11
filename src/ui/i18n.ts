@@ -295,6 +295,20 @@ const en = {
   'settings.model.hint':
     'Automatic switches to high accuracy after a few seconds when your device is fast enough, and back if it slows down.',
   'settings.model.now': 'Running now: {m}.',
+  'settings.clips':
+    'Record a replay clip of each match (camera + game, kept on this device until you share it)',
+  'settings.clipsUnsupported': "Replay clips aren't supported in this browser.",
+  'share.tabCard': 'Result card',
+  'share.tabClip': 'Replay clip',
+  'share.clipLoading': 'Preparing the replay clip…',
+  'share.clipNone': 'No replay clip for this match.',
+  'share.clipOff':
+    'Want a video of the last seconds next time? Replay clips are recorded on your device and only leave it if you share them.',
+  'share.clipEnable': 'Record replay clips from now on',
+  'share.clipNote':
+    '{s} s clip, recorded on this device. It is deleted when you leave this screen unless you download or share it.',
+  'result.clipReady': 'Replay clip ready',
+  'share.downloadVideo': 'Download video',
 };
 
 export type I18nKey = keyof typeof en;
@@ -592,6 +606,20 @@ const id: Partial<Record<I18nKey, string>> = {
   'settings.model.hint':
     'Otomatis beralih ke akurasi tinggi setelah beberapa detik bila perangkatmu cukup cepat, dan kembali jika melambat.',
   'settings.model.now': 'Sedang dipakai: {m}.',
+  'settings.clips':
+    'Rekam klip ulangan tiap pertandingan (kamera + game, tetap di perangkat ini sampai kamu bagikan)',
+  'settings.clipsUnsupported': 'Klip ulangan tidak didukung di browser ini.',
+  'share.tabCard': 'Kartu hasil',
+  'share.tabClip': 'Klip ulangan',
+  'share.clipLoading': 'Menyiapkan klip ulangan…',
+  'share.clipNone': 'Tidak ada klip ulangan untuk pertandingan ini.',
+  'share.clipOff':
+    'Mau video detik-detik terakhir lain kali? Klip ulangan direkam di perangkatmu dan hanya keluar jika kamu bagikan.',
+  'share.clipEnable': 'Rekam klip ulangan mulai sekarang',
+  'share.clipNote':
+    'Klip {s} detik, direkam di perangkat ini. Dihapus saat kamu meninggalkan layar ini kecuali kamu unduh atau bagikan.',
+  'result.clipReady': 'Klip ulangan siap',
+  'share.downloadVideo': 'Unduh video',
 };
 
 const DICTS: Record<Lang, Partial<Record<I18nKey, string>>> = { en, id };

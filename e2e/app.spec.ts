@@ -77,3 +77,24 @@ test('camera denied path offers a keyboard fallback', async ({ browser }) => {
   await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
   await ctx.close();
 });
+
+test('opted-in replay clip is recorded and offered for sharing', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.addInitScript(() =>
+    localStorage.setItem('vm.settings.v1', JSON.stringify({ replayClips: true, safetyAcknowledged: true })),
+  );
+  await page.goto('/play/target-battle?mode=versus');
+  await page.locator('#keyboard-mode').click();
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  await page.locator('#lobby-start').click();
+  await expect(page.locator('.result')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('#clip-ready')).toBeVisible({ timeout: 10_000 });
+  await page.locator('#clip-ready').click();
+  const video = page.locator('video.share-preview--clip');
+  await expect(video).toBeVisible();
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 10_000 })
+    .toBeGreaterThan(0);
+  await expect(page.locator('#download-clip')).toBeVisible();
+  expect(errors).toEqual([]);
+});

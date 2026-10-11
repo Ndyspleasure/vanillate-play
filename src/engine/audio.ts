@@ -268,6 +268,22 @@ export class AudioEngine {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
+  private tap: MediaStreamAudioDestinationNode | null = null;
+
+  /** Game sound as a MediaStream (for replay clips); null before audio is unlocked. */
+  recordStream(): MediaStream | null {
+    if (!this.ctx || !this.master) return null;
+    if (!this.tap) {
+      try {
+        this.tap = this.ctx.createMediaStreamDestination();
+        this.master.connect(this.tap);
+      } catch {
+        return null;
+      }
+    }
+    return this.tap.stream;
+  }
+
   setVolumes(sfx: number, music: number): void {
     this.sfxVol = sfx;
     this.musicVol = music;

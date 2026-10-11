@@ -6,7 +6,7 @@ import { lang, t } from '../i18n';
 const EN = [
   [
     'Your camera stays on your device',
-    'Vanillate Motion turns your movement into game controls using on-device AI (MediaPipe Pose) that runs inside your browser. Camera video is processed frame by frame in memory and is never uploaded, recorded or stored by us.',
+    'Vanillate Motion turns your movement into game controls using on-device AI (MediaPipe Pose) that runs inside your browser. Camera video is processed frame by frame in memory and is never uploaded or stored by us. Nothing is recorded unless you turn on replay clips (see below).',
   ],
   [
     'What we keep (on your device only)',
@@ -15,6 +15,14 @@ const EN = [
   [
     'Photos in share cards',
     'When a match ends, the result screen can include a still photo from the camera in the share image — only if you switch it on. The image is generated locally and only leaves your device if you choose to share or download it.',
+  ],
+  [
+    'Replay clips (off unless you turn them on)',
+    'If you switch on replay clips in Settings, the last few seconds of each match (camera picture, game graphics and game sound) are recorded in your browser’s memory while you play — a REC badge shows when this is happening. The clip is never uploaded: it is discarded when you leave the result screen unless you download or share it yourself.',
+  ],
+  [
+    'Motion lab logs',
+    'The motion lab can record a log of movement measurements (numbers only — no images) while you test gestures. It stays in memory and only becomes a file if you press Download.',
   ],
   [
     'Anonymous gameplay statistics',
@@ -32,7 +40,7 @@ const EN = [
 const ID = [
   [
     'Kameramu tetap di perangkatmu',
-    'Vanillate Motion mengubah gerakanmu menjadi kontrol game dengan AI di perangkat (MediaPipe Pose) yang berjalan di browser. Video kamera diproses frame demi frame di memori dan tidak pernah diunggah, direkam, atau disimpan oleh kami.',
+    'Vanillate Motion mengubah gerakanmu menjadi kontrol game dengan AI di perangkat (MediaPipe Pose) yang berjalan di browser. Video kamera diproses frame demi frame di memori dan tidak pernah diunggah atau disimpan oleh kami. Tidak ada yang direkam kecuali kamu menyalakan klip ulangan (lihat di bawah).',
   ],
   [
     'Yang kami simpan (hanya di perangkatmu)',
@@ -41,6 +49,14 @@ const ID = [
   [
     'Foto di kartu hasil',
     'Setelah pertandingan, layar hasil dapat menyertakan foto diam dari kamera di gambar yang dibagikan — hanya jika kamu menyalakannya. Gambar dibuat di perangkat dan hanya keluar dari perangkat jika kamu membagikan atau mengunduhnya.',
+  ],
+  [
+    'Klip ulangan (mati kecuali kamu nyalakan)',
+    'Jika kamu menyalakan klip ulangan di Pengaturan, beberapa detik terakhir setiap pertandingan (gambar kamera, grafis game, dan suara game) direkam di memori browser saat bermain — lencana REC menunjukkan saat perekaman berlangsung. Klip tidak pernah diunggah: dibuang saat kamu meninggalkan layar hasil kecuali kamu sendiri mengunduh atau membagikannya.',
+  ],
+  [
+    'Log lab gerakan',
+    'Lab gerakan dapat merekam log pengukuran gerak (hanya angka — tanpa gambar) saat kamu menguji gerakan. Log tetap di memori dan baru menjadi file jika kamu menekan Unduh.',
   ],
   [
     'Statistik permainan anonim',

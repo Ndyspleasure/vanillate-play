@@ -634,6 +634,7 @@ export function playScreen(m: RouteMatch): Screen {
         showPerf: s.showPerf,
         lang: s.lang,
         level,
+        recordClip: s.replayClips,
         // The tutorial already introduced the game: go straight to the countdown.
         quickStart: quick || practicedNow,
       },
@@ -717,6 +718,7 @@ export function playScreen(m: RouteMatch): Screen {
     const isBest = stats.completed(meta.id, mode, result, names, duration);
     track('game_completed', { game: meta.id, mode, players: count, seconds: Math.round(duration / 1000) });
     const photo = runner?.endPhoto ?? null;
+    const clip = runner?.takeClip() ?? Promise.resolve(null);
     app.audio.play(result.winner !== null || result.kind !== 'versus' ? 'win' : 'success');
     runner?.fx.confetti(runner.width, 140);
 
@@ -795,7 +797,7 @@ export function playScreen(m: RouteMatch): Screen {
           button(t('result.share'), {
             variant: 'secondary',
             icon: 'share',
-            onClick: () => openShare(meta, result, players, photo),
+            onClick: () => openShare(meta, result, players, photo, clip),
           }),
           button(t('result.exit'), {
             variant: 'ghost',
@@ -836,6 +838,23 @@ export function playScreen(m: RouteMatch): Screen {
     resultLoop = requestAnimationFrame(loop);
     if (isBest) runner?.fx.confetti(runner.width, 80);
     (overlay.querySelector('#rematch-btn') as HTMLElement | null)?.focus();
+    void clip.then((c) => {
+      if (!c || view !== 'result') return;
+      overlay
+        .querySelector('.result__buttons')
+        ?.before(
+          h(
+            'button',
+            {
+              class: 'chip chip--clip',
+              type: 'button',
+              id: 'clip-ready',
+              onclick: () => openShare(meta, result, players, photo, clip),
+            },
+            `🎬 ${t('result.clipReady')}`,
+          ),
+        );
+    });
   };
 
   const rematch = () => {

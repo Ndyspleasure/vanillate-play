@@ -24,6 +24,8 @@ export interface Settings {
   gestureControls: boolean;
   /** Allow anonymous, aggregated usage events (only sent if an endpoint is configured). */
   analytics: boolean;
+  /** Record replay clips (opt-in; clips stay on the device unless shared). */
+  replayClips: boolean;
   /** Last chosen difficulty (pre-selected on game pages). */
   level: Level;
 }
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gestureControls: true,
   analytics: true,
   level: 'normal',
+  replayClips: false,
 };
 
 type Listener = (s: Settings) => void;

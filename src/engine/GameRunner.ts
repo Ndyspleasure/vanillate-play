@@ -15,6 +15,7 @@ import {
   skeleton,
   text,
 } from './draw';
+import { ClipRecorder, clipSupported, type Clip } from './clip';
 import { Fx, type FxQuality } from './fx';
 import { InputHub } from './input';
 import { Rng } from './rng';
@@ -44,6 +45,8 @@ export interface RunnerSettings {
   lang: 'en' | 'id';
   /** Difficulty level (default normal). */
   level?: Level;
+  /** Record a replay clip of the match (player opted in). */
+  recordClip?: boolean;
   /** Skip the intro card (rematch). */
   quickStart?: boolean;
   seed?: number;
@@ -86,6 +89,8 @@ export class GameRunner {
   readonly count: number;
   private pausedFrom: RunnerPhase = 'play';
   private ctx!: GameContext;
+  private clip: ClipRecorder | null = null;
+  private clipResult: Promise<Clip | null> | null = null;
 
   constructor(
     private container: HTMLElement,
@@ -193,6 +198,15 @@ export class GameRunner {
     this.game = factory(this.ctx);
     this.container.classList.toggle('stage--pip', this.game.view.camera === 'pip');
     this.setPhase(this.settings.quickStart ? 'countdown' : 'intro');
+    if (this.settings.recordClip && clipSupported()) {
+      try {
+        this.clip = new ClipRecorder(this.width, this.height, this.audio.recordStream());
+        this.clip.start();
+      } catch (err) {
+        console.warn('[clip] disabled', err);
+        this.clip = null;
+      }
+    }
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -232,6 +246,8 @@ export class GameRunner {
   destroy(): void {
     cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
+    this.clip?.cancel();
+    this.clip = null;
     this.game?.destroy?.();
     this.game = null;
     this.audio.music.stop(200);
@@ -245,6 +261,16 @@ export class GameRunner {
     this.result = r;
     this.endPhoto = this.snapshot();
     this.setPhase('ended');
+  }
+
+  /** The replay clip of the finished match (null when not recording or unsupported). */
+  takeClip(): Promise<Clip | null> {
+    return this.clipResult ?? Promise.resolve(null);
+  }
+
+  /** True while a replay clip is being recorded (shown as a REC badge). */
+  get recording(): boolean {
+    return !!this.clip;
   }
 
   /** Camera frame captured at the final moment of the match (for the optional share photo). */
@@ -381,6 +407,10 @@ export class GameRunner {
         if (this.phaseT >= 1.6 && this.result) {
           const r = this.result;
           this.result = null;
+          if (this.clip) {
+            this.clipResult = this.clip.finish();
+            this.clip = null;
+          }
           this.cb.onEnd(r);
         }
         break;
@@ -451,6 +481,46 @@ export class GameRunner {
         { size: 13, align: 'left', color: C.muted, stroke: 3 },
       );
     }
+    if (this.clip) {
+      // The clip gets the frame first, so the REC badge below isn't burned into the video.
+      this.clip.frame((cg, cw, ch) => this.composeClip(cg, cw, ch));
+      // REC badge so players always know a clip is being recorded (it never leaves the device).
+      if (this.phase !== 'ended') {
+        const blink = Math.sin(performance.now() / 300) > -0.3;
+        g.fillStyle = 'rgba(20,10,40,0.7)';
+        g.beginPath();
+        g.roundRect?.(w - 84, h - 40, 72, 28, 14);
+        g.fill();
+        if (blink) {
+          g.fillStyle = '#ff3b5c';
+          g.beginPath();
+          g.arc(w - 68, h - 26, 6, 0, Math.PI * 2);
+          g.fill();
+        }
+        text(g, 'REC', w - 54, h - 25, { size: 13, align: 'left', stroke: 0 });
+      }
+    }
+  }
+
+  /** Camera (when it's behind the game) + the game canvas, scaled into the clip frame. */
+  private composeClip(g: CanvasRenderingContext2D, cw: number, ch: number): void {
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = '#140b2e';
+    g.fillRect(0, 0, cw, ch);
+    const video = this.session.camera.video;
+    if (this.hasCamera && this.game?.view.camera !== 'pip' && video.readyState >= 2) {
+      const m = this.mapper;
+      const s = cw / this.width;
+      g.setTransform(-s, 0, 0, s, (m.offX + m.scale * m.aspect) * s, m.offY * s);
+      g.drawImage(video, 0, 0, m.scale * m.aspect, m.scale);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    g.drawImage(this.canvas, 0, 0, cw, ch);
+    g.font = `700 ${Math.round(ch * 0.03)}px ${FONT}`;
+    g.textAlign = 'right';
+    g.textBaseline = 'alphabetic';
+    g.fillStyle = 'rgba(255,247,232,0.75)';
+    g.fillText('VANILLATE MOTION', cw - ch * 0.025, ch - ch * 0.025);
   }
 
   private arenaBackground(g: CanvasRenderingContext2D): void {

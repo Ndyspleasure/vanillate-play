@@ -1,5 +1,6 @@
 import { app } from '../../app/context';
 import type { Screen } from '../../app/router';
+import { clipSupported } from '../../engine/clip';
 import { PLAYER_COLORS } from '../../engine/draw';
 import { settings, type Settings } from '../../storage/settings';
 import { stats } from '../../storage/stats';
@@ -25,7 +26,7 @@ export function settingsScreen(): Screen {
     );
 
   const toggle = (
-    key: 'reducedMotion' | 'showSkeleton' | 'showPerf' | 'gestureControls' | 'analytics',
+    key: 'reducedMotion' | 'showSkeleton' | 'showPerf' | 'gestureControls' | 'analytics' | 'replayClips',
     label: string,
   ) =>
     h(
@@ -191,6 +192,9 @@ export function settingsScreen(): Screen {
         { class: 'card settings-group' },
         h('h2', null, t('settings.privacy')),
         toggle('analytics', t('settings.analytics')),
+        clipSupported()
+          ? toggle('replayClips', t('settings.clips'))
+          : h('p', { class: 'small muted' }, t('settings.clipsUnsupported')),
         h(
           'div',
           { class: 'row' },
