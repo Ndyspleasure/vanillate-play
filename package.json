@@ -1,7 +1,7 @@
 {
   "name": "vanillate-motion",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Browser-based motion game platform where your body is the controller. Duo-first, camera-powered party games.",
   "type": "module",
   "license": "UNLICENSED",

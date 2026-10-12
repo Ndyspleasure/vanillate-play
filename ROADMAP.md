@@ -40,6 +40,12 @@
 - On-screen touch pads for keyboard mode on phones and tablets, built from each game's moves.
 - Lobby advice for phones: turn sideways for duo/party, and a warning when 3–4 player tracking is too slow.
 
+## ✅ Version 1.3.1 — portrait phones
+
+- Keyboard players stand inside the part of the frame that is on screen (portrait phones, tablets, creator mode) instead of off the edges, so both are detected and visible.
+- Touch pads no longer cover the lobby: the overlay makes room beside them when the screen is wide enough, or above them on portrait phones.
+- Body Boxing health bars stop short of the timer on narrow screens.
+
 ## Next — tuning with real players
 
 - Use motion-lab logs from real sessions (rooms, cameras, ages) to refine thresholds per gesture.

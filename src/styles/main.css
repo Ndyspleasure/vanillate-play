@@ -2535,6 +2535,13 @@ html.reduced-motion *::after {
   display: none;
 }
 
+/* Lobby and pause cards stay clear of the pads (insets measured by TouchPad). */
+.has-touchpad .play-overlay {
+  padding-left: max(8px, var(--pad-inset-x, 0px));
+  padding-right: max(8px, var(--pad-inset-x, 0px));
+  padding-bottom: max(8px, var(--pad-inset-b, 0px));
+}
+
 .touchpad__pad {
   display: grid;
   grid-template-columns: repeat(2, 54px);

@@ -76,7 +76,7 @@ export function hpBars(
   ghost?: number[],
 ): void {
   const w = ctx.width;
-  const bw = Math.min(420, w * 0.36);
+  const bw = Math.min(420, w * 0.36, w / 2 - 88);
   const y = 74;
   hp.forEach((v, i) => {
     const x = i === 0 ? 20 : w - bw - 20;
