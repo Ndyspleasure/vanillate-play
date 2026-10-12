@@ -63,6 +63,10 @@ export function padButtons(moves: readonly MoveHint[]): PadButton[] {
   return out;
 }
 
+/** The overlay keeps at least this much width between the pads before it moves above them. */
+const MIN_OVERLAY_WIDTH = 420;
+const PAD_GAP = 8;
+
 /** Phones and tablets: a coarse primary pointer and no hover. */
 export function isTouchDevice(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
@@ -73,6 +77,7 @@ export class TouchPad {
   private keyboard: KeyboardController | null = null;
   /** Buttons currently held, so a lost pointer or hidden pad releases them. */
   private held = new Map<HTMLElement, () => void>();
+  private resize: ResizeObserver | null = null;
 
   constructor(moves: readonly MoveHint[], colors: readonly string[]) {
     const buttons = padButtons(moves);
@@ -134,9 +139,56 @@ export class TouchPad {
     this.keyboard = keyboard;
     this.el.hidden = !keyboard;
     this.el.classList.toggle('touchpad--solo', players < 2);
+    this.watchInset(!!keyboard);
+  }
+
+  /**
+   * Keep the lobby and pause cards clear of the pads: the parent gets `--pad-inset-x` (room at
+   * both sides, when wide enough) or `--pad-inset-b` (room at the bottom, on narrow portrait screens).
+   */
+  private watchInset(on: boolean): void {
+    const host = this.el.parentElement;
+    if (!on || !host) {
+      this.resize?.disconnect();
+      this.resize = null;
+      host?.classList.remove('has-touchpad');
+      host?.style.removeProperty('--pad-inset-x');
+      host?.style.removeProperty('--pad-inset-b');
+      return;
+    }
+    host.classList.add('has-touchpad');
+    const update = () => {
+      const pads = [...this.el.querySelectorAll<HTMLElement>('.touchpad__pad')].filter(
+        (p) => p.offsetWidth > 0,
+      );
+      const box = this.el.getBoundingClientRect();
+      let side = 0;
+      let top = box.bottom;
+      for (const p of pads) {
+        const r = p.getBoundingClientRect();
+        // How far the pad reaches in from its own edge of the screen.
+        side = Math.max(side, Math.min(r.right - box.left, box.right - r.left));
+        top = Math.min(top, r.top);
+      }
+      // Pads sit at both edges, so the free width is the box minus one pad width on each side.
+      const wide = box.width - 2 * side >= MIN_OVERLAY_WIDTH;
+      host.style.setProperty('--pad-inset-x', wide ? `${Math.ceil(side + PAD_GAP)}px` : '0px');
+      host.style.setProperty('--pad-inset-b', wide ? '0px' : `${Math.ceil(box.bottom - top + PAD_GAP)}px`);
+    };
+    if (!this.resize && typeof ResizeObserver === 'function') {
+      this.resize = new ResizeObserver(update);
+      this.resize.observe(host);
+      this.resize.observe(this.el);
+    }
+    update();
   }
 
   releaseAll(): void {
     for (const release of [...this.held.values()]) release();
+  }
+
+  destroy(): void {
+    this.releaseAll();
+    this.watchInset(false);
   }
 }

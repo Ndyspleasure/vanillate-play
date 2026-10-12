@@ -331,21 +331,29 @@ export class SimulatedProvider implements PoseProvider {
   /** Bodies that are "in frame". Allows tests to simulate players leaving the camera. */
   present: boolean[] = [true, true, true, true];
   /**
-   * Fraction of the frame width the bodies are spread over (1 = whole frame). Creator mode's
-   * vertical crop only shows the middle third, so simulated players stand closer together there.
+   * Fraction of the visible width the bodies are spread over (1 = all of it). Tests use it to
+   * pack players close together.
    */
   spread = 1;
+  /**
+   * Part of the frame that is on screen (fractions of its width, view space). A portrait phone or
+   * creator mode's 9:16 stage only shows the middle of the frame, so players stand inside it.
+   */
+  visible: [number, number] = [0, 1];
 
   constructor(count = 4) {
     for (let i = 0; i < count; i++) this.bodies.push(new SimBody(0));
     this.layout(2);
   }
 
-  /** Spread the first `n` bodies evenly across the frame. */
+  /** Spread the first `n` bodies evenly across the visible part of the frame. */
   layout(n: number): void {
     const count = Math.max(1, Math.min(n, this.bodies.length));
+    const [v0, v1] = this.visible;
+    const center = (v0 + v1) / 2;
+    const span = (v1 - v0) * this.spread;
     this.bodies.forEach((b, i) => {
-      const x = SIM_ASPECT * (0.5 + ((i + 0.5) / count - 0.5) * this.spread);
+      const x = SIM_ASPECT * (center + ((i + 0.5) / count - 0.5) * span);
       b.baseX = x;
       b.x = x;
       b.zone = 0;

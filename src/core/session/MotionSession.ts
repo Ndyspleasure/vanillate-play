@@ -104,7 +104,8 @@ export class MotionSession {
   private lifecycleListeners = new Set<(l: SessionLifecycle) => void>();
   private sensitivity: Sensitivity = 'normal';
   private modelPref: ModelPreference = 'auto';
-  private simSpread = 1;
+  /** Visible part of the frame (see `setVisibleRange`), kept for the next simulated provider. */
+  private visible: [number, number] = [0, 1];
   /** Frames tracked on the current model (drives the automatic model policy). */
   private framesOnModel = 0;
   /** An automatic upgrade to `full` is being evaluated. */
@@ -410,11 +411,18 @@ export class MotionSession {
     });
   }
 
-  /** Spread simulated players over this fraction of the frame (creator mode packs them closer). */
-  setSimSpread(spread: number): void {
-    this.simSpread = spread;
-    if (this.sim && this.sim.spread !== spread) {
-      this.sim.spread = spread;
+  /**
+   * The part of the frame that is on screen (fractions of its width). Player zones are laid out
+   * over it, and simulated (keyboard) players stand inside it, so on a portrait phone or in
+   * creator mode nobody stands outside the picture.
+   */
+  setVisibleRange(x0: number, x1: number): void {
+    this.tracker.setVisibleRange(x0, x1);
+    const [a, b] = this.tracker.visibleRange;
+    if (Math.abs(a - this.visible[0]) < 0.01 && Math.abs(b - this.visible[1]) < 0.01) return;
+    this.visible = [a, b];
+    if (this.sim) {
+      this.sim.visible = [a, b];
       this.sim.layout(this.sim.activeCount);
     }
   }
@@ -423,7 +431,7 @@ export class MotionSession {
     this.stop();
     this.mode = 'simulated';
     const sim = new SimulatedProvider(MAX_PLAYERS);
-    sim.spread = this.simSpread;
+    sim.visible = [...this.visible];
     this.sim = sim;
     this.provider = sim;
     await sim.init(this.required, (s) => this.setStatus(s));

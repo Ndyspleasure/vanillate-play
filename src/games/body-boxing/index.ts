@@ -344,7 +344,8 @@ const factory: GameFactory = (ctx) => {
         emoji(g, '🥊', x, y, size, 1, color(gl.from));
       }
       // HUD: names, HP bars, rounds, timer
-      const bw = Math.min(420, w * 0.36);
+      // On a narrow (portrait) screen the bars stop short of the 120 px timer panel.
+      const bw = Math.min(420, w * 0.36, w / 2 - 88);
       for (let i = 0; i < 2; i++) {
         const x = i === 0 ? 20 : w - bw - 20;
         text(g, name(i), i === 0 ? x : x + bw, 30, {

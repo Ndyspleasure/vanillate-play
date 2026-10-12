@@ -36,7 +36,6 @@ import { isTouchDevice, TouchPad } from '../touchpad';
 import { notFoundScreen } from './notfound';
 
 /** Simulated players stand this close together in creator mode (the 9:16 crop shows ~1/3 of the frame). */
-const CREATOR_SPREAD = 0.3;
 
 type View = 'setup' | 'loading' | 'error' | 'lobby' | 'game' | 'result';
 type ErrorCode = CameraErrorCode | 'model' | 'ended';
@@ -130,7 +129,6 @@ export function playScreen(m: RouteMatch): Screen {
   const applyCreator = () => {
     const on = settings.get().creatorMode;
     root.classList.toggle('play--creator', on);
-    session.setSimSpread(on ? CREATOR_SPREAD : 1);
     creatorBtn.setAttribute('aria-pressed', String(on));
   };
   applyCreator();
@@ -1121,8 +1119,7 @@ export function playScreen(m: RouteMatch): Screen {
       lobby?.destroy();
       runner?.destroy();
       session.keyboard?.pointer(null);
-      touchpad.releaseAll();
-      session.setSimSpread(1);
+      touchpad.destroy();
       if (session.camera.video.parentElement === stage) session.camera.video.remove();
     },
   };

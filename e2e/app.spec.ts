@@ -201,6 +201,28 @@ test('keyboard mode on a phone shows touch pads that drive the players', async (
   await ctx.close();
 });
 
+test('keyboard mode on a portrait phone: players stand on screen and the pads leave the lobby usable', async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 360, height: 740 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await ctx.newPage();
+  const errors = trackErrors(page);
+  await page.goto('/play/body-boxing?mode=versus');
+  await page.locator('#keyboard-mode').click();
+  // Both simulated players are inside the narrow portrait crop, so both get detected.
+  await expect(page.locator('#lobby-start')).toBeEnabled({ timeout: 15_000 });
+  await expect(page.locator('.touchpad__pad').first()).toBeVisible();
+  // The pads must not cover the start button (a real tap, not a forced click).
+  await page.locator('#lobby-start').click({ timeout: 5_000 });
+  await expect(page.locator('#pause-btn')).toBeVisible({ timeout: 15_000 });
+  expect(errors).toEqual([]);
+  await ctx.close();
+});
+
 test('touch pads stay hidden on desktop keyboard mode', async ({ page }) => {
   await page.goto('/play/body-boxing?mode=versus');
   await page.locator('#keyboard-mode').click();
